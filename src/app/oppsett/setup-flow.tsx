@@ -4,11 +4,12 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import type { PhonePlatform } from "@/lib/platform"
 
 const SETUP_KEY = "tdc-checkin-printer-seen"
 const IOS_APP = "https://apps.apple.com/us/app/smooth-print/id1629559918"
 
-export type PhonePlatform = "ios" | "android" | "other"
+export type { PhonePlatform }
 
 const steps = [
   {

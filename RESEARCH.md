@@ -60,7 +60,7 @@ This project prints DK-11208.
 ## Not verified on hardware
 
 - That a tap on iOS Safari actually opens Smooth Print and prints (Android APK confirmed with `fileattach`).
-- What iOS Safari does when Smooth Print is not installed. The 1.5 s “still visible” hint is a guess, not a Brother feature.
+- What iOS Safari does when Smooth Print is not installed. Android uses an `intent://` URL with `package=com.brother.ptouch.smoothprint` and `S.browser_fallback_url` to `/oppsett` when the APK is missing. iOS only gets a soft “Skjedde det ingenting?” hint if the page is still visible after 2 s (Safari usually backgrounds when the app opens).
 - Whether a second phone can connect while the first still holds Bluetooth. A third-party note says one Bluetooth device at a time. Brother’s FAQ does not say that.
 - A QR code that contains printer pairing data. Not found in the Smooth Print manual or the QL-820NWBc Bluetooth FAQ.
 - Which cipher `@libsql/client` uses for `encryptionKey` on the installed version. The app follows the same `encryptionKey` option `tdc-sales` uses.

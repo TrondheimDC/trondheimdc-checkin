@@ -1,8 +1,13 @@
 /** DK-11208 (38 × 90 mm). Matches Brother QL LabelSize DieCutW38H90. */
 export const DEFAULT_PAPER_SIZE_ID = "DieCutW38H90"
 
-export function buildPrintUrl(input: {
-  /** Base64 of the .lbx bytes (not URL-safe; we encodeURIComponent the query value). */
+/** Android applicationId from Smooth Print 1.9.0 APK. */
+export const SMOOTH_PRINT_ANDROID_PACKAGE = "com.brother.ptouch.smoothprint"
+
+export const IOS_APP_STORE =
+  "https://apps.apple.com/us/app/smooth-print/id1629559918"
+
+export function buildPrintQuery(input: {
   fileBase64: string
   paperSizeId: string
   name: string
@@ -11,7 +16,7 @@ export function buildPrintUrl(input: {
   const size = input.paperSizeId || DEFAULT_PAPER_SIZE_ID
   // filename is the name Smooth Print stores for the attached bytes.
   // fileattach embeds the template so Smooth Print does not HTTP-fetch it.
-  const query = [
+  return [
     ["filename", "badge.lbx"],
     ["fileattach", input.fileBase64],
     ["size", size],
@@ -22,8 +27,37 @@ export function buildPrintUrl(input: {
   ]
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join("&")
+}
 
-  return `brotherwebprint://print?${query}`
+export function buildPrintUrl(input: {
+  fileBase64: string
+  paperSizeId: string
+  name: string
+  line2: string
+}): string {
+  return `brotherwebprint://print?${buildPrintQuery(input)}`
+}
+
+/**
+ * Chrome/Android intent URL: opens Smooth Print if installed, otherwise the fallback
+ * (typically /oppsett). Package id from the official APK.
+ */
+export function buildAndroidPrintIntent(input: {
+  fileBase64: string
+  paperSizeId: string
+  name: string
+  line2: string
+  fallbackUrl: string
+}): string {
+  const query = buildPrintQuery(input)
+  const fallback = encodeURIComponent(input.fallbackUrl)
+  return (
+    `intent://print?${query}#Intent;` +
+    `scheme=brotherwebprint;` +
+    `package=${SMOOTH_PRINT_ANDROID_PACKAGE};` +
+    `S.browser_fallback_url=${fallback};` +
+    `end`
+  )
 }
 
 export function templateUrl(): string {

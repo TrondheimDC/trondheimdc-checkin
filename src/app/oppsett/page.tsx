@@ -1,13 +1,8 @@
 import { headers } from "next/headers"
-import { SetupFlow, type PhonePlatform } from "./setup-flow"
+import { SetupFlow } from "./setup-flow"
+import { platformFromUserAgent } from "@/lib/platform"
 
 const DEFAULT_ANDROID_URL = "https://support.brother.com/g/b/agreement.aspx?dlid=dlfp101087_000"
-
-function platformFromUserAgent(ua: string): PhonePlatform {
-  if (/android/i.test(ua)) return "android"
-  if (/iPad|iPhone|iPod/i.test(ua)) return "ios"
-  return "other"
-}
 
 export default async function SetupPage() {
   const ua = (await headers()).get("user-agent") ?? ""
