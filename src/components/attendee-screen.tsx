@@ -1,8 +1,9 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Search, ScanLine } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 import { PrintButton } from "@/components/print-button"
 import { Button } from "@/components/ui/button"
 import { labelLine } from "@/lib/label-line"
@@ -19,6 +20,9 @@ export function AttendeeScreen({
   paperSizeId: string
   platform: PhonePlatform
 }) {
+  const queryClient = useQueryClient()
+  const [overrideBusy, setOverrideBusy] = useState(false)
+  const [overrideError, setOverrideError] = useState<string | null>(null)
   const query = useQuery({
     queryKey: ["attendee", id],
     queryFn: async () => {
@@ -92,6 +96,20 @@ export function AttendeeScreen({
 
   const attendee = query.data
   const line2 = labelLine(attendee.company, attendee.role)
+  const checkedIn = attendee.checkedInAt != null
+
+  async function setCheckedIn(next: boolean) {
+    const response = await fetch(apiPath(`/api/attendees/${encodeURIComponent(id)}`), {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ checkedIn: next }),
+    })
+    if (!response.ok) throw new Error("check-in failed")
+    const body = attendeeResponseSchema.parse(await response.json())
+    queryClient.setQueryData(["attendee", id], body.attendee)
+    void queryClient.invalidateQueries({ queryKey: ["attendee-stats"] })
+    void queryClient.invalidateQueries({ queryKey: ["search"] })
+  }
 
   return (
     <main className="relative flex min-h-dvh flex-col justify-between overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -102,7 +120,7 @@ export function AttendeeScreen({
           className="search-item-in text-sm tracking-wide text-[var(--color-fg-brand)]"
           style={{ animationDelay: "40ms" }}
         >
-          Bekreft før utskrift
+          {checkedIn ? "Innsjekket" : "Bekreft før utskrift"}
         </p>
 
         <div className="attendee-badge mt-6 flex min-h-[9.5rem] flex-col justify-center rounded-2xl bg-[var(--color-black-3)] px-6 py-7">
@@ -113,7 +131,31 @@ export function AttendeeScreen({
       </div>
 
       <div className="attendee-stagger relative flex flex-col gap-3 pt-8">
-        <PrintButton name={attendee.name} line2={line2} paperSizeId={paperSizeId} platform={platform} />
+        {overrideError ? (
+          <p className="text-base text-[var(--color-bg-danger)]">{overrideError}</p>
+        ) : null}
+        <PrintButton
+          name={attendee.name}
+          line2={line2}
+          paperSizeId={paperSizeId}
+          platform={platform}
+          checkedIn={checkedIn}
+          onCheckIn={() => setCheckedIn(true)}
+        />
+        <Button
+          variant="surface"
+          size="lg"
+          disabled={overrideBusy}
+          onClick={() => {
+            setOverrideError(null)
+            setOverrideBusy(true)
+            void setCheckedIn(!checkedIn)
+              .catch(() => setOverrideError("Klarte ikke å oppdatere innsjekk. Prøv igjen."))
+              .finally(() => setOverrideBusy(false))
+          }}
+        >
+          {checkedIn ? "Angre innsjekk" : "Marker som innsjekket"}
+        </Button>
         <Button asChild variant="surface" size="lg">
           <Link href="/">
             <ScanLine className="size-5" aria-hidden />

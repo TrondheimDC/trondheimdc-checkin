@@ -1,11 +1,14 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
 import { Camera, Flashlight, FlashlightOff, Search, Settings } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { attendeeStatsSchema } from "@/lib/db/schema"
+import { apiPath } from "@/lib/utils"
 
 const SETUP_KEY = "tdc-checkin-printer-seen"
 
@@ -82,6 +85,14 @@ async function openCamera(deviceId: string | undefined) {
 }
 
 export function Scanner() {
+  const stats = useQuery({
+    queryKey: ["attendee-stats"],
+    queryFn: async () => {
+      const response = await fetch(apiPath("/api/attendees/stats"))
+      if (!response.ok) throw new Error("stats failed")
+      return attendeeStatsSchema.parse(await response.json())
+    },
+  })
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
@@ -314,6 +325,11 @@ export function Scanner() {
             Søk etter navn
           </Link>
         </Button>
+        {stats.data ? (
+          <p className="text-center text-sm opacity-70">
+            {stats.data.checkedIn} av {stats.data.total} innsjekket
+          </p>
+        ) : null}
       </div>
     </main>
   )

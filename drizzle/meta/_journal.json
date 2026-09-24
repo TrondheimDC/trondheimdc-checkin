@@ -15,6 +15,13 @@
       "when": 1790247203874,
       "tag": "0001_seed-attendees",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790281429570,
+      "tag": "0002_vengeful_pyro",
+      "breakpoints": true
     }
   ]
 }

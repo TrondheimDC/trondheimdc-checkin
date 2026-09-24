@@ -116,6 +116,7 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
       name,
       company: row.company,
       role: row.role,
+      checkedInAt: null,
     })
   })
 
