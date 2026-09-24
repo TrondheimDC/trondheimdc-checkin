@@ -24,7 +24,7 @@ const INCLUDE_CHECKED_IN_KEY = "tdc-sok-include-checked-in"
 export default function SearchPage() {
   const router = useRouter()
   const [q, setQ] = useState("")
-  const [includeCheckedIn, setIncludeCheckedIn] = useState(false)
+  const [includeCheckedIn, setIncludeCheckedIn] = useState<boolean | null>(null)
   const deferredQ = useDeferredValue(q.trim())
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function SearchPage() {
 
   const query = useQuery({
     queryKey: ["search", deferredQ, includeCheckedIn],
-    enabled: deferredQ.length > 0,
+    enabled: deferredQ.length > 0 && includeCheckedIn !== null,
     queryFn: async () => {
       const params = new URLSearchParams({ q: deferredQ })
       if (includeCheckedIn) params.set("includeCheckedIn", "1")
@@ -52,6 +52,10 @@ export default function SearchPage() {
       return body.attendees
     },
   })
+
+  if (includeCheckedIn === null) {
+    return <main className="min-h-dvh bg-[var(--color-bg-base)]" />
+  }
 
   const searching = deferredQ.length > 0
   const pending = searching && (query.isPending || q.trim() !== deferredQ)
@@ -148,7 +152,7 @@ export default function SearchPage() {
               <p className="max-w-[16rem] text-base opacity-60">
                 Fant ingen med «{deferredQ}». Prøv et annet navn.
               </p>
-              {!includeCheckedIn ? (
+              {includeCheckedIn === false ? (
                 <p className="max-w-[18rem] text-base opacity-60">
                   Innsjekkede er skjult. Kryss av for å ta dem med.
                 </p>
