@@ -21,7 +21,7 @@ Copy `.env.example` if you need a base path or encryption.
 |---|---|
 | `DB_ENCRYPTION_KEY` | Optional. When set, the LibSQL file is encrypted at rest. The app still boots without it. |
 | `NEXT_PUBLIC_BASE_PATH` | Mount prefix behind nginx, no trailing slash. |
-| `LABEL_PAPER_SIZE_ID` | Optional Smooth Print `size` value. Leave empty until the DK-11208 id is confirmed. The print button still opens Smooth Print. |
+| `LABEL_PAPER_SIZE_ID` | Smooth Print `size` value. Defaults to `DieCutW38H90` (DK-11208, 38 × 90 mm). |
 | `SMOOTH_PRINT_ANDROID_URL` | Optional. Direct link for the Android app. Empty uses Brother's download page, which is a zip behind an agreement. |
 
 The database file is `data/checkin.db` and is gitignored. Migrations in `drizzle/` run on server start.
@@ -36,9 +36,9 @@ P-touch Editor, on a Windows PC:
 4. File → Save As → Template (`*.lbx`).
 5. Replace `public/templates/badge.lbx`.
 
-`LINE2` is `Company / Role`, with a missing part omitted. The app serves the file at `/templates/badge.lbx` as `application/octet-stream`. Smooth Print downloads that URL from the phone, so the phone needs mobile data while it is paired to the printer over Bluetooth.
+`LINE2` is `Company / Role`, with a missing part omitted. The app serves the file at `/templates/badge.lbx`. On print, the browser fetches it and passes it to Smooth Print via `fileattach` (base64), so Smooth Print does not need to download the template itself.
 
-The file in the repo is a placeholder. A real print needs a real export, and a confirmed paper-size id.
+The repo includes a generated `badge.lbx` for DK-11208 with objects `NAME` and `LINE2` (P-touch LBX = zip of `label.xml` + `prop.xml`, based on a working QL-820NWB sample). Brother’s Smooth Print sample zip only ships RJ/TD templates, not QL. Re-export from P-touch Editor on Windows if you need a polished layout.
 
 ## Printer
 

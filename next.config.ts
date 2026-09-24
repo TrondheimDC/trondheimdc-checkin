@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
         source: "/templates/badge.lbx",
         headers: [
           { key: "Content-Type", value: "application/octet-stream" },
+          { key: "Content-Disposition", value: 'attachment; filename="badge.lbx"' },
           { key: "Cache-Control", value: "no-cache" },
         ],
       },

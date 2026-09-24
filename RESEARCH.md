@@ -59,11 +59,7 @@ This project prints DK-11208.
 
 ## Not verified on hardware
 
-- The paper-size id string for DK-11208. Do not guess. `DieCutW62H29` is the only QL example in the Smooth Print manual, and that size is 62 × 29 mm.
-- That a tap on iOS Safari actually opens Smooth Print and prints.
-- That Smooth Print on Android (the APK) accepts the same URL.
-- That Smooth Print can download the template over mobile data while printing over Bluetooth.
-- That object names `NAME` and `LINE2` round-trip through a real `.lbx`.
+- That a tap on iOS Safari actually opens Smooth Print and prints (Android APK confirmed with `fileattach`).
 - What iOS Safari does when Smooth Print is not installed. The 1.5 s “still visible” hint is a guess, not a Brother feature.
 - Whether a second phone can connect while the first still holds Bluetooth. A third-party note says one Bluetooth device at a time. Brother’s FAQ does not say that.
 - A QR code that contains printer pairing data. Not found in the Smooth Print manual or the QL-820NWBc Bluetooth FAQ.

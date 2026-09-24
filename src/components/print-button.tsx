@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { buildPrintUrl, templateUrl } from "@/lib/print-url"
+import { buildPrintUrl, loadTemplateBase64 } from "@/lib/print-url"
 
 export function PrintButton({
   name,
@@ -16,19 +16,30 @@ export function PrintButton({
 }) {
   const [printed, setPrinted] = useState(false)
   const [stillHere, setStillHere] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function print() {
-    const url = buildPrintUrl({
-      templateUrl: templateUrl(),
-      paperSizeId,
-      name,
-      line2,
-    })
-    window.location.href = url
-    window.setTimeout(() => {
-      if (document.visibilityState === "visible") setStillHere(true)
-    }, 1500)
-    setPrinted(true)
+  async function print() {
+    setError(null)
+    setBusy(true)
+    try {
+      const fileBase64 = await loadTemplateBase64()
+      const url = buildPrintUrl({
+        fileBase64,
+        paperSizeId,
+        name,
+        line2,
+      })
+      window.location.href = url
+      window.setTimeout(() => {
+        if (document.visibilityState === "visible") setStillHere(true)
+      }, 1500)
+      setPrinted(true)
+    } catch {
+      setError("Klarte ikke å hente malen. Sjekk nettverket og prøv igjen.")
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -46,8 +57,9 @@ export function PrintButton({
           </p>
         </div>
       </div>
-      <Button size="lg" onClick={print}>
-        {printed ? "Skriv ut igjen" : "Skriv ut navneskilt"}
+      {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
+      <Button size="lg" disabled={busy} onClick={() => void print()}>
+        {busy ? "Henter mal…" : printed ? "Skriv ut igjen" : "Skriv ut navneskilt"}
       </Button>
     </div>
   )
