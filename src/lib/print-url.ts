@@ -16,17 +16,35 @@ export function buildPrintQuery(input: {
   const size = input.paperSizeId || DEFAULT_PAPER_SIZE_ID
   // filename is the name Smooth Print stores for the attached bytes.
   // fileattach embeds the template so Smooth Print does not HTTP-fetch it.
+  // formatarchiveupdate=1: overwrite a cached template with the same name
+  // (default is 0 — Smooth Print keeps the first badge.lbx forever).
+  // Content stamp in the name is a second bust if an old install ignores the flag.
+  // Do not use a base64 prefix — every .lbx zip starts with the same "UEsD…".
+  const stamp = templateStamp(input.fileBase64)
+  // Do not pass printMode=original: Brother's SDK returns SetMarginError for
+  // this die-cut. Do not pass orientation either; the LBX already says portrait.
+  // The template page is 38×90 pt-for-mm, so the default fit_to_page scale is 1.
   return [
-    ["filename", "badge.lbx"],
+    ["filename", `badge-${stamp}.lbx`],
     ["fileattach", input.fileBase64],
+    ["formatarchiveupdate", "1"],
     ["size", size],
-    ["orientation", "landscape"],
     ["copies", "1"],
     ["text_NAME", input.name],
     ["text_LINE2", input.line2],
   ]
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join("&")
+}
+
+/** Short content-dependent id so Smooth Print does not reuse a stale cached .lbx. */
+function templateStamp(fileBase64: string): string {
+  let hash = 2166136261
+  for (let i = 0; i < fileBase64.length; i++) {
+    hash ^= fileBase64.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(36)
 }
 
 export function buildPrintUrl(input: {
@@ -67,7 +85,7 @@ export function templateUrl(): string {
 
 /** Fetch the hosted .lbx and return standard base64 (for fileattach). */
 export async function loadTemplateBase64(): Promise<string> {
-  const response = await fetch(templateUrl())
+  const response = await fetch(templateUrl(), { cache: "no-store" })
   if (!response.ok) throw new Error("template fetch failed")
   const buffer = await response.arrayBuffer()
   const bytes = new Uint8Array(buffer)

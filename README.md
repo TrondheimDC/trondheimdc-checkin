@@ -52,4 +52,4 @@ Put basic auth in front of the app. Keep the app at `/`, or set `NEXT_PUBLIC_BAS
 
 ## Sample ids
 
-Seeded ids include `test` (Test Testesen) and `a-1001` through `a-1010`. Search is a case-insensitive substring of the name.
+Seeded ids include `test` (Test Testesen), `bjorn` (Bjørn Havre Melk), and `a-1001` through `a-1010`. Search is a case-insensitive substring of the name.

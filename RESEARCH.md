@@ -27,6 +27,10 @@ brotherwebprint://print?filename=<url-encoded lbx>&size=<paper size id>&copies=1
 - `filename` may be an internet path. Colons and slashes must be URL-encoded. UTF-8.
 - For QL, `size` is a paper-size id. The documented example is `DieCutW62H29`. A `.bin` media file is for other series, not QL.
 - Text is injected by the P-touch object name: `text_NAME` fills the object named `NAME`. https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/optional_parameters/
+- `fileattach` embeds the `.lbx` as base64. Smooth Print stores it under `filename`. With `formatarchiveupdate` default **0**, a later attach with the same name is ignored and the first cached template is reused. Set `formatarchiveupdate=1` (and/or change `filename`) when the template changes. https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/optional_parameters/
+- `printMode=original` on `DieCutW38H90` returns Brother SDK `SetMarginError`. Leave printMode unset (default `fit_to_page`).
+- Do not pass `orientation`. The LBX is portrait 38 × 90 mm, matching the die-cut, so `fit_to_page` does not scale it down. Text objects use `angle="90"` so the name runs along the 90 mm edge.
+- Margins match a working QL-820NWB sample: left 4.3 pt, right 4.4 pt, top 8.4 pt, bottom 8.5 pt.
 - Android also accepts `http://localhost:8088/print?...` and can return XML. A website cannot receive the iOS callback schemes (`successCallback` / `failureCallback`), because those open a custom scheme the site does not own.
 - The print URL has no printer parameter. Smooth Print uses the printer registered in the app.
 - iOS Safari only opens a custom scheme from a user tap. The app sets `window.location.href` inside the button handler.
