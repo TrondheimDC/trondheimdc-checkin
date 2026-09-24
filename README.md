@@ -53,3 +53,7 @@ Put basic auth in front of the app. Keep the app at `/`, or set `NEXT_PUBLIC_BAS
 ## Sample ids
 
 Seeded ids include `test` (Test Testesen), `bjorn` (Bjørn Havre Melk), and `a-1001` through `a-1010`. Search is a case-insensitive substring of the name.
+
+## Deltakerdata fra Checkin
+
+QR-id (= kolonnen **Barcode**) ligger i Checkins **totalrapport**, ikke i Excel-eksporten under Deltakere. Lagre som CSV UTF-8 og kjør `pnpm import:attendees ./totalrapport.csv`. Se [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md).

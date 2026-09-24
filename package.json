@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "import:attendees": "tsx scripts/import-attendees.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
@@ -16,20 +17,25 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.36.4",
+    "drizzle-zod": "^0.5.1",
     "libsql": "0.5.22",
     "lucide-react": "^0.454.0",
     "next": "16.1.0",
+    "papaparse": "^5.7.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22.15.0",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "drizzle-kit": "^0.30.0",
     "tailwindcss": "^4.1.9",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.0"
   }
 }

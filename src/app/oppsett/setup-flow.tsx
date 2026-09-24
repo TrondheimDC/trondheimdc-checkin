@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import type { PhonePlatform } from "@/lib/platform"
+import { refinePlatform, type PhonePlatform } from "@/lib/platform"
 
 const SETUP_KEY = "tdc-checkin-printer-seen"
 const IOS_APP = "https://apps.apple.com/us/app/smooth-print/id1629559918"
@@ -20,26 +20,31 @@ const steps = [
   {
     image: "/oppsett/oppsett-bluetooth.png",
     title: "Slå på Bluetooth",
-    body: "På skriveren: gå til Menu → Bluetooth, og slå den på.",
+    body: "På printeren: gå til Menu → Bluetooth, og slå den på.",
   },
   {
     image: "/oppsett/oppsett-paring.png",
     title: "Koble til telefonen",
-    body: "Åpne Innstillinger → Bluetooth, og velg QL-820NWB. Oppgi paringskoden som dukker opp. Det er usikkert om koden også vises på skriverens skjerm.",
+    body: "Åpne Innstillinger → Bluetooth, og velg QL-820NWB. Oppgi paringskoden som vises på telefonen. Den kan også dukke opp på printerens skjerm.",
   },
   {
     image: "/oppsett/oppsett-bekreft.png",
-    title: "Se skriveren i appen",
+    title: "Se printeren i appen",
     body: "Åpne Smooth Print. QL-820NWBc skal være valgt i appen.",
   },
 ]
 
-export function SetupFlow({ platform, androidUrl }: { platform: PhonePlatform; androidUrl: string }) {
+export function SetupFlow({ platform: platformProp, androidUrl }: { platform: PhonePlatform; androidUrl: string }) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [seen, setSeen] = useState(false)
+  const [platform, setPlatform] = useState(platformProp)
   const current = steps[step]
   const last = step === steps.length - 1
+
+  useEffect(() => {
+    setPlatform(refinePlatform(platformProp))
+  }, [platformProp])
 
   function finish() {
     window.localStorage.setItem(SETUP_KEY, "1")
@@ -121,12 +126,12 @@ export function SetupFlow({ platform, androidUrl }: { platform: PhonePlatform; a
               checked={seen}
               onChange={(event) => setSeen(event.target.checked)}
             />
-            Jeg ser skriveren i Smooth Print
+            Jeg ser printeren i Smooth Print
           </label>
         ) : null}
         {last ? (
           <Button className="h-12 w-full text-base" disabled={!seen} onClick={finish}>
-            Start å skanne
+            Begynn å skanne
           </Button>
         ) : (
           <Button className="h-12 w-full text-base" onClick={() => setStep((value) => value + 1)}>

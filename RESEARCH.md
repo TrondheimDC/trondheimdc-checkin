@@ -61,6 +61,13 @@ Brother’s consumables list: DK-11208 is a large address label, 38 × 90 mm, 40
 
 This project prints DK-11208.
 
+## Checkin attendee export
+
+- Excel under **Deltakere** does not include the ticket QR id.
+- **Last ned totalrapport** (⋯ menu on the event overview) includes a **barcode** column — that is the QR payload.
+- How-to: [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md).
+- GraphQL API (`allEventOrderUsers` / `user.id`) is used by `tdc-sales` for sales sync; for badge print MVP the total report may be enough if barcode matches scan text. Confirm by scanning a real ticket.
+
 ## Not verified on hardware
 
 - That a tap on iOS Safari actually opens Smooth Print and prints (Android APK confirmed with `fileattach`).

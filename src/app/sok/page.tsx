@@ -7,7 +7,7 @@ import { useDeferredValue, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { labelLine } from "@/lib/label-line"
 import { apiPath } from "@/lib/utils"
-import type { Attendee } from "@/lib/db/schema"
+import { attendeesSearchResponseSchema } from "@/lib/db/schema"
 
 export default function SearchPage() {
   const [q, setQ] = useState("")
@@ -18,7 +18,7 @@ export default function SearchPage() {
     queryFn: async () => {
       const response = await fetch(apiPath(`/api/attendees?q=${encodeURIComponent(deferredQ)}`))
       if (!response.ok) throw new Error("search failed")
-      const body = (await response.json()) as { attendees: Attendee[] }
+      const body = attendeesSearchResponseSchema.parse(await response.json())
       return body.attendees
     },
   })

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { labelLine } from "@/lib/label-line"
 import type { PhonePlatform } from "@/lib/platform"
 import { apiPath } from "@/lib/utils"
-import type { Attendee } from "@/lib/db/schema"
+import { attendeeResponseSchema } from "@/lib/db/schema"
 
 export function AttendeeScreen({
   id,
@@ -25,7 +25,7 @@ export function AttendeeScreen({
       const response = await fetch(apiPath(`/api/attendees/${encodeURIComponent(id)}`))
       if (response.status === 404) return null
       if (!response.ok) throw new Error("lookup failed")
-      const body = (await response.json()) as { attendee: Attendee }
+      const body = attendeeResponseSchema.parse(await response.json())
       return body.attendee
     },
   })
@@ -46,7 +46,7 @@ export function AttendeeScreen({
             </div>
           </div>
           <p className="attendee-loader-label mt-8 text-center font-display text-sm uppercase text-[var(--color-fg-brand)]">
-            Henter
+            Henter…
           </p>
         </div>
       </main>

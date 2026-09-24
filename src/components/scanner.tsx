@@ -23,6 +23,10 @@ function videoTrackFrom(video: HTMLVideoElement | null): TorchTrack | null {
   return (stream.getVideoTracks()[0] as TorchTrack | undefined) ?? null
 }
 
+function trackSupportsTorch(track: TorchTrack): boolean {
+  return track.getCapabilities?.()?.torch === true
+}
+
 /**
  * Samsung reports getSettings().torch as false even when the LED is on, and a
  * top-level `{ torch }` constraint is ignored. Chrome documents the advanced form.
@@ -89,6 +93,7 @@ export function Scanner() {
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [pickingCamera, setPickingCamera] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
+  const [torchSupported, setTorchSupported] = useState(false)
   const [tabVisible, setTabVisible] = useState(true)
 
   useEffect(() => {
@@ -109,6 +114,7 @@ export function Scanner() {
     let stopped = false
     const torchPolls: number[] = []
     setTorchOn(false)
+    setTorchSupported(false)
     controlsRef.current = null
     trackRef.current = null
 
@@ -117,6 +123,7 @@ export function Scanner() {
       const track = trackRef.current ?? videoTrackFrom(video)
       if (!track) return
       trackRef.current = track
+      setTorchSupported(trackSupportsTorch(track))
     }
 
     const controlsPromise = openCamera(deviceId).then((stream) => {
@@ -170,6 +177,7 @@ export function Scanner() {
   }, [ready, router, deviceId, tabVisible])
 
   async function toggleTorch() {
+    if (!torchSupported) return
     const next = !torchOn
     const track = trackRef.current ?? videoTrackFrom(videoRef.current)
     if (!track) return
@@ -178,6 +186,7 @@ export function Scanner() {
       setTorchOn(next)
     } catch {
       setTorchOn(false)
+      setTorchSupported(trackSupportsTorch(track))
     }
   }
 
@@ -190,8 +199,8 @@ export function Scanner() {
       <main className="attendee-reveal relative flex min-h-dvh flex-col justify-end overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="attendee-badge-glow" aria-hidden />
         <div className="relative flex flex-col gap-4">
-          <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">Første gangs oppsett</p>
-          <h1 className="text-4xl">Koble til skriveren først</h1>
+          <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">Førstegangsoppsett</p>
+          <h1 className="text-4xl">Koble til printeren først</h1>
           <p className="text-lg leading-relaxed opacity-75">
             Åpne Smooth Print og sjekk at QL-820NWBc er valgt.
           </p>
@@ -205,7 +214,14 @@ export function Scanner() {
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-black">
-      <video ref={videoRef} className="h-dvh w-full object-cover" muted playsInline />
+      <video
+        ref={videoRef}
+        className="h-dvh w-full object-cover"
+        muted
+        playsInline
+        autoPlay
+        disablePictureInPicture
+      />
 
       <div className="scan-reticle" aria-hidden>
         <span className="scan-reticle-corner tl" />
@@ -229,10 +245,13 @@ export function Scanner() {
           </button>
           <button
             type="button"
-            className={`${iconButtonClass} ${torchOn ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)] hover:bg-[var(--color-green-3)]" : ""}`}
+            className={`${iconButtonClass} ${torchOn ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)] hover:bg-[var(--color-green-3)]" : ""} disabled:pointer-events-none disabled:opacity-40`}
             style={{ animationDelay: "120ms" }}
-            aria-label={torchOn ? "Slå av blitz" : "Slå på blitz"}
+            aria-label={
+              !torchSupported ? "Lykt ikke tilgjengelig" : torchOn ? "Slå av lykt" : "Slå på lykt"
+            }
             aria-pressed={torchOn}
+            disabled={!torchSupported}
             onClick={() => void toggleTorch()}
           >
             {torchOn ? <Flashlight className="size-6" /> : <FlashlightOff className="size-6" />}
