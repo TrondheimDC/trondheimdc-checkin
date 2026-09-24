@@ -24,13 +24,21 @@ export function Scanner() {
   const [pickingCamera, setPickingCamera] = useState(false)
   const [torchAvailable, setTorchAvailable] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
+  const [tabVisible, setTabVisible] = useState(true)
 
   useEffect(() => {
     setReady(window.localStorage.getItem(SETUP_KEY) === "1")
   }, [])
 
   useEffect(() => {
-    if (!ready || !videoRef.current) return
+    const sync = () => setTabVisible(document.visibilityState === "visible")
+    sync()
+    document.addEventListener("visibilitychange", sync)
+    return () => document.removeEventListener("visibilitychange", sync)
+  }, [])
+
+  useEffect(() => {
+    if (!ready || !tabVisible || !videoRef.current) return
     const reader = new BrowserQRCodeReader()
     let stopped = false
     setTorchOn(false)
@@ -69,7 +77,7 @@ export function Scanner() {
       controlsRef.current = null
       void controlsPromise.then((controls) => controls.stop())
     }
-  }, [ready, router, deviceId])
+  }, [ready, router, deviceId, tabVisible])
 
   async function toggleTorch() {
     const switchTorch = controlsRef.current?.switchTorch
