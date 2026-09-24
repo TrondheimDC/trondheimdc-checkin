@@ -28,13 +28,13 @@ export default function SearchPage() {
   const results = query.data ?? []
 
   return (
-    <main className="attendee-reveal flex min-h-dvh flex-col gap-5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <header className="pt-2">
+    <main className="attendee-reveal flex h-dvh flex-col gap-5 overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <header className="shrink-0 pt-2">
         <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">Manuell innsjekk</p>
         <h1 className="mt-2 text-4xl">Søk etter navn</h1>
       </header>
 
-      <label className="relative block">
+      <label className="relative block shrink-0">
         <span className="sr-only">Navn</span>
         <Search
           className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[var(--color-fg-brand)]"
@@ -49,9 +49,9 @@ export default function SearchPage() {
         />
       </label>
 
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {!searching ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-16 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-8 text-center">
             <div className="search-idle-mark flex size-16 items-center justify-center rounded-full border border-[var(--color-fg-brand)]/40 text-[var(--color-fg-brand)]">
               <Search className="size-7" />
             </div>
@@ -84,7 +84,7 @@ export default function SearchPage() {
         ) : null}
 
         {!pending && searching && query.isSuccess && results.length === 0 ? (
-          <div className="search-item-in flex flex-1 flex-col items-center justify-center gap-2 pb-16 text-center">
+          <div className="search-item-in flex flex-1 flex-col items-center justify-center gap-2 pb-8 text-center">
             <p className="text-2xl">Ingen treff</p>
             <p className="max-w-[16rem] text-base opacity-60">
               Fant ingen med «{deferredQ}». Prøv et annet navn.
@@ -93,7 +93,7 @@ export default function SearchPage() {
         ) : null}
 
         {!pending && results.length > 0 ? (
-          <ul className="flex flex-col gap-3" key={deferredQ}>
+          <ul className="flex flex-col gap-3 pb-2" key={deferredQ}>
             {results.map((attendee, index) => {
               const line2 = labelLine(attendee.company, attendee.role)
               return (
@@ -118,7 +118,7 @@ export default function SearchPage() {
         ) : null}
       </div>
 
-      <div className="mt-auto pt-2">
+      <div className="shrink-0 pt-1">
         <Button asChild variant="surface" size="lg">
           <Link href="/">Tilbake</Link>
         </Button>
