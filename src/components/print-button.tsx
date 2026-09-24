@@ -38,7 +38,7 @@ export function PrintButton({
       >
         <div className="overflow-hidden">
           <p className="mb-3 rounded-xl bg-[var(--color-bg-surface)] px-4 py-3 text-base leading-snug">
-            Smooth Print åpnet seg ikke.{" "}
+            Smooth Print ble ikke åpnet.{" "}
             <Link href="/oppsett" className="text-[var(--color-fg-brand)] underline">
               Installer appen
             </Link>{" "}
@@ -47,7 +47,7 @@ export function PrintButton({
         </div>
       </div>
       <Button size="lg" onClick={print}>
-        {printed ? "Skriv ut igjen" : "Skriv ut merke"}
+        {printed ? "Skriv ut igjen" : "Skriv ut navneskilt"}
       </Button>
     </div>
   )

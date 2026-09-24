@@ -44,7 +44,7 @@ export default function SearchPage() {
           </li>
         ))}
       </ul>
-      {q.trim() && query.data && query.data.length === 0 ? <p className="text-lg">Ingen med det navnet</p> : null}
+      {q.trim() && query.data && query.data.length === 0 ? <p className="text-lg">Fant ingen med det navnet</p> : null}
       <div className="mt-auto">
         <Button asChild variant="surface" size="lg">
           <Link href="/">Tilbake</Link>

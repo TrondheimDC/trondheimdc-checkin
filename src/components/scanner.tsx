@@ -43,7 +43,7 @@ export function Scanner() {
         }
       })
       .catch(() => {
-        setError("Kameraet er av. Slå det på i nettleseren, eller søk på navn.")
+        setError("Ingen tilgang til kamera. Tillat kamera i nettleseren, eller søk etter navn.")
       })
 
     return () => {
@@ -57,7 +57,7 @@ export function Scanner() {
       <main className="flex min-h-dvh flex-col justify-end gap-4 p-4">
         <h1 className="text-4xl">Koble til skriveren først</h1>
         <p className="text-lg leading-relaxed">
-          Åpne Smooth Print og sjekk at QL-820NWBc ligger der.
+          Åpne Smooth Print og sjekk at QL-820NWBc er valgt.
         </p>
         <Button asChild size="lg">
           <Link href="/oppsett">Sett opp</Link>
@@ -71,7 +71,7 @@ export function Scanner() {
       <video ref={videoRef} className="h-dvh w-full object-cover" muted playsInline />
       <div className="pointer-events-none absolute inset-x-8 top-1/2 h-48 -translate-y-1/2 rounded-2xl border-4 border-[var(--color-fg-brand)]" />
       <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 bg-gradient-to-t from-black p-4 pb-6">
-        {error ? <p className="text-lg">{error}</p> : <p className="text-lg">Hold QR-koden i ruten</p>}
+        {error ? <p className="text-lg">{error}</p> : <p className="text-lg">Hold QR-koden innenfor rammen</p>}
         {pickingCamera ? (
           <div className="flex flex-col gap-2">
             {cameras.map((camera, index) => {

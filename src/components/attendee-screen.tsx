@@ -23,7 +23,7 @@ export function AttendeeScreen({ id, paperSizeId }: { id: string; paperSizeId: s
   if (query.isPending) {
     return (
       <main className="flex min-h-dvh items-center p-4">
-        <p className="text-2xl">Henter …</p>
+        <p className="text-2xl">Henter…</p>
       </main>
     )
   }
@@ -31,7 +31,7 @@ export function AttendeeScreen({ id, paperSizeId }: { id: string; paperSizeId: s
   if (query.isError) {
     return (
       <main className="flex min-h-dvh flex-col justify-end gap-4 p-4">
-        <h1 className="text-4xl">Fikk ikke tak i deltakeren</h1>
+        <h1 className="text-4xl">Kunne ikke hente deltakeren</h1>
         <Button asChild size="lg">
           <Link href="/">Skann neste</Link>
         </Button>
