@@ -14,22 +14,22 @@ const steps = [
   {
     image: "/oppsett/smooth-print.jpg",
     title: "Installer Smooth Print",
-    body: "Hent appen, og kom tilbake hit.",
+    body: "Last ned appen, og kom tilbake hit.",
   },
   {
     image: "/oppsett/oppsett-bluetooth.png",
     title: "Slå på Bluetooth",
-    body: "På skriveren: Menu, Bluetooth, og sett den til på.",
+    body: "På skriveren: gå til Menu → Bluetooth, og slå den på.",
   },
   {
     image: "/oppsett/oppsett-paring.png",
     title: "Koble til telefonen",
-    body: "Åpne Innstillinger, Bluetooth, og velg QL-820NWB. Følg koden som dukker opp. Vi har ikke bekreftet om den vises på skriverens skjerm.",
+    body: "Åpne Innstillinger → Bluetooth, og velg QL-820NWB. Oppgi paringskoden som dukker opp. Det er usikkert om koden også vises på skriverens skjerm.",
   },
   {
     image: "/oppsett/oppsett-bekreft.png",
     title: "Se skriveren i appen",
-    body: "Åpne Smooth Print. QL-820NWBc skal være valgt der.",
+    body: "Åpne Smooth Print. QL-820NWBc skal være valgt i appen.",
   },
 ]
 
@@ -85,13 +85,15 @@ export function SetupFlow({ platform, androidUrl }: { platform: PhonePlatform; a
       ) : null}
       {step === 0 && platform === "android" ? (
         <div className="mt-3 flex shrink-0 flex-col gap-2">
-          <p className="text-base leading-snug">Den ligger ikke i Play Store.</p>
+          <p className="text-base leading-snug">Appen ligger ikke i Play Store.</p>
           <Button asChild className="h-12 w-full text-base">
             <a href={androidUrl} target="_blank" rel="noopener noreferrer">
-              Hent appen
+              Last ned appen
             </a>
           </Button>
-          <InstallHelp />
+          <Button asChild variant="ghost" className="h-12 w-full text-base">
+            <Link href="/oppsett/android">Slik tillater du installasjon</Link>
+          </Button>
         </div>
       ) : null}
       {step === 0 && platform === "other" ? (
@@ -123,7 +125,7 @@ export function SetupFlow({ platform, androidUrl }: { platform: PhonePlatform; a
         ) : null}
         {last ? (
           <Button className="h-12 w-full text-base" disabled={!seen} onClick={finish}>
-            Start skanning
+            Start å skanne
           </Button>
         ) : (
           <Button className="h-12 w-full text-base" onClick={() => setStep((value) => value + 1)}>
@@ -141,22 +143,5 @@ export function SetupFlow({ platform, androidUrl }: { platform: PhonePlatform; a
         )}
       </div>
     </main>
-  )
-}
-
-function InstallHelp() {
-  return (
-    <details className="text-base leading-snug">
-      <summary>Slik tillater du installasjon</summary>
-      <ol className="mt-2 list-decimal space-y-1 pl-5">
-        <li>Åpne Innstillinger.</li>
-        <li>Trykk Apper.</li>
-        <li>Trykk Spesiell apptilgang.</li>
-        <li>Trykk Installer ukjente apper.</li>
-        <li>Velg nettleseren du lastet ned med, for eksempel Chrome.</li>
-        <li>Slå på Tillat fra denne kilden.</li>
-      </ol>
-      <p className="mt-2">Gå deretter tilbake og åpne filen på nytt.</p>
-    </details>
   )
 }
