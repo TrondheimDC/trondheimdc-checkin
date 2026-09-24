@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --color-white-1: #fefefe;
+  --color-white-2: #f4f4f4;
+  --color-black: #0f0f0f;
+  --color-black-2: #363636;
+  --color-black-3: #292929;
+  --color-green-1: #9bf7a9;
+  --color-green-3: #67e47b;
+  --color-bg-base: var(--color-black);
+  --color-bg-surface: var(--color-black-2);
+  --color-bg-danger: #f1422a;
+  --color-fg-base: var(--color-white-1);
+  --color-fg-brand: var(--color-green-1);
+  --color-fg-always-dark: var(--color-black-3);
+  --font-family-sans: var(--font-plex), "IBM Plex Sans", sans-serif;
+  --font-family-display: var(--font-grotesk), "Space Grotesk", sans-serif;
+  --font-family-mono: var(--font-mono), "Space Mono", monospace;
+  --spacing-4: 16px;
+  --radius-xl: 16px;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg-base);
+  --color-surface: var(--color-bg-surface);
+  --color-fg: var(--color-fg-base);
+  --color-brand: var(--color-fg-brand);
+  --font-sans: var(--font-family-sans);
+  --font-display: var(--font-family-display);
+  --font-mono: var(--font-family-mono);
+}
+
+html,
+body {
+  background: var(--color-bg-base);
+  color: var(--color-fg-base);
+  font-family: var(--font-family-sans);
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2 {
+  font-family: var(--font-family-display);
+  font-weight: 400;
+  line-height: 1.2;
+}
