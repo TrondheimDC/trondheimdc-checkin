@@ -12,17 +12,82 @@ const SETUP_KEY = "tdc-checkin-printer-seen"
 const iconButtonClass =
   "scan-icon-btn flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
 
+type TorchTrack = MediaStreamTrack & {
+  getCapabilities?: () => MediaTrackCapabilities & { torch?: boolean }
+  getSettings: () => MediaTrackSettings & { torch?: boolean }
+}
+
+function videoTrackFrom(video: HTMLVideoElement | null): TorchTrack | null {
+  const stream = video?.srcObject
+  if (!(stream instanceof MediaStream)) return null
+  return (stream.getVideoTracks()[0] as TorchTrack | undefined) ?? null
+}
+
+/**
+ * Samsung reports getSettings().torch as false even when the LED is on, and a
+ * top-level `{ torch }` constraint is ignored. Chrome documents the advanced form.
+ */
+async function applyTorch(track: TorchTrack, on: boolean) {
+  const attempts: MediaTrackConstraints[] = [
+    { advanced: [{ torch: on } as MediaTrackConstraintSet] },
+    { torch: on } as MediaTrackConstraints,
+  ]
+  let lastError: unknown
+  for (const constraints of attempts) {
+    try {
+      await track.applyConstraints(constraints)
+      return
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("torch")
+}
+
+/** Main rear sensor. Logical / ultra-wide cameras on Samsung accept torch and do nothing. */
+function pickRearCamera(devices: MediaDeviceInfo[]) {
+  const rear = devices.filter((device) => /back|rear|environment|bak/i.test(device.label))
+  const pool = rear.length > 0 ? rear : devices
+  const main = pool.find(
+    (device) =>
+      /camera2?\s*0\b|back camera/i.test(device.label) && !/ultra|wide|tele|depth|macro/i.test(device.label),
+  )
+  const plain = pool.find((device) => !/ultra|wide|tele|depth|macro/i.test(device.label))
+  return (main ?? plain ?? pool[0])?.deviceId
+}
+
+async function openCamera(deviceId: string | undefined) {
+  const attempts: MediaTrackConstraints[] = deviceId
+    ? [
+        { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        { deviceId: { exact: deviceId } },
+      ]
+    : [
+        { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        { facingMode: "environment" },
+      ]
+  let lastError: unknown
+  for (const video of attempts) {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video, audio: false })
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("camera")
+}
+
 export function Scanner() {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
+  const trackRef = useRef<TorchTrack | null>(null)
   // null = not checked yet (avoids flashing the setup gate on reload)
   const [ready, setReady] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string | undefined>(undefined)
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [pickingCamera, setPickingCamera] = useState(false)
-  const [torchAvailable, setTorchAvailable] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
   const [tabVisible, setTabVisible] = useState(true)
 
@@ -40,16 +105,33 @@ export function Scanner() {
   useEffect(() => {
     if (!ready || !tabVisible || !videoRef.current) return
     const reader = new BrowserQRCodeReader()
+    const video = videoRef.current
     let stopped = false
+    const torchPolls: number[] = []
     setTorchOn(false)
-    setTorchAvailable(false)
     controlsRef.current = null
+    trackRef.current = null
 
-    const controlsPromise = reader.decodeFromVideoDevice(deviceId, videoRef.current, (result) => {
-      if (!result || stopped) return
-      stopped = true
-      const id = result.getText().trim()
-      if (id) router.push(`/deltaker/${encodeURIComponent(id)}`)
+    const refreshTorch = () => {
+      if (stopped) return
+      const track = trackRef.current ?? videoTrackFrom(video)
+      if (!track) return
+      trackRef.current = track
+    }
+
+    const controlsPromise = openCamera(deviceId).then((stream) => {
+      const track = stream.getVideoTracks()[0] as TorchTrack | undefined
+      trackRef.current = track ?? null
+      if (stopped) {
+        for (const item of stream.getTracks()) item.stop()
+        throw new Error("stopped")
+      }
+      return reader.decodeFromStream(stream, video, (result) => {
+        if (!result || stopped) return
+        stopped = true
+        const id = result.getText().trim()
+        if (id) router.push(`/deltaker/${encodeURIComponent(id)}`)
+      })
     })
 
     controlsPromise
@@ -59,35 +141,42 @@ export function Scanner() {
           return
         }
         controlsRef.current = controls
-        setTorchAvailable(typeof controls.switchTorch === "function")
+        refreshTorch()
+        const track = trackRef.current
+        if (track) void applyTorch(track, false).catch(() => undefined)
+        torchPolls.push(window.setTimeout(refreshTorch, 400), window.setTimeout(refreshTorch, 1200))
+
         const devices = await BrowserQRCodeReader.listVideoInputDevices()
         if (stopped) return
         setCameras(devices)
-        if (!deviceId && devices[0]) {
-          const back = devices.find((camera) => /back|rear|environment|bak/i.test(camera.label))
-          setDeviceId((back ?? devices[0]).deviceId)
+        if (!deviceId) {
+          const picked = pickRearCamera(devices)
+          const current = trackRef.current?.getSettings().deviceId
+          if (picked && picked !== current) setDeviceId(picked)
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        if (stopped || (error instanceof Error && error.message === "stopped")) return
         setError("Ingen tilgang til kamera. Tillat kamera i nettleseren, eller søk etter navn.")
       })
 
     return () => {
       stopped = true
+      for (const id of torchPolls) window.clearTimeout(id)
       controlsRef.current = null
-      void controlsPromise.then((controls) => controls.stop())
+      trackRef.current = null
+      void controlsPromise.then((controls) => controls.stop()).catch(() => undefined)
     }
   }, [ready, router, deviceId, tabVisible])
 
   async function toggleTorch() {
-    const switchTorch = controlsRef.current?.switchTorch
-    if (!switchTorch) return
     const next = !torchOn
+    const track = trackRef.current ?? videoTrackFrom(videoRef.current)
+    if (!track) return
     try {
-      await switchTorch(next)
+      await applyTorch(track, next)
       setTorchOn(next)
     } catch {
-      setTorchAvailable(false)
       setTorchOn(false)
     }
   }
@@ -138,18 +227,16 @@ export function Scanner() {
           >
             <Camera className="size-6" />
           </button>
-          {torchAvailable ? (
-            <button
-              type="button"
-              className={`${iconButtonClass} ${torchOn ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)] hover:bg-[var(--color-green-3)]" : ""}`}
-              style={{ animationDelay: "120ms" }}
-              aria-label={torchOn ? "Slå av blitz" : "Slå på blitz"}
-              aria-pressed={torchOn}
-              onClick={() => void toggleTorch()}
-            >
-              {torchOn ? <Flashlight className="size-6" /> : <FlashlightOff className="size-6" />}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className={`${iconButtonClass} ${torchOn ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)] hover:bg-[var(--color-green-3)]" : ""}`}
+            style={{ animationDelay: "120ms" }}
+            aria-label={torchOn ? "Slå av blitz" : "Slå på blitz"}
+            aria-pressed={torchOn}
+            onClick={() => void toggleTorch()}
+          >
+            {torchOn ? <Flashlight className="size-6" /> : <FlashlightOff className="size-6" />}
+          </button>
         </div>
         <Link
           href="/oppsett"
