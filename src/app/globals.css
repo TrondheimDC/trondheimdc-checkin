@@ -269,6 +269,18 @@ h2 {
   animation-delay: 260ms;
 }
 
+.attendee-stagger > *:nth-child(4) {
+  animation-delay: 360ms;
+}
+
+.attendee-stagger > *:nth-child(5) {
+  animation-delay: 460ms;
+}
+
+.attendee-stagger > *:nth-child(6) {
+  animation-delay: 560ms;
+}
+
 .attendee-badge {
   position: relative;
   overflow: hidden;
