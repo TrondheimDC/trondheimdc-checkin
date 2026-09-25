@@ -78,14 +78,112 @@ export function buildAndroidPrintIntent(input: {
   )
 }
 
-export function templateUrl(): string {
+export const DEFAULT_PRINTER_MODEL = "QL-820NWBc"
+
+export type ConnectType = "BT" | "WiFi"
+
+/** Brother connect scheme. iOS QL over Bluetooth also needs serialnum. */
+export function buildConnectQuery(input: {
+  connectType: ConnectType
+  address: string
+  serial: string
+  model: string
+  callbackUrl: string
+}): string {
+  const pairs: [string, string][] = [
+    ["connecttype", input.connectType],
+    ["connectaddress", input.address.trim()],
+    ["model", input.model.trim() || DEFAULT_PRINTER_MODEL],
+  ]
+  const serial = input.serial.trim()
+  if (serial) pairs.push(["serialnum", serial])
+  pairs.push(["connectcallback", input.callbackUrl])
+  return pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")
+}
+
+export function buildConnectUrl(input: {
+  connectType: ConnectType
+  address: string
+  serial: string
+  model: string
+  callbackUrl: string
+}): string {
+  return `brotherwebprint://connect?${buildConnectQuery(input)}`
+}
+
+export function buildAndroidConnectIntent(input: {
+  connectType: ConnectType
+  address: string
+  serial: string
+  model: string
+  callbackUrl: string
+  fallbackUrl: string
+}): string {
+  const query = buildConnectQuery(input)
+  return (
+    `intent://connect?${query}#Intent;` +
+    `scheme=brotherwebprint;` +
+    `package=${SMOOTH_PRINT_ANDROID_PACKAGE};` +
+    `S.browser_fallback_url=${encodeURIComponent(input.fallbackUrl)};` +
+    `end`
+  )
+}
+
+export function templateUrl(file = "badge.lbx"): string {
   const base = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
-  return `${window.location.origin}${base}/templates/badge.lbx`
+  return `${window.location.origin}${base}/templates/${file}`
+}
+
+export function buildStickerPrintQuery(input: {
+  fileBase64: string
+  paperSizeId: string
+  name: string
+  qr: string
+}): string {
+  const size = input.paperSizeId || DEFAULT_PAPER_SIZE_ID
+  const stamp = templateStamp(input.fileBase64)
+  return [
+    ["filename", `printer-${stamp}.lbx`],
+    ["fileattach", input.fileBase64],
+    ["formatarchiveupdate", "1"],
+    ["size", size],
+    ["copies", "1"],
+    ["text_NAME", input.name],
+    ["barcode_QR", input.qr],
+  ]
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&")
+}
+
+export function buildStickerPrintUrl(input: {
+  fileBase64: string
+  paperSizeId: string
+  name: string
+  qr: string
+}): string {
+  return `brotherwebprint://print?${buildStickerPrintQuery(input)}`
+}
+
+export function buildAndroidStickerIntent(input: {
+  fileBase64: string
+  paperSizeId: string
+  name: string
+  qr: string
+  fallbackUrl: string
+}): string {
+  const query = buildStickerPrintQuery(input)
+  return (
+    `intent://print?${query}#Intent;` +
+    `scheme=brotherwebprint;` +
+    `package=${SMOOTH_PRINT_ANDROID_PACKAGE};` +
+    `S.browser_fallback_url=${encodeURIComponent(input.fallbackUrl)};` +
+    `end`
+  )
 }
 
 /** Fetch the hosted .lbx and return standard base64 (for fileattach). */
-export async function loadTemplateBase64(): Promise<string> {
-  const response = await fetch(templateUrl(), { cache: "no-store" })
+export async function loadTemplateBase64(file = "badge.lbx"): Promise<string> {
+  const response = await fetch(templateUrl(file), { cache: "no-store" })
   if (!response.ok) throw new Error("template fetch failed")
   const buffer = await response.arrayBuffer()
   const bytes = new Uint8Array(buffer)
