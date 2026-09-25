@@ -32,7 +32,7 @@ Open the URL on a phone over **HTTPS**. Camera access and the Smooth Print custo
 | `pnpm dev` | Local Next.js server |
 | `pnpm build` / `pnpm start` | Production build and serve |
 | `pnpm db:generate` | Generate Drizzle migrations after schema changes |
-| `pnpm import:attendees <csv>` | Replace the attendee list from a Checkin totalrapport CSV |
+| `pnpm import:attendees <csv>` | Sync the attendee list from a Checkin totalrapport CSV (by barcode; keeps check-ins) |
 
 Migrations in `drizzle/` run on server start. The database file is created under `data/` if it does not exist.
 
@@ -57,7 +57,7 @@ pnpm import:attendees ./totalrapport.csv
 
 Full steps (where to download, CSV conversion, column mapping): **[docs/checkin-totalrapport.md](docs/checkin-totalrapport.md)**.
 
-The import **replaces** the whole list. Cancelled and waitlist rows are skipped. Email, phone, and address are not stored.
+The import **syncs by barcode**. Cancelled, waitlist, and refunded tickets are soft-deleted. Rows without barcode/name are ignored. Email, phone, and address are not stored.
 
 Seeded sample ids for local demos include `test`, `bjorn`, and `a-1001`…`a-1010`.
 

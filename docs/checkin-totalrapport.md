@@ -11,7 +11,7 @@ Innsjekk-appen trenger én rad per deltaker med **barcode** (= teksten i billett
 
 ![Hvor totalrapport lastes ned](./checkin-totalrapport.png)
 
-Filen lastes ned som Excel. I Excel: **Lagre som → CSV UTF-8**. Kolonnen **Barcode** er QR-id-en.
+Filen lastes ned som Excel. I Excel: **Lagre som → CSV UTF-8**. Kolonnen **Barcode** / **Strekkode** er QR-id-en. Overskrifter følger Checkin-språket (engelsk eller norsk) — begge støttes.
 
 ## Importer i innsjekk
 
@@ -19,7 +19,7 @@ Filen lastes ned som Excel. I Excel: **Lagre som → CSV UTF-8**. Kolonnen **Bar
 pnpm import:attendees ./totalrapport.csv
 ```
 
-Kommandoen **erstatter** hele deltakerlisten. Kun barcode, navn, firma og stilling lagres. Avmeldte og venteliste hoppes over. E-post, telefon og adresse leses ikke inn.
+Kommandoen **synces** på barcode (`id`). Navn, firma og stilling oppdateres; innsjekk og `check_events` beholdes for barcode som fortsatt er aktive. Avmeldte, venteliste og refunderte (med barcode) soft-slettes. Rader uten barcode/navn telles som ignorert. E-post, telefon og adresse leses ikke inn.
 
 ## Ikke bruk dette
 
@@ -32,12 +32,14 @@ Kommandoen **erstatter** hele deltakerlisten. Kun barcode, navn, firma og stilli
 
 Map minst disse kolonnene inn i innsjekk-appen:
 
-| Checkin (totalrapport) | Innsjekk |
-|---|---|
-| `Barcode` | `id` (QR-oppslag) |
-| `Name` (ellers `First name` + `Last name`) | `name` |
-| `Company` | `company` |
-| `Job title` | `role` |
+| Checkin (EN) | Checkin (NO) | Innsjekk |
+|---|---|---|
+| `Barcode` | `Strekkode` | `id` |
+| `Name` (ellers first+last) | `Navn` (ellers fornavn+etternavn) | `name` |
+| `Company` | `Firmanavn` (ellers egendefinert `Bedrift`) | `company` |
+| `Job title` | `Stillingstittel` (ellers meningsfull `Billettype` / `Ticket`) | `role` |
+| `Cancelled` | `Avmeldt` | soft-slett |
+| `On waiting list` | `På venteliste` | soft-slett |
 
 Én bestilling kan ha flere deltakere — derfor er barcode per person, ikke bestillingsnummer, det som gjelder.
 
