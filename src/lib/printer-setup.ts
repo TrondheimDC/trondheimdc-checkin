@@ -11,8 +11,8 @@ export type PrinterSetupParams = {
 export function printerSetupPath(input: PrinterSetupParams): string {
   const params = new URLSearchParams({
     path: "qr",
-    address: input.address,
-    serial: input.serial,
+    address: input.address.trim().toUpperCase(),
+    serial: input.serial.trim().toUpperCase(),
     model: input.model,
     type: input.connectType,
   })
@@ -36,13 +36,15 @@ export function parsePrinterSetupUrl(raw: string): PrinterSetupParams | null {
   const isOppsett = path === "/oppsett" || path.endsWith("/oppsett")
   if (!isKoble && !isOppsett) return null
 
-  const address = (url.searchParams.get("address") || url.searchParams.get("mac") || "").trim()
+  const address = (url.searchParams.get("address") || url.searchParams.get("mac") || "")
+    .trim()
+    .toUpperCase()
   if (!address) return null
 
   const connectType: ConnectType = url.searchParams.get("type") === "WiFi" ? "WiFi" : "BT"
   return {
     address,
-    serial: (url.searchParams.get("serial") || "").trim(),
+    serial: (url.searchParams.get("serial") || "").trim().toUpperCase(),
     model: (url.searchParams.get("model") || DEFAULT_PRINTER_MODEL).trim() || DEFAULT_PRINTER_MODEL,
     connectType,
   }

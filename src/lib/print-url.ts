@@ -92,10 +92,10 @@ export function buildConnectQuery(input: {
 }): string {
   const pairs: [string, string][] = [
     ["connecttype", input.connectType],
-    ["connectaddress", input.address.trim()],
+    ["connectaddress", input.address.trim().toUpperCase()],
     ["model", input.model.trim() || DEFAULT_PRINTER_MODEL],
   ]
-  const serial = input.serial.trim()
+  const serial = input.serial.trim().toUpperCase()
   if (serial) pairs.push(["serialnum", serial])
   pairs.push(["connectcallback", input.callbackUrl])
   return pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")

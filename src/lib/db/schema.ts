@@ -1,6 +1,7 @@
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 import { createSelectSchema } from "drizzle-zod"
 import { z } from "zod"
+import { formatBluetoothMac, isCompleteBluetoothMac } from "@/lib/printer-format"
 
 export const attendees = sqliteTable("attendees", {
   id: text("id").primaryKey(),
@@ -81,13 +82,33 @@ export const printerResponseSchema = z.object({
   printer: printerSchema,
 })
 
-export const printerBodySchema = z.object({
-  name: z.string().trim().min(1).max(40),
-  address: z.string().trim().min(1).max(40),
-  serial: z.string().trim().max(40).default(""),
-  model: z.string().trim().min(1).max(40).default("QL-820NWBc"),
-  connectType: z.enum(["BT", "WiFi"]).default("BT"),
-})
+export const printerBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(40),
+    address: z.string().trim().max(80),
+    serial: z.string().trim().toUpperCase().max(40).default(""),
+    model: z.string().trim().min(1).max(40).default("QL-820NWBc"),
+    connectType: z.enum(["BT", "WiFi"]).default("BT"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.connectType === "WiFi") {
+      if (!data.address) {
+        ctx.addIssue({ code: "custom", path: ["address"], message: "Skriv inn adressen" })
+      }
+      return
+    }
+    if (!isCompleteBluetoothMac(formatBluetoothMac(data.address))) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["address"],
+        message: "Skriv en full MAC, som 00:1B:A9:00:00:00",
+      })
+    }
+  })
+  .transform((data) => ({
+    ...data,
+    address: data.connectType === "BT" ? formatBluetoothMac(data.address) : data.address,
+  }))
 
 export const smoothPrintApks = sqliteTable(
   "smooth_print_apks",
