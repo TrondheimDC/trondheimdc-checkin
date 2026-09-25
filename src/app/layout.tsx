@@ -22,8 +22,39 @@ const mono = Space_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Innsjekk",
-  description: "Skann og skriv ut navneskilt",
+  applicationName: "TDC Innsjekk",
+  title: {
+    default: "TDC Innsjekk",
+    template: "%s · TDC Innsjekk",
+  },
+  description: "Innsjekk for Trondheim Developer Conference — skann QR, sjekk inn og skriv ut navneskilt.",
+  keywords: ["TDC", "Trondheim Developer Conference", "innsjekk", "navneskilt", "check-in"],
+  authors: [{ name: "Trondheim Developer Conference" }],
+  creator: "Trondheim Developer Conference",
+  appleWebApp: {
+    capable: true,
+    title: "TDC Innsjekk",
+    statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    type: "website",
+    locale: "nb_NO",
+    siteName: "TDC Innsjekk",
+    title: "TDC Innsjekk",
+    description: "Skann QR, sjekk inn og skriv ut navneskilt for Trondheim Developer Conference.",
+  },
+  twitter: {
+    card: "summary",
+    title: "TDC Innsjekk",
+    description: "Skann QR, sjekk inn og skriv ut navneskilt for Trondheim Developer Conference.",
+  },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png" }],
+  },
 }
 
 export const viewport: Viewport = {
