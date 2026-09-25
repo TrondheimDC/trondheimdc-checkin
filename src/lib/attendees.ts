@@ -14,6 +14,7 @@ export interface AttendeeRepository {
   search(query: string, options: { includeCheckedIn: boolean }): Promise<Attendee[]>
   stats(): Promise<AttendeeStats>
   setCheckedIn(id: string, checkedIn: boolean): Promise<Attendee | null>
+  replaceAll(next: Attendee[]): Promise<void>
 }
 
 function likePattern(query: string): string {
@@ -65,6 +66,16 @@ export const attendeeRepository: AttendeeRepository = {
         createdAt: now,
       })
       return attendee
+    })
+  },
+
+  async replaceAll(next) {
+    await db.transaction(async (tx) => {
+      await tx.delete(attendees)
+      const size = 100
+      for (let i = 0; i < next.length; i += size) {
+        await tx.insert(attendees).values(next.slice(i, i + size))
+      }
     })
   },
 }

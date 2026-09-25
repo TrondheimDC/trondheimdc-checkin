@@ -1,6 +1,6 @@
 import { readFileSync } from "fs"
-import { db, initDatabase } from "../src/lib/db"
-import { attendees } from "../src/lib/db/schema"
+import { attendeeRepository } from "../src/lib/attendees"
+import { initDatabase } from "../src/lib/db"
 import { parseCheckinCsv, type ImportSkipReason } from "../src/lib/checkin-csv"
 
 const file = process.argv[2]
@@ -20,13 +20,7 @@ const labels: Record<ImportSkipReason, string> = {
 async function main() {
   const parsed = parseCheckinCsv(readFileSync(file, "utf8"))
   await initDatabase()
-  await db.transaction(async (tx) => {
-    await tx.delete(attendees)
-    const size = 100
-    for (let i = 0; i < parsed.attendees.length; i += size) {
-      await tx.insert(attendees).values(parsed.attendees.slice(i, i + size))
-    }
-  })
+  await attendeeRepository.replaceAll(parsed.attendees)
 
   const counts = new Map<ImportSkipReason, number>()
   for (const skip of parsed.skipped) counts.set(skip.reason, (counts.get(skip.reason) ?? 0) + 1)
