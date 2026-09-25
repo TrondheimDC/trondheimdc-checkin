@@ -6,7 +6,6 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useDeferredValue, useEffect, useState } from "react"
 import { TdcLogo } from "@/components/tdc-logo"
-import { AppLoading } from "@/components/app-loading"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -18,6 +17,7 @@ import {
   CommandLoading,
 } from "@/components/ui/command"
 import { labelLine } from "@/lib/label-line"
+import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 import { attendeesSearchResponseSchema, attendeeStatsSchema } from "@/lib/db/schema"
 
@@ -26,12 +26,13 @@ const INCLUDE_CHECKED_IN_KEY = "tdc-sok-include-checked-in"
 export default function SearchPage() {
   const router = useRouter()
   const [q, setQ] = useState("")
-  const [includeCheckedIn, setIncludeCheckedIn] = useState<boolean | null>(null)
+  const storedIncludeCheckedIn = useLocalFlag(INCLUDE_CHECKED_IN_KEY)
+  const [includeCheckedIn, setIncludeCheckedIn] = useState(false)
   const deferredQ = useDeferredValue(q.trim())
 
   useEffect(() => {
-    setIncludeCheckedIn(localStorage.getItem(INCLUDE_CHECKED_IN_KEY) === "1")
-  }, [])
+    if (storedIncludeCheckedIn !== null) setIncludeCheckedIn(storedIncludeCheckedIn)
+  }, [storedIncludeCheckedIn])
 
   const stats = useQuery({
     queryKey: ["attendee-stats"],
@@ -44,7 +45,7 @@ export default function SearchPage() {
 
   const query = useQuery({
     queryKey: ["search", deferredQ, includeCheckedIn],
-    enabled: deferredQ.length > 0 && includeCheckedIn !== null,
+    enabled: deferredQ.length > 0,
     queryFn: async () => {
       const params = new URLSearchParams({ q: deferredQ })
       if (includeCheckedIn) params.set("includeCheckedIn", "1")
@@ -54,10 +55,6 @@ export default function SearchPage() {
       return body.attendees
     },
   })
-
-  if (includeCheckedIn === null) {
-    return <AppLoading />
-  }
 
   const searching = deferredQ.length > 0
   const pending = searching && (query.isPending || q.trim() !== deferredQ)

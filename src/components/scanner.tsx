@@ -7,8 +7,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { AppLoading } from "@/components/app-loading"
 import { attendeeStatsSchema } from "@/lib/db/schema"
+import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 
 const SETUP_KEY = "tdc-checkin-printer-seen"
@@ -98,8 +98,7 @@ export function Scanner() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
   const trackRef = useRef<TorchTrack | null>(null)
-  // null = not checked yet (avoids flashing the setup gate on reload)
-  const [ready, setReady] = useState<boolean | null>(null)
+  const ready = useLocalFlag(SETUP_KEY)
   const [error, setError] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string | undefined>(undefined)
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
@@ -107,10 +106,6 @@ export function Scanner() {
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
   const [tabVisible, setTabVisible] = useState(true)
-
-  useEffect(() => {
-    setReady(window.localStorage.getItem(SETUP_KEY) === "1")
-  }, [])
 
   useEffect(() => {
     const sync = () => setTabVisible(document.visibilityState === "visible")
@@ -203,7 +198,7 @@ export function Scanner() {
   }
 
   if (ready === null) {
-    return <AppLoading />
+    return <main className="min-h-dvh bg-black" />
   }
 
   if (!ready) {
