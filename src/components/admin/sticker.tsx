@@ -1,15 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import QRCode from "qrcode"
 import { LoaderCircle, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
+import { buildPrinterStickerLbx, stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import {
   buildAndroidStickerIntent,
   buildStickerPrintUrl,
   DEFAULT_PAPER_SIZE_ID,
-  loadTemplateBase64,
 } from "@/lib/print-url"
 import { apiPath } from "@/lib/utils"
 
@@ -18,11 +17,9 @@ export function StickerPreview({ name, url }: { name: string; url: string }) {
 
   useEffect(() => {
     let cancelled = false
-    void QRCode.toDataURL(url, { margin: 1, width: 280, color: { dark: "#0f0f0f", light: "#fefefe" } }).then(
-      (data) => {
-        if (!cancelled) setSrc(data)
-      },
-    )
+    void stickerQrDataUrl(url).then((data) => {
+      if (!cancelled) setSrc(data)
+    })
     return () => {
       cancelled = true
     }
@@ -44,7 +41,7 @@ export function PrintStickerButton({ name, url }: { name: string; url: string })
     setError(null)
     setBusy(true)
     try {
-      const fileBase64 = await loadTemplateBase64("printer.lbx")
+      const fileBase64 = buildPrinterStickerLbx(url)
       const input = {
         fileBase64,
         paperSizeId: DEFAULT_PAPER_SIZE_ID,
@@ -52,14 +49,16 @@ export function PrintStickerButton({ name, url }: { name: string; url: string })
         qr: url,
       }
       const platform = platformFromNavigator()
-      if (platform === "android" && supportsAndroidIntent()) {
-        const fallbackUrl = `${window.location.origin}${apiPath("/admin/printers")}`
-        window.location.href = buildAndroidStickerIntent({ ...input, fallbackUrl })
-      } else {
-        window.location.href = buildStickerPrintUrl(input)
-      }
+      const href =
+        platform === "android" && supportsAndroidIntent()
+          ? buildAndroidStickerIntent({
+              ...input,
+              fallbackUrl: `${window.location.origin}${apiPath("/admin/printers")}`,
+            })
+          : buildStickerPrintUrl(input)
+      window.location.href = href
     } catch {
-      setError("Klarte ikke å hente etikettmalen.")
+      setError("Klarte ikke å åpne Smooth Print med etiketten.")
     } finally {
       setBusy(false)
     }
@@ -68,7 +67,7 @@ export function PrintStickerButton({ name, url }: { name: string; url: string })
   return (
     <div className="flex flex-col gap-2">
       {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
-      <Button size="lg" disabled={busy || !name || !url} onClick={() => void print()}>
+      <Button type="button" size="lg" disabled={busy || !name || !url} onClick={() => void print()}>
         {busy ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Printer className="size-5" aria-hidden />}
         Skriv ut etikett
       </Button>
