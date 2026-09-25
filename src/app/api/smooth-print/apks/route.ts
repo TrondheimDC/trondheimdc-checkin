@@ -4,6 +4,7 @@ import {
   smoothPrintApkUploadSchema,
   smoothPrintApksResponseSchema,
 } from "@/lib/db/schema"
+import { apkUploadErrorMessage, resolveApkUpload } from "@/lib/smooth-print-apk-upload"
 import { smoothPrintApkRepository } from "@/lib/smooth-print-apks"
 
 export const runtime = "nodejs"
@@ -24,11 +25,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "missing_file" }, { status: 400 })
   }
 
-  const name = file.name.toLowerCase()
-  if (!name.endsWith(".apk")) {
-    return NextResponse.json({ error: "not_apk" }, { status: 400 })
-  }
-
   const parsed = smoothPrintApkUploadSchema.safeParse({
     versionLabel: form.get("versionLabel") ?? "",
   })
@@ -36,16 +32,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 })
   }
 
-  const bytes = Buffer.from(await file.arrayBuffer())
-  if (bytes.byteLength === 0) {
-    return NextResponse.json({ error: "empty_file" }, { status: 400 })
+  const resolved = resolveApkUpload(file.name, Buffer.from(await file.arrayBuffer()))
+  if (!resolved.ok) {
+    return NextResponse.json(
+      { error: resolved.error, message: apkUploadErrorMessage(resolved.error) },
+      { status: 400 },
+    )
   }
 
   const apk = await smoothPrintApkRepository.create({
-    originalName: file.name,
+    originalName: resolved.originalName,
     versionLabel: parsed.data.versionLabel,
-    byteSize: bytes.byteLength,
-    bytes,
+    byteSize: resolved.bytes.byteLength,
+    bytes: resolved.bytes,
   })
 
   return NextResponse.json(smoothPrintApkResponseSchema.parse({ apk }), { status: 201 })
