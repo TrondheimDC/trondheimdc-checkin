@@ -3,32 +3,20 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Package } from "lucide-react"
-import { useId, useLayoutEffect, useState } from "react"
+import { useLayoutEffect, useState } from "react"
 import { useForm } from "react-hook-form"
-import { z } from "zod"
+import { FileDropzone } from "@/components/admin/file-dropzone"
+import { RemoveSmoothPrintApkButton } from "@/components/admin/remove-smooth-print-apk"
 import { Button } from "@/components/ui/button"
-import type { SmoothPrintApk } from "@/lib/db/schema"
+import { smoothPrintApkUploadSchema, type SmoothPrintApk } from "@/lib/db/schema"
+import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "@/lib/smooth-print-apks"
 import {
-  deleteSmoothPrintApk,
   fetchSmoothPrintApks,
   setSmoothPrintApkActive,
   smoothPrintApksQueryKey,
   uploadSmoothPrintApk,
 } from "@/lib/smooth-print-apk-queries"
-import { cn } from "@/lib/utils"
-
-const uploadFormSchema = z.object({
-  versionLabel: z.string().trim().max(80),
-  file: z.custom<File>((value) => value instanceof File, { message: "Velg en APK-fil" }),
-})
-
-type UploadFormValues = z.infer<typeof uploadFormSchema>
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+import { formatBytes } from "@/lib/utils"
 
 function formatDate(iso: string) {
   try {
@@ -43,9 +31,12 @@ function formatDate(iso: string) {
 
 export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintApk[] }) {
   const queryClient = useQueryClient()
-  const inputId = useId()
   const [cacheReady, setCacheReady] = useState(false)
-  const [dragging, setDragging] = useState(false)
+  const [fileError, setFileError] = useState<string | null>(null)
+  const [uploadingName, setUploadingName] = useState<string | null>(null)
+  const [progress, setProgress] = useState<{ loaded: number; total: number; percent: number } | null>(
+    null,
+  )
 
   useLayoutEffect(() => {
     queryClient.setQueryData(smoothPrintApksQueryKey, serverApks)
@@ -61,23 +52,30 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
   const apks = cacheReady ? (data ?? serverApks) : serverApks
   const hasActive = apks.some((apk) => apk.active)
 
-  const form = useForm<UploadFormValues>({
-    resolver: zodResolver(uploadFormSchema),
-    defaultValues: { versionLabel: "", file: undefined },
+  const form = useForm({
+    resolver: zodResolver(smoothPrintApkUploadSchema),
+    defaultValues: { versionLabel: "" },
   })
-  const selectedFile = form.watch("file")
 
   const upload = useMutation({
-    mutationFn: uploadSmoothPrintApk,
+    mutationFn: ({ file, versionLabel }: { file: File; versionLabel: string }) =>
+      uploadSmoothPrintApk({
+        file,
+        versionLabel,
+        onProgress: setProgress,
+      }),
     onSuccess: (apk) => {
       queryClient.setQueryData<SmoothPrintApk[]>(smoothPrintApksQueryKey, (current) => {
         const list = current ?? []
         if (list.some((item) => item.id === apk.id)) return list
         return [apk, ...list]
       })
-      form.reset({ versionLabel: "", file: undefined })
+      form.reset({ versionLabel: "" })
+      setFileError(null)
     },
     onSettled: () => {
+      setUploadingName(null)
+      setProgress(null)
       void queryClient.invalidateQueries({ queryKey: smoothPrintApksQueryKey })
     },
   })
@@ -104,32 +102,20 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
     },
   })
 
-  const remove = useMutation({
-    mutationFn: deleteSmoothPrintApk,
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: smoothPrintApksQueryKey })
-      const previous = queryClient.getQueryData<SmoothPrintApk[]>(smoothPrintApksQueryKey)
-      queryClient.setQueryData<SmoothPrintApk[]>(smoothPrintApksQueryKey, (current) =>
-        current?.filter((apk) => apk.id !== id),
-      )
-      return { previous }
-    },
-    onError: (_error, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(smoothPrintApksQueryKey, context.previous)
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: smoothPrintApksQueryKey })
-    },
-  })
-
-  function takeFile(next: File | null | undefined) {
-    if (!next) return
-    if (!next.name.toLowerCase().endsWith(".apk")) {
-      form.setError("file", { message: "Velg en .apk-fil." })
+  function takeFile(next: File) {
+    if (upload.isPending) return
+    const lower = next.name.toLowerCase()
+    if (!lower.endsWith(".apk") && !lower.endsWith(".zip")) {
+      setFileError("Velg en .apk- eller .zip-fil.")
       return
     }
-    form.setValue("file", next, { shouldValidate: true, shouldDirty: true })
-    form.clearErrors("file")
+    setFileError(null)
+    setUploadingName(next.name)
+    setProgress({ loaded: 0, total: next.size, percent: 0 })
+    const versionLabel = smoothPrintApkUploadSchema.parse({
+      versionLabel: form.getValues("versionLabel"),
+    }).versionLabel
+    upload.mutate({ file: next, versionLabel })
   }
 
   return (
@@ -137,119 +123,82 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
       <header className="pt-2">
         <h1 className="text-4xl">Smooth Print</h1>
         <p className="mt-2 max-w-xl text-base opacity-70">
-          Last opp Android-APK. Én versjon kan være aktiv — da bruker /oppsett den i stedet for Brothers
-          nedlastingsside.
+          Last opp Android-APK (eller zip med én APK — pakkes ut på serveren). Én versjon kan være aktiv —
+          da bruker /oppsett den i stedet for Brothers nedlastingsside.{" "}
+          <a
+            href={DEFAULT_SMOOTH_PRINT_ANDROID_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:opacity-100"
+          >
+            Hent APK fra Brother
+          </a>
+          .
         </p>
         <p className="mt-2 text-sm opacity-60">
           {hasActive ? "Aktiv APK er i bruk på /oppsett." : "Ingen aktiv APK — /oppsett bruker Brothers URL."}
         </p>
       </header>
 
-      <form
-        className="flex flex-col gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-4"
-        onSubmit={form.handleSubmit((values) => {
-          upload.mutate({ file: values.file, versionLabel: values.versionLabel })
-        })}
-      >
-        <input
-          id={inputId}
-          type="file"
-          accept=".apk,application/vnd.android.package-archive"
-          className="sr-only"
-          onChange={(event) => {
-            takeFile(event.target.files?.[0])
-            event.target.value = ""
-          }}
-        />
-        <label
-          htmlFor={inputId}
-          onDragEnter={(event) => {
-            event.preventDefault()
-            setDragging(true)
-          }}
-          onDragOver={(event) => {
-            event.preventDefault()
-            setDragging(true)
-          }}
-          onDragLeave={(event) => {
-            event.preventDefault()
-            if (event.currentTarget.contains(event.relatedTarget as Node)) return
-            setDragging(false)
-          }}
-          onDrop={(event) => {
-            event.preventDefault()
-            setDragging(false)
-            takeFile(event.dataTransfer.files?.[0])
-          }}
-          className={cn(
-            "flex min-h-40 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/20 bg-black/20 px-6 py-8 text-center transition-[border-color,background-color]",
-            dragging &&
-              "border-[var(--color-fg-brand)] bg-[color-mix(in_srgb,var(--color-fg-brand)_10%,transparent)]",
-            selectedFile && !dragging && "border-white/30",
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-14 items-center justify-center rounded-2xl bg-black/30 text-[var(--color-fg-brand)]",
-              dragging && "bg-[color-mix(in_srgb,var(--color-fg-brand)_18%,transparent)]",
-            )}
-          >
-            <Package className="size-7" strokeWidth={1.75} />
-          </span>
-          {selectedFile ? (
-            <>
-              <span className="max-w-full truncate text-lg font-medium">{selectedFile.name}</span>
-              <span className="text-sm opacity-60">
-                {formatBytes(selectedFile.size)} · Trykk eller slipp for å bytte
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="text-lg font-medium">{dragging ? "Slipp filen her" : "Slipp APK her"}</span>
-              <span className="text-sm opacity-60">eller trykk for å velge fil</span>
-            </>
-          )}
-        </label>
-        {form.formState.errors.file ? (
-          <p className="text-[var(--color-bg-danger)]">{form.formState.errors.file.message}</p>
-        ) : null}
+      <div className="flex flex-col gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-4">
         <label className="flex flex-col gap-2">
           Versjon (valgfritt)
           <input
             {...form.register("versionLabel")}
             placeholder="1.9.0"
+            disabled={upload.isPending}
             className="h-14 rounded-xl bg-black/30 px-4 text-lg"
           />
         </label>
+        <FileDropzone
+          accept=".apk,.zip,application/vnd.android.package-archive,application/zip"
+          emptyLabel="Slipp APK eller zip her"
+          icon={<Package className="size-7" strokeWidth={1.75} />}
+          onFile={takeFile}
+          busy={upload.isPending}
+          className="bg-black/20"
+          busyContent={
+            <div className="flex w-full max-w-sm flex-col items-center gap-3">
+              <span className="flex size-14 items-center justify-center rounded-2xl bg-black/30 text-[var(--color-fg-brand)]">
+                <Package className="size-7" strokeWidth={1.75} />
+              </span>
+              <span className="max-w-full truncate text-lg font-medium">{uploadingName ?? "APK"}</span>
+              <div
+                className="h-2 w-full overflow-hidden rounded-full bg-black/40"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress?.percent ?? 0}
+                aria-label="Opplastingsfremdrift"
+              >
+                <div
+                  className="h-full rounded-full bg-[var(--color-fg-brand)] transition-[width] duration-150"
+                  style={{ width: `${progress?.percent ?? 0}%` }}
+                />
+              </div>
+              <span className="text-sm opacity-70">
+                {progress && progress.percent < 100
+                  ? `${progress.percent}% · ${formatBytes(progress.loaded)} av ${formatBytes(progress.total)}`
+                  : progress?.percent === 100
+                    ? "Pakker ut og lagrer…"
+                    : "Starter…"}
+              </span>
+            </div>
+          }
+        />
+        {fileError ? <p className="text-[var(--color-bg-danger)]">{fileError}</p> : null}
         {upload.isError ? (
           <p className="text-[var(--color-bg-danger)]">
             {upload.error instanceof Error ? upload.error.message : "Opplasting feilet"}
           </p>
         ) : null}
-        <Button type="submit" size="lg" disabled={upload.isPending || !selectedFile}>
-          {upload.isPending ? "Laster opp…" : "Last opp"}
-        </Button>
-      </form>
+      </div>
 
-      {apks.length === 0 ? (
-        <section className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--color-bg-surface)] px-6 py-10 text-center">
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-black/30 text-[var(--color-fg-brand)]">
-            <Package className="size-8" strokeWidth={1.5} />
-          </span>
-          <h2 className="text-2xl">Ingen APK-filer</h2>
-          <p className="max-w-sm text-base opacity-70">
-            Last opp Smooth Print for Android, og aktiver den for nedlasting i oppsettet.
-          </p>
-          <Button type="button" onClick={() => document.getElementById(inputId)?.click()}>
-            Velg APK
-          </Button>
-        </section>
-      ) : (
+      {apks.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {apks.map((apk) => {
-            const busy =
-              (toggleActive.isPending && toggleActive.variables?.id === apk.id) ||
-              (remove.isPending && remove.variables === apk.id)
+            const label = apk.versionLabel || apk.originalName
+            const busy = toggleActive.isPending && toggleActive.variables?.id === apk.id
             return (
               <li
                 key={apk.id}
@@ -257,7 +206,7 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="truncate text-xl">{apk.versionLabel || apk.originalName}</h2>
+                    <h2 className="truncate text-xl">{label}</h2>
                     {apk.active ? (
                       <span className="rounded-md bg-[color-mix(in_srgb,var(--color-fg-brand)_22%,transparent)] px-2 py-0.5 text-sm text-[var(--color-fg-brand)]">
                         Aktiv
@@ -288,19 +237,13 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
                       Aktiver
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => remove.mutate(apk.id)}
-                  >
-                    Slett
-                  </Button>
+                  <RemoveSmoothPrintApkButton id={apk.id} label={label} active={apk.active} />
                 </div>
               </li>
             )
           })}
         </ul>
-      )}
+      ) : null}
     </main>
   )
 }

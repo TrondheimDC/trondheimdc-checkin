@@ -13,16 +13,51 @@ export async function fetchSmoothPrintApks(): Promise<SmoothPrintApk[]> {
   return smoothPrintApksResponseSchema.parse(await response.json()).apks
 }
 
+export type UploadProgress = {
+  loaded: number
+  total: number
+  percent: number
+}
+
 export async function uploadSmoothPrintApk(input: {
   file: File
   versionLabel: string
+  onProgress?: (progress: UploadProgress) => void
 }): Promise<SmoothPrintApk> {
   const body = new FormData()
   body.set("file", input.file)
   body.set("versionLabel", input.versionLabel)
-  const response = await fetch(apiPath("/api/smooth-print/apks"), { method: "POST", body })
-  if (!response.ok) throw new Error("Klarte ikke å laste opp APK")
-  return smoothPrintApkResponseSchema.parse(await response.json()).apk
+
+  // XHR (not fetch) so we get upload progress for large APKs.
+  const json = await new Promise<unknown>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open("POST", apiPath("/api/smooth-print/apks"))
+    xhr.responseType = "json"
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || !input.onProgress) return
+      const percent = Math.min(100, Math.round((event.loaded / event.total) * 100))
+      input.onProgress({ loaded: event.loaded, total: event.total, percent })
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(xhr.response)
+        return
+      }
+      const message =
+        xhr.response &&
+        typeof xhr.response === "object" &&
+        "message" in xhr.response &&
+        typeof xhr.response.message === "string"
+          ? xhr.response.message
+          : "Klarte ikke å laste opp APK"
+      reject(new Error(message))
+    }
+    xhr.onerror = () => reject(new Error("Klarte ikke å laste opp APK"))
+    xhr.onabort = () => reject(new Error("Opplasting avbrutt"))
+    xhr.send(body)
+  })
+
+  return smoothPrintApkResponseSchema.parse(json).apk
 }
 
 export async function setSmoothPrintApkActive(id: string, active: boolean): Promise<SmoothPrintApk> {
