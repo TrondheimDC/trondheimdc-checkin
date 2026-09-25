@@ -12,6 +12,7 @@ import {
   SerialIllustration,
   StickerIllustration,
 } from "@/components/admin/enroll-illustrations"
+import { PrinterModelOption } from "@/components/admin/printer-model"
 import { SerialScanButton } from "@/components/admin/serial-scan"
 import { PrintStickerButton, StickerPreview } from "@/components/admin/sticker"
 import { Button } from "@/components/ui/button"
@@ -33,7 +34,11 @@ import {
   macDelete,
   normalizePrinterSerial,
 } from "@/lib/printer-format"
-import { DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
+import {
+  DEFAULT_PRINTER_MODEL,
+  PRINTER_MODELS,
+  type PrinterModelId,
+} from "@/lib/printer-models"
 import { apiPath, cn } from "@/lib/utils"
 
 type PrinterFormValues = z.input<typeof printerBodySchema>
@@ -89,7 +94,6 @@ export function EnrollPrinter() {
   const nameId = useId()
   const addressId = useId()
   const serialId = useId()
-  const modelId = useId()
 
   const {
     register,
@@ -111,7 +115,7 @@ export function EnrollPrinter() {
   const name = watch("name") ?? ""
   const address = watch("address") ?? ""
   const serial = watch("serial") ?? ""
-  const model = watch("model") ?? DEFAULT_PRINTER_MODEL
+  const model = (watch("model") ?? DEFAULT_PRINTER_MODEL) as PrinterModelId
 
   const addressField = register("address")
   const serialField = register("serial")
@@ -317,17 +321,19 @@ export function EnrollPrinter() {
             </Field>
 
             <Field data-invalid={Boolean(errors.model) || undefined}>
-              <FieldLabel htmlFor={modelId} className="text-base text-[var(--color-fg-base)]">
-                Modell
-              </FieldLabel>
-              <InputGroup className={enrollInputGroupClass}>
-                <InputGroupInput
-                  id={modelId}
-                  {...register("model")}
-                  aria-invalid={Boolean(errors.model)}
-                  className={enrollControlClass}
-                />
-              </InputGroup>
+              <FieldLabel className="text-base text-[var(--color-fg-base)]">Modell</FieldLabel>
+              <div className="flex flex-col gap-2">
+                {Object.values(PRINTER_MODELS).map((option) => (
+                  <PrinterModelOption
+                    key={option.id}
+                    model={option}
+                    selected={model === option.id}
+                    onSelect={() =>
+                      setValue("model", option.id, { shouldValidate: true, shouldDirty: true })
+                    }
+                  />
+                ))}
+              </div>
               <FieldError
                 className="text-[var(--color-bg-danger)]"
                 errors={errors.model ? [errors.model] : undefined}

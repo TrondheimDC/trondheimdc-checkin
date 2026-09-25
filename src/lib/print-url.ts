@@ -7,6 +7,10 @@ export const SMOOTH_PRINT_ANDROID_PACKAGE = "com.brother.ptouch.smoothprint"
 export const IOS_APP_STORE =
   "https://apps.apple.com/us/app/smooth-print/id1629559918"
 
+/** Brother’s Android APK agreement / download (not on Play Store). */
+export const DEFAULT_SMOOTH_PRINT_ANDROID_URL =
+  "https://support.brother.com/g/b/agreement.aspx?dlid=dlfp101087_000"
+
 export function buildPrintQuery(input: {
   fileBase64: string
   paperSizeId: string
@@ -78,7 +82,9 @@ export function buildAndroidPrintIntent(input: {
   )
 }
 
-export const DEFAULT_PRINTER_MODEL = "QL-820NWBc"
+import { DEFAULT_PRINTER_MODEL } from "@/lib/printer-models"
+
+export { DEFAULT_PRINTER_MODEL }
 
 export type ConnectType = "BT" | "WiFi"
 

@@ -3,6 +3,9 @@ import { join } from "path"
 import { and, desc, eq, ne } from "drizzle-orm"
 import { db } from "./db"
 import { smoothPrintApkSchema, smoothPrintApks, type SmoothPrintApk } from "./db/schema"
+import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "./print-url"
+
+export { DEFAULT_SMOOTH_PRINT_ANDROID_URL }
 
 export type { SmoothPrintApk }
 
@@ -96,10 +99,6 @@ export const smoothPrintApkRepository = {
     return true
   },
 }
-
-/** Absolute path for the Android download used by /oppsett. */
-export const DEFAULT_SMOOTH_PRINT_ANDROID_URL =
-  "https://support.brother.com/g/b/agreement.aspx?dlid=dlfp101087_000"
 
 export async function resolveAndroidDownloadUrl(apiPathFn: (path: string) => string): Promise<string> {
   const active = await smoothPrintApkRepository.getActive()
