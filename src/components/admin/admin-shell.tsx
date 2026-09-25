@@ -1,6 +1,6 @@
 "use client"
 
-import { FileUp, Package, Printer, Shapes } from "lucide-react"
+import { FileUp, FlaskConical, Package, Printer, Shapes } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { TdcLogo } from "@/components/tdc-logo"
@@ -52,6 +52,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                     <Link href="/admin/smooth-print">
                       <Package />
                       Smooth Print
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/testutskrift")} size="lg">
+                    <Link href="/admin/testutskrift">
+                      <FlaskConical />
+                      Testutskrift
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
