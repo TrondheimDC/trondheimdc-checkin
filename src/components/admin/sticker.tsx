@@ -4,11 +4,12 @@ import { useEffect, useState } from "react"
 import { LoaderCircle, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
-import { buildPrinterStickerLbx, stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
+import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import {
   buildAndroidStickerIntent,
   buildStickerPrintUrl,
   DEFAULT_PAPER_SIZE_ID,
+  loadTemplateBase64,
 } from "@/lib/print-url"
 import { apiPath } from "@/lib/utils"
 
@@ -41,7 +42,7 @@ export function PrintStickerButton({ name, url }: { name: string; url: string })
     setError(null)
     setBusy(true)
     try {
-      const fileBase64 = buildPrinterStickerLbx(url)
+      const fileBase64 = await loadTemplateBase64("printer.lbx")
       const input = {
         fileBase64,
         paperSizeId: DEFAULT_PAPER_SIZE_ID,
