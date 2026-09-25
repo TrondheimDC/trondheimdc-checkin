@@ -2,6 +2,7 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 import { createSelectSchema } from "drizzle-zod"
 import { z } from "zod"
 import { formatBluetoothMac, isCompleteBluetoothMac } from "@/lib/printer-format"
+import { DEFAULT_PRINTER_MODEL, printerModelIdSchema } from "@/lib/printer-models"
 
 export const attendees = sqliteTable("attendees", {
   id: text("id").primaryKey(),
@@ -10,6 +11,8 @@ export const attendees = sqliteTable("attendees", {
   role: text("role").notNull().default(""),
   /** ISO timestamp of the current check-in. Null when not checked in. */
   checkedInAt: text("checked_in_at"),
+  /** Soft-delete when missing from a later import. Null while active. */
+  deletedAt: text("deleted_at"),
 })
 
 export const checkEvents = sqliteTable(
@@ -58,7 +61,7 @@ export const printers = sqliteTable("printers", {
   /** Bluetooth MAC, or an IP when connectType is WiFi. */
   address: text("address").notNull(),
   serial: text("serial").notNull().default(""),
-  model: text("model").notNull().default("QL-820NWBc"),
+  model: text("model").notNull().default(DEFAULT_PRINTER_MODEL),
   connectType: text("connect_type").notNull().default("BT"),
   createdAt: text("created_at").notNull(),
 })
@@ -68,7 +71,7 @@ export const printerSchema = z.object({
   name: z.string(),
   address: z.string(),
   serial: z.string(),
-  model: z.string(),
+  model: printerModelIdSchema.or(z.string()),
   connectType: z.enum(["BT", "WiFi"]),
   createdAt: z.string(),
 })
@@ -87,7 +90,7 @@ export const printerBodySchema = z
     name: z.string().trim().min(1).max(40),
     address: z.string().trim().max(80),
     serial: z.string().trim().toUpperCase().max(40).default(""),
-    model: z.string().trim().min(1).max(40).default("QL-820NWBc"),
+    model: printerModelIdSchema.default(DEFAULT_PRINTER_MODEL),
     connectType: z.enum(["BT", "WiFi"]).default("BT"),
   })
   .superRefine((data, ctx) => {

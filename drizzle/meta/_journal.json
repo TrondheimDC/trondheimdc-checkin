@@ -36,6 +36,13 @@
       "when": 1790324062081,
       "tag": "0004_smooth-print-apks",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790370738798,
+      "tag": "0005_attendees-soft-delete",
+      "breakpoints": true
     }
   ]
 }

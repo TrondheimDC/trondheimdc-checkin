@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, like, or, sql } from "drizzle-orm"
+import { and, count, eq, inArray, isNull, like, or, sql } from "drizzle-orm"
 import { db } from "./db"
 import { attendees, checkEvents, type Attendee } from "./db/schema"
 
@@ -9,12 +9,20 @@ export interface AttendeeStats {
   checkedIn: number
 }
 
+export interface ImportSyncResult {
+  added: number
+  updated: number
+  restored: number
+  softDeleted: number
+  total: number
+}
+
 export interface AttendeeRepository {
   getById(id: string): Promise<Attendee | null>
   search(query: string, options: { includeCheckedIn: boolean }): Promise<Attendee[]>
   stats(): Promise<AttendeeStats>
   setCheckedIn(id: string, checkedIn: boolean): Promise<Attendee | null>
-  replaceAll(next: Attendee[]): Promise<void>
+  replaceAll(next: Attendee[], deactivateIds?: string[]): Promise<ImportSyncResult>
 }
 
 function likePattern(query: string): string {
@@ -22,9 +30,15 @@ function likePattern(query: string): string {
   return `%${query.replace(/[%_]/g, "")}%`
 }
 
+const active = isNull(attendees.deletedAt)
+
 export const attendeeRepository: AttendeeRepository = {
   async getById(id) {
-    const rows = await db.select().from(attendees).where(eq(attendees.id, id)).limit(1)
+    const rows = await db
+      .select()
+      .from(attendees)
+      .where(and(eq(attendees.id, id), active))
+      .limit(1)
     return rows[0] ?? null
   },
 
@@ -33,7 +47,9 @@ export const attendeeRepository: AttendeeRepository = {
     if (!needle) return []
     const pattern = likePattern(needle)
     const textMatch = or(like(attendees.name, pattern), like(attendees.company, pattern))
-    const where = includeCheckedIn ? textMatch : and(textMatch, isNull(attendees.checkedInAt))
+    const where = includeCheckedIn
+      ? and(active, textMatch)
+      : and(active, textMatch, isNull(attendees.checkedInAt))
     return db.select().from(attendees).where(where).limit(20)
   },
 
@@ -44,6 +60,7 @@ export const attendeeRepository: AttendeeRepository = {
         checkedIn: sql<number>`coalesce(sum(case when ${attendees.checkedInAt} is not null then 1 else 0 end), 0)`,
       })
       .from(attendees)
+      .where(active)
     return {
       total: Number(row?.total ?? 0),
       checkedIn: Number(row?.checkedIn ?? 0),
@@ -56,7 +73,7 @@ export const attendeeRepository: AttendeeRepository = {
       const updated = await tx
         .update(attendees)
         .set({ checkedInAt: checkedIn ? now : null })
-        .where(eq(attendees.id, id))
+        .where(and(eq(attendees.id, id), active))
         .returning()
       const attendee = updated[0]
       if (!attendee) return null
@@ -69,12 +86,60 @@ export const attendeeRepository: AttendeeRepository = {
     })
   },
 
-  async replaceAll(next) {
-    await db.transaction(async (tx) => {
-      await tx.delete(attendees)
+  async replaceAll(next, deactivateIds = []) {
+    // id is the ticket barcode. Upsert by id so check-ins and check_events survive re-import.
+    // Missing active rows + cancelled/waitlist/refunded barcodes are soft-deleted.
+    return db.transaction(async (tx) => {
+      const now = new Date().toISOString()
+      const nextIds = new Set(next.map((attendee) => attendee.id))
+      const deactivate = new Set(deactivateIds)
+      const existing = await tx.select({ id: attendees.id, deletedAt: attendees.deletedAt }).from(attendees)
+      const byId = new Map(existing.map((row) => [row.id, row]))
+
+      let added = 0
+      let updated = 0
+      let restored = 0
+      for (const attendee of next) {
+        const prev = byId.get(attendee.id)
+        if (!prev) added += 1
+        else if (prev.deletedAt) restored += 1
+        else updated += 1
+      }
+
+      const removedIds = existing
+        .filter(
+          (row) =>
+            row.deletedAt == null && (!nextIds.has(row.id) || deactivate.has(row.id)),
+        )
+        .map((row) => row.id)
+
+      if (removedIds.length > 0) {
+        await tx.update(attendees).set({ deletedAt: now }).where(inArray(attendees.id, removedIds))
+      }
+
       const size = 100
       for (let i = 0; i < next.length; i += size) {
-        await tx.insert(attendees).values(next.slice(i, i + size))
+        const chunk = next.slice(i, i + size)
+        await tx
+          .insert(attendees)
+          .values(chunk)
+          .onConflictDoUpdate({
+            target: attendees.id,
+            set: {
+              name: sql`excluded.name`,
+              company: sql`excluded.company`,
+              role: sql`excluded.role`,
+              deletedAt: null,
+            },
+          })
+      }
+
+      return {
+        added,
+        updated,
+        restored,
+        softDeleted: removedIds.length,
+        total: next.length,
       }
     })
   },
