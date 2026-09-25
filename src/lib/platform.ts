@@ -12,6 +12,17 @@ export function platformFromOsName(osName: string | undefined): PhonePlatform {
   }
 }
 
+/** Client-only. iPadOS 13+ reports as Macintosh, so touch points count as iOS. */
+export function platformFromNavigator(
+  ua: string = typeof navigator !== "undefined" ? navigator.userAgent : "",
+  touchPoints: number = typeof navigator !== "undefined" ? navigator.maxTouchPoints : 0,
+): PhonePlatform {
+  if (/android/i.test(ua)) return "android"
+  if (/iPad|iPhone|iPod/i.test(ua)) return "ios"
+  if (/Macintosh/i.test(ua) && touchPoints > 1) return "ios"
+  return "other"
+}
+
 /** Client-side refinement: iPadOS 13+ reports as Macintosh in the UA. */
 export function refinePlatform(platform: PhonePlatform): PhonePlatform {
   if (platform !== "other" || typeof navigator === "undefined") return platform

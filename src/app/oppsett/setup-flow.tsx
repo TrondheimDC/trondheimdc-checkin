@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { refinePlatform, supportsAndroidIntent, type PhonePlatform } from "@/lib/platform"
+import { platformFromNavigator, supportsAndroidIntent, type PhonePlatform } from "@/lib/platform"
 import {
   buildAndroidPrintIntent,
   buildPrintUrl,
@@ -54,7 +54,7 @@ const steps = [
   },
 ]
 
-export function SetupFlow({ platform: platformProp, androidUrl }: { platform: PhonePlatform; androidUrl: string }) {
+export function SetupFlow({ androidUrl }: { androidUrl: string }) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [seen, setSeen] = useState(false)
@@ -62,13 +62,13 @@ export function SetupFlow({ platform: platformProp, androidUrl }: { platform: Ph
   const [didPrint, setDidPrint] = useState(false)
   const [busy, setBusy] = useState(false)
   const [printError, setPrintError] = useState<string | null>(null)
-  const [platform, setPlatform] = useState(platformProp)
+  const [platform, setPlatform] = useState<PhonePlatform>("other")
   const current = steps[step]
   const last = step === steps.length - 1
 
   useEffect(() => {
-    setPlatform(refinePlatform(platformProp))
-  }, [platformProp])
+    setPlatform(platformFromNavigator())
+  }, [])
 
   function finish() {
     window.localStorage.setItem(SETUP_KEY, "1")

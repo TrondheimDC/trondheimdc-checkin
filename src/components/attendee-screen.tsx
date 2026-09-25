@@ -3,26 +3,23 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Search, ScanLine } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { CheckInButton } from "@/components/check-in-button"
 import { PrintButton } from "@/components/print-button"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { labelLine } from "@/lib/label-line"
-import type { PhonePlatform } from "@/lib/platform"
+import { platformFromNavigator, type PhonePlatform } from "@/lib/platform"
 import { apiPath } from "@/lib/utils"
 import { attendeeResponseSchema } from "@/lib/db/schema"
 
-export function AttendeeScreen({
-  id,
-  paperSizeId,
-  platform,
-}: {
-  id: string
-  paperSizeId: string
-  platform: PhonePlatform
-}) {
+export function AttendeeScreen({ id, paperSizeId }: { id: string; paperSizeId: string }) {
   const queryClient = useQueryClient()
+  const [platform, setPlatform] = useState<PhonePlatform>("other")
+
+  useEffect(() => {
+    setPlatform(platformFromNavigator())
+  }, [])
   const [overrideError, setOverrideError] = useState<string | null>(null)
   const query = useQuery({
     queryKey: ["attendee", id],
