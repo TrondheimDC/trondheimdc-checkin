@@ -15,9 +15,9 @@ export const PRINT_SAMPLES: PrintSample[] = [
   {
     id: "badge",
     label: "Navneskilt",
-    description: "Bare navn og linje 2 — produksjonsmalen.",
+    description: "Produksjonsmalen — and med raster i nedre høyre hjørne.",
     template: "badge.lbx",
-    preview: null,
+    preview: "/badge/8bit-duck-dither-preview.png",
   },
   {
     id: "duck-mono",
@@ -27,11 +27,11 @@ export const PRINT_SAMPLES: PrintSample[] = [
     preview: "/badge/8bit-duck-mono-preview.png",
   },
   {
-    id: "duck-dither",
-    label: "Navneskilt med and (raster)",
-    description: "Skyggelegging via dithering i nedre høyre hjørne — teksten beholder full plass.",
-    template: "badge-duck-dither.lbx",
-    preview: "/badge/8bit-duck-dither-preview.png",
+    id: "badge-plain",
+    label: "Navneskilt uten and",
+    description: "Bare navn og linje 2.",
+    template: "badge-plain.lbx",
+    preview: null,
   },
 ]
 

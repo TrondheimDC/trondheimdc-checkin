@@ -38,7 +38,7 @@ export function TestPrintForm() {
   } = useForm<TestPrintFormValues>({
     resolver: zodResolver(testPrintFormSchema),
     defaultValues: {
-      sampleId: "duck-dither",
+      sampleId: "badge",
       name: "Test Testesen",
       line2: "TDC",
     },
