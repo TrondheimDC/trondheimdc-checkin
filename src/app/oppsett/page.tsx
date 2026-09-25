@@ -1,14 +1,31 @@
-import { SetupFlow } from "./setup-flow"
+import { SetupFlow, type SetupStepId } from "./setup-flow"
 import { DEFAULT_PRINTER_MODEL, type ConnectType } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
 import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
 import { apiPath } from "@/lib/utils"
+
+const STEP_IDS = new Set<SetupStepId>([
+  "install",
+  "bt-on",
+  "choose",
+  "scan",
+  "connect",
+  "pair",
+  "confirm",
+  "test-print",
+])
+
+function parseStep(value: string | undefined): SetupStepId | null {
+  if (!value) return null
+  return STEP_IDS.has(value as SetupStepId) ? (value as SetupStepId) : null
+}
 
 export default async function SetupPage({
   searchParams,
 }: {
   searchParams: Promise<{
     path?: string
+    step?: string
     address?: string
     mac?: string
     serial?: string
@@ -42,6 +59,7 @@ export default async function SetupPage({
       <SetupFlow
         androidUrl={androidUrl}
         initialPath={initialPath}
+        initialStep={parseStep(query.step)}
         initialPrinter={initialPrinter}
         afterConnect={query.phase === "connected"}
         connectResult={query.result ?? null}

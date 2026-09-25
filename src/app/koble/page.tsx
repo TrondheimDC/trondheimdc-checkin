@@ -18,7 +18,7 @@ export default async function KoblePage({
   const address = query.address || query.mac || ""
   const connectType: ConnectType = query.type === "WiFi" ? "WiFi" : "BT"
   if (!address) {
-    redirect("/oppsett?path=qr")
+    redirect("/oppsett?path=qr&step=scan")
   }
   redirect(
     printerSetupPath({

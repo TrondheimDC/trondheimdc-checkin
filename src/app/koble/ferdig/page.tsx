@@ -9,6 +9,7 @@ export default async function ConnectDonePage({
   const { result } = await searchParams
   const params = new URLSearchParams({
     path: "qr",
+    step: "test-print",
     phase: "connected",
   })
   if (result) params.set("result", result)

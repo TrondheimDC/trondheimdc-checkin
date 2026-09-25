@@ -7,10 +7,11 @@ export type PrinterSetupParams = {
   connectType: ConnectType
 }
 
-/** Path encoded on printer stickers — lands in /oppsett QR path. */
+/** Path encoded on printer stickers — lands on /oppsett connect step. */
 export function printerSetupPath(input: PrinterSetupParams): string {
   const params = new URLSearchParams({
     path: "qr",
+    step: "connect",
     address: input.address.trim().toUpperCase(),
     serial: input.serial.trim().toUpperCase(),
     model: input.model,

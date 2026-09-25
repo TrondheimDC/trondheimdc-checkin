@@ -155,9 +155,94 @@ function firstPathStepId(path: SetupPath, omitScan: boolean): Step["id"] {
   return "pair"
 }
 
+export type SetupStepId = Step["id"]
+
+function inferPathForStep(stepId: SetupStepId, fallback: SetupPath | null): SetupPath | null {
+  if (fallback) return fallback
+  if (stepId === "scan" || stepId === "connect") return "qr"
+  if (stepId === "pair" || stepId === "confirm") return "manual"
+  return fallback
+}
+
+function resolveEntry(input: {
+  initialPath: SetupPath | null
+  initialStep: SetupStepId | null
+  initialPrinter: PrinterSetupParams | null
+  afterConnect: boolean
+}): {
+  path: SetupPath | null
+  preludeStep: number
+  step: number
+  connected: boolean
+} {
+  const omitScan = Boolean(input.initialPrinter)
+
+  if (input.afterConnect) {
+    const path = input.initialPath ?? "qr"
+    const at = pathStepIndex(path, "test-print", omitScan)
+    return { path, preludeStep: 0, step: at >= 0 ? at : 0, connected: true }
+  }
+
+  const stepId = input.initialStep
+  if (stepId) {
+    if (stepId === "choose" || (!input.initialPath && (stepId === "install" || stepId === "bt-on"))) {
+      const preludeIdx = PRELUDE.findIndex((item) => item.id === stepId)
+      return {
+        path: null,
+        preludeStep: preludeIdx >= 0 ? preludeIdx : 0,
+        step: 0,
+        connected: false,
+      }
+    }
+
+    const path = inferPathForStep(stepId, input.initialPath)
+    if (path) {
+      const at = pathStepIndex(path, stepId, omitScan)
+      if (at >= 0) {
+        return { path, preludeStep: 0, step: at, connected: false }
+      }
+    }
+
+    const preludeIdx = PRELUDE.findIndex((item) => item.id === stepId)
+    if (preludeIdx >= 0) {
+      return { path: null, preludeStep: preludeIdx, step: 0, connected: false }
+    }
+  }
+
+  if (input.initialPath) {
+    return { path: input.initialPath, preludeStep: 0, step: 0, connected: false }
+  }
+
+  return { path: null, preludeStep: 0, step: 0, connected: false }
+}
+
+function buildSetupSearch(input: {
+  path: SetupPath | null
+  stepId: SetupStepId
+  printer: PrinterSetupParams | null
+  phaseConnected: boolean
+  connectResult: string | null
+}): string {
+  const params = new URLSearchParams()
+  if (input.path) params.set("path", input.path)
+  params.set("step", input.stepId)
+  if (input.printer) {
+    params.set("address", input.printer.address)
+    if (input.printer.serial) params.set("serial", input.printer.serial)
+    params.set("model", input.printer.model)
+    params.set("type", input.printer.connectType)
+  }
+  if (input.phaseConnected) {
+    params.set("phase", "connected")
+    if (input.connectResult) params.set("result", input.connectResult)
+  }
+  return params.toString()
+}
+
 export type SetupFlowProps = {
   androidUrl: string
   initialPath?: SetupPath | null
+  initialStep?: SetupStepId | null
   initialPrinter?: PrinterSetupParams | null
   afterConnect?: boolean
   connectResult?: string | null
@@ -166,27 +251,24 @@ export type SetupFlowProps = {
 export function SetupFlow({
   androidUrl,
   initialPath = null,
+  initialStep = null,
   initialPrinter = null,
   afterConnect = false,
   connectResult = null,
 }: SetupFlowProps) {
   const router = useRouter()
-  const [path, setPath] = useState<SetupPath | null>(initialPath)
+  const omitScan = Boolean(initialPrinter)
+  const [entry] = useState(() =>
+    resolveEntry({ initialPath, initialStep, initialPrinter, afterConnect }),
+  )
+  const [path, setPath] = useState<SetupPath | null>(entry.path)
   const [printer, setPrinter] = useState<PrinterSetupParams | null>(initialPrinter)
-  const [omitScan] = useState(Boolean(initialPrinter))
   /** Index into PRELUDE while path is null. */
-  const [preludeStep, setPreludeStep] = useState(0)
-  const [step, setStep] = useState(() => {
-    if (!initialPath) return 0
-    if (afterConnect) {
-      const at = pathStepIndex(initialPath, "test-print", Boolean(initialPrinter))
-      return at >= 0 ? at : 0
-    }
-    return 0
-  })
+  const [preludeStep, setPreludeStep] = useState(entry.preludeStep)
+  const [step, setStep] = useState(entry.step)
   const [seen, setSeen] = useState(false)
-  const [connectedOk, setConnectedOk] = useState(afterConnect)
-  const [didConnect, setDidConnect] = useState(afterConnect)
+  const [connectedOk, setConnectedOk] = useState(entry.connected)
+  const [didConnect, setDidConnect] = useState(entry.connected)
   const [printedOk, setPrintedOk] = useState(false)
   const [didPrint, setDidPrint] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -217,6 +299,19 @@ export function SetupFlow({
     setPlatform(platformFromNavigator())
   }, [])
 
+  useEffect(() => {
+    const query = buildSetupSearch({
+      path,
+      stepId: current.id,
+      printer,
+      phaseConnected: didConnect && current.id === "test-print",
+      connectResult,
+    })
+    const next = apiPath(query ? `/oppsett?${query}` : "/oppsett")
+    if (`${window.location.pathname}${window.location.search}` === next) return
+    window.history.replaceState(window.history.state, "", next)
+  }, [path, current.id, printer, didConnect, connectResult])
+
   function finish() {
     window.localStorage.setItem(SETUP_KEY, "1")
     router.push("/")
@@ -240,6 +335,7 @@ export function SetupFlow({
     const origin = window.location.origin
     const callback = new URL(apiPath("/oppsett"), origin)
     callback.searchParams.set("path", "qr")
+    callback.searchParams.set("step", "test-print")
     callback.searchParams.set("address", printer.address)
     callback.searchParams.set("serial", printer.serial)
     callback.searchParams.set("model", printer.model)
@@ -255,7 +351,14 @@ export function SetupFlow({
       model: printer.model || DEFAULT_PRINTER_MODEL,
       callbackUrl,
     }
-    const fallbackUrl = `${origin}${apiPath("/oppsett")}?path=qr&address=${encodeURIComponent(printer.address)}`
+    const fallbackQuery = buildSetupSearch({
+      path: "qr",
+      stepId: "connect",
+      printer,
+      phaseConnected: false,
+      connectResult: null,
+    })
+    const fallbackUrl = `${origin}${apiPath(`/oppsett?${fallbackQuery}`)}`
     if (platform === "android" && supportsAndroidIntent()) {
       window.location.href = buildAndroidConnectIntent({ ...input, fallbackUrl })
     } else {
@@ -277,7 +380,7 @@ export function SetupFlow({
       }
 
       if (platform === "android" && supportsAndroidIntent()) {
-        const fallbackUrl = `${window.location.origin}${apiPath("/oppsett")}`
+        const fallbackUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`
         window.location.href = buildAndroidPrintIntent({ ...input, fallbackUrl })
       } else {
         window.location.href = buildPrintUrl(input)
@@ -335,32 +438,38 @@ export function SetupFlow({
           </div>
         ) : current.kind === "choose" ? (
           <div className="flex w-full flex-col gap-3">
-            <button
+            <Button
               type="button"
+              variant="surface"
               onClick={() => choosePath("qr")}
-              className="flex items-start gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-4 text-left transition-transform active:scale-[0.98]"
+              className="h-auto w-full items-start justify-start gap-4 rounded-2xl p-4 text-left whitespace-normal"
             >
               <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/35 text-[var(--color-fg-brand)]">
                 <QrCode className="size-6" strokeWidth={1.75} />
               </span>
-              <span>
-                <span className="block text-xl">Skann QR</span>
-                <span className="mt-1 block text-sm opacity-70">Hopper over telefon-paring og valg i appen</span>
+              <span className="min-w-0">
+                <span className="block text-xl font-semibold">Skann QR</span>
+                <span className="mt-1 block text-sm font-normal opacity-70">
+                  Hopper over telefon-paring og valg i appen
+                </span>
               </span>
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="surface"
               onClick={() => choosePath("manual")}
-              className="flex items-start gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-4 text-left transition-transform active:scale-[0.98]"
+              className="h-auto w-full items-start justify-start gap-4 rounded-2xl p-4 text-left whitespace-normal"
             >
               <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/35 text-[var(--color-fg-brand)]">
                 <Wrench className="size-6" strokeWidth={1.75} />
               </span>
-              <span>
-                <span className="block text-xl">Manuelt</span>
-                <span className="mt-1 block text-sm opacity-70">Paring i telefonens Bluetooth-innstillinger</span>
+              <span className="min-w-0">
+                <span className="block text-xl font-semibold">Manuelt</span>
+                <span className="mt-1 block text-sm font-normal opacity-70">
+                  Paring i telefonens Bluetooth-innstillinger
+                </span>
               </span>
-            </button>
+            </Button>
           </div>
         ) : current.kind === "scan" ? (
           <SetupQrScan onFound={onQrFound} />
