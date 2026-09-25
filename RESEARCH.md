@@ -2,6 +2,8 @@
 
 Claims below are limited to pages Brother publishes. Anything not on those pages is listed under “Not verified”.
 
+Primary docs: **[Smooth Print HTML documentation](https://support.brother.com/g/s/es/htmldoc/smoothprint/)**
+
 ## Which app
 
 Smooth Print is the URL-scheme app on both iOS and Android. It is one product, not two.
@@ -11,10 +13,27 @@ Smooth Print is the URL-scheme app on both iOS and Android. It is one product, n
 - iOS App Store: https://apps.apple.com/us/app/smooth-print/id1629559918
 - Android is not on the Play Store. Brother hosts an APK (Smooth Print for Android 1.9.0, 09/01/2026) behind https://support.brother.com/g/b/agreement.aspx?dlid=dlfp101087_000
 - Download index: https://support.brother.com/g/s/es/dev/en/specific/smooth_print/download/index.html
-- OS: iOS 14.1+, Android 8.0+. https://support.brother.com/g/s/es/htmldoc/smoothprint/overview/supported_os/
-- QL-820NWB and QL-820NWBc are supported on iOS and Android, Bluetooth and Wi-Fi. https://support.brother.com/g/s/es/htmldoc/smoothprint/overview/models/
+- Models: QL-820NWB and QL-820NWBc are supported on iOS and Android. https://support.brother.com/g/s/es/htmldoc/smoothprint/overview/models/
 
 iPrint&Label has no documented `brotheriprintlabel://` scheme. Its store listing describes opening an `.lbx` from Mail or Dropbox and printing by hand.
+
+### Supported OS
+
+From https://support.brother.com/g/s/es/htmldoc/smoothprint/overview/supported_os/
+
+| Platform | Version |
+|---|---|
+| iOS | 14.1 or higher |
+| Android | 8.0 or higher |
+
+### Supported wireless connection
+
+Same page:
+
+| Platform | Connection |
+|---|---|
+| iOS | Bluetooth Classic (MFi), Wi-Fi |
+| Android | Bluetooth Classic, Wi-Fi |
 
 ## Print URL
 
@@ -35,11 +54,41 @@ brotherwebprint://print?filename=<url-encoded lbx>&size=<paper size id>&copies=1
 - The print URL has no printer parameter. Smooth Print uses the printer registered in the app.
 - iOS Safari only opens a custom scheme from a user tap. The app sets `window.location.href` inside the button handler.
 
+### `fileattach` (base64) vs hosted URL
+
+This app currently fetches `public/templates/badge.lbx`, base64-encodes it, and passes **`fileattach`** so Smooth Print does not HTTP-fetch the template itself.
+
+Brother also allows `filename` to be an **internet URL** to the `.lbx` on our web server (no `fileattach`). We should compare both on hardware:
+
+| Approach | Pros | Cons / open questions |
+|---|---|---|
+| `fileattach` + base64 (current) | Works offline after page load; no second HTTP from Smooth Print | Large URL / intent payload; caching rules (`formatarchiveupdate`) |
+| `filename=<https://…/badge.lbx>` | Smaller scheme URL; template always from server | Smooth Print must reach the host; auth/base-path/CDN caching; first print latency |
+
+**To verify:** reliability, speed, and template-update behaviour on iOS and Android for both modes. Prefer the more robust default for day-of check-in.
+
 Template rules: https://support.brother.com/g/s/es/htmldoc/smoothprint/guide/setup_overview/
 
 Object name field in P-touch Editor. Supported fonts are listed there. Numbering, database connection, and OLE objects are not supported.
 
-## Pairing
+## URL schemes beyond print
+
+Smooth Print documents several URL-scheme commands. Using more of them could make check-in more robust (status before print, auto-select printer, recovery when Bluetooth drops). Reference index: https://support.brother.com/g/s/es/htmldoc/smoothprint/
+
+### Printer status
+
+https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/printer_status/
+
+Worth trying as a **poll** before / after print: is the printer connected, ready, out of media, etc.? Callbacks still use custom schemes the website may not own — need a practical pattern on iOS Safari vs Android.
+
+### Find / connect printer (high priority — QR auto-pair)
+
+- Find (Bluetooth search): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/find_printer/
+- Connect (Bluetooth MAC / iOS QL serial, or Wi-Fi IP): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/connect_printer/
+
+**Priority spike:** can a **setup QR** (or https page that opens the scheme) run find/connect so scanning pairs the phone to a known printer? Tracked in [docs/TODO.md](docs/TODO.md) under High priority. Not implemented yet; result delivery is via custom schemes.
+
+## Pairing (manual path today)
 
 Bluetooth steps for the QL-820NWB, from https://support.brother.com/g/b/faqend.aspx?c=us&faqid=faqp00100217_002&lang=en&prod=lpql820nwbeus
 
@@ -49,11 +98,7 @@ Bluetooth steps for the QL-820NWB, from https://support.brother.com/g/b/faqend.a
 4. The pairing is kept across power off.
 5. iOS can drop the link when the phone moves away. Reconnect from Bluetooth settings.
 
-Smooth Print’s own connect call can target Bluetooth (MAC, and on iOS QL also serial number) or Wi-Fi (IP): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/connect_printer/
-
-The documented search call is Bluetooth only, and the result is delivered to a custom scheme: https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/find_printer/
-
-This app does not call connect or search. Staff register the printer inside Smooth Print, then confirm they can see it.
+This app does not call connect or search yet. Staff register the printer inside Smooth Print, then confirm they can see it (`/oppsett`).
 
 ## Label
 
@@ -73,5 +118,7 @@ This project prints DK-11208.
 - That a tap on iOS Safari actually opens Smooth Print and prints (Android APK confirmed with `fileattach`).
 - What iOS Safari does when Smooth Print is not installed. Android uses an `intent://` URL with `package=com.brother.ptouch.smoothprint` and `S.browser_fallback_url` to `/oppsett` when the APK is missing. iOS only gets a soft “Skjedde det ingenting?” hint if the page is still visible after 2 s (Safari usually backgrounds when the app opens).
 - Whether a second phone can connect while the first still holds Bluetooth. A third-party note says one Bluetooth device at a time. Brother’s FAQ does not say that.
-- A QR code that contains printer pairing data. Not found in the Smooth Print manual or the QL-820NWBc Bluetooth FAQ.
+- Whether `filename=<https URL>` without `fileattach` is as reliable as base64 attach on both platforms.
+- Whether printer-status / find / connect schemes are usable from our web UI (callback ownership, user-gesture requirements).
+- A QR code that contains raw Bluetooth pairing data outside Smooth Print’s schemes. Not found in the Smooth Print manual or the QL-820NWBc Bluetooth FAQ.
 - Which cipher `@libsql/client` uses for `encryptionKey` on the installed version. The app follows the same `encryptionKey` option `tdc-sales` uses.

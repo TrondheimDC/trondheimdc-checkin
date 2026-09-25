@@ -43,7 +43,7 @@ Migrations in `drizzle/` run on server start. The database file is created under
 | `DB_ENCRYPTION_KEY` | Optional. Encrypts the LibSQL file at rest. The app boots without it (plaintext). |
 | `NEXT_PUBLIC_BASE_PATH` | Mount prefix behind nginx, no trailing slash (e.g. `/checkin`). |
 | `LABEL_PAPER_SIZE_ID` | Smooth Print `size` value. Default `DieCutW38H90` = DK-11208 (38 × 90 mm). |
-| `SMOOTH_PRINT_ANDROID_URL` | Optional direct Android APK URL. Empty uses Brother’s download/agreement page. |
+| `SMOOTH_PRINT_ANDROID_URL` | Fallback Android APK URL when none is active in admin. Empty uses Brother’s download page. |
 
 ### Deploy note
 
@@ -83,7 +83,7 @@ Background on Smooth Print URLs, pairing, and paper sizes: **[RESEARCH.md](RESEA
 Staff flow is in the app at `/oppsett` (install Smooth Print → Bluetooth → pair → confirm in the app → test print).
 
 - **iOS:** [Smooth Print on the App Store](https://apps.apple.com/us/app/smooth-print/id1629559918)
-- **Android:** APK from Brother (not Play Store); link configurable via `SMOOTH_PRINT_ANDROID_URL`
+- **Android:** Host an APK under **Admin → Smooth Print** (active version is served at `/api/smooth-print/apk`), or set `SMOOTH_PRINT_ANDROID_URL` / use Brother’s page
 
 The browser cannot see whether the printer is connected — staff confirm that in Smooth Print.
 
@@ -92,5 +92,6 @@ The browser cannot see whether the printer is connected — staff confirm that i
 | Doc | Contents |
 |---|---|
 | [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md) | Export attendees from Checkin and import them |
-| [docs/TODO.md](docs/TODO.md) | Remaining work (MVP polish, Checkin API, pairing) |
-| [RESEARCH.md](RESEARCH.md) | Brother Smooth Print URLs, pairing, label media, verified claims |
+| [docs/TODO.md](docs/TODO.md) | Remaining work (MVP polish, Checkin API, pairing, templates) |
+| [RESEARCH.md](RESEARCH.md) | Brother Smooth Print URLs, OS/wireless support, pairing, label media |
+| [Smooth Print docs](https://support.brother.com/g/s/es/htmldoc/smoothprint/) | Official Brother HTML reference (print, status, find/connect, …) |
