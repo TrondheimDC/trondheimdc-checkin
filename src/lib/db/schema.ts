@@ -50,3 +50,84 @@ export const attendeeStatsSchema = z.object({
 export const setCheckedInBodySchema = z.object({
   checkedIn: z.boolean(),
 })
+
+export const printers = sqliteTable("printers", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  /** Bluetooth MAC, or an IP when connectType is WiFi. */
+  address: text("address").notNull(),
+  serial: text("serial").notNull().default(""),
+  model: text("model").notNull().default("QL-820NWBc"),
+  connectType: text("connect_type").notNull().default("BT"),
+  createdAt: text("created_at").notNull(),
+})
+
+export const printerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  address: z.string(),
+  serial: z.string(),
+  model: z.string(),
+  connectType: z.enum(["BT", "WiFi"]),
+  createdAt: z.string(),
+})
+export type Printer = z.infer<typeof printerSchema>
+
+export const printersResponseSchema = z.object({
+  printers: z.array(printerSchema),
+})
+
+export const printerResponseSchema = z.object({
+  printer: printerSchema,
+})
+
+export const printerBodySchema = z.object({
+  name: z.string().trim().min(1).max(40),
+  address: z.string().trim().min(1).max(40),
+  serial: z.string().trim().max(40).default(""),
+  model: z.string().trim().min(1).max(40).default("QL-820NWBc"),
+  connectType: z.enum(["BT", "WiFi"]).default("BT"),
+})
+
+export const smoothPrintApks = sqliteTable(
+  "smooth_print_apks",
+  {
+    id: text("id").primaryKey(),
+    originalName: text("original_name").notNull(),
+    storedName: text("stored_name").notNull(),
+    versionLabel: text("version_label").notNull().default(""),
+    active: integer("active", { mode: "boolean" }).notNull().default(false),
+    byteSize: integer("byte_size").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => ({
+    activeIdx: index("smooth_print_apks_active_idx").on(table.active),
+  }),
+)
+
+export const smoothPrintApkSchema = z.object({
+  id: z.string(),
+  originalName: z.string(),
+  storedName: z.string(),
+  versionLabel: z.string(),
+  active: z.boolean(),
+  byteSize: z.number().int().nonnegative(),
+  createdAt: z.string(),
+})
+export type SmoothPrintApk = z.infer<typeof smoothPrintApkSchema>
+
+export const smoothPrintApksResponseSchema = z.object({
+  apks: z.array(smoothPrintApkSchema),
+})
+
+export const smoothPrintApkResponseSchema = z.object({
+  apk: smoothPrintApkSchema,
+})
+
+export const smoothPrintApkUploadSchema = z.object({
+  versionLabel: z.string().trim().max(80).default(""),
+})
+
+export const smoothPrintApkPatchSchema = z.object({
+  active: z.boolean(),
+})
