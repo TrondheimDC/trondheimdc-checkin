@@ -79,7 +79,8 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group flex flex-col search-item-in cursor-default rounded-xl bg-[var(--color-bg-surface)] px-4 py-4 text-[var(--color-fg-base)] outline-none select-none transition-[transform,background-color,color] active:scale-[0.98]",
+        "btn-press group flex flex-col search-item-in cursor-pointer touch-manipulation rounded-xl bg-[var(--color-bg-surface)] px-4 py-4 text-[var(--color-fg-base)] outline-none select-none transition-[transform,background-color,color] will-change-transform active:scale-[0.97]",
+        "hover:bg-[color-mix(in_srgb,var(--color-bg-surface)_82%,var(--color-white-1))]",
         "data-[selected=true]:bg-[var(--color-fg-brand)] data-[selected=true]:text-[var(--color-fg-always-dark)]",
         "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-40",
         className,

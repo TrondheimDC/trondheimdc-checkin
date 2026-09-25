@@ -16,15 +16,27 @@ import {
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-
   return (
     <SidebarProvider>
+      <AdminShellInner>{children}</AdminShellInner>
+    </SidebarProvider>
+  )
+}
+
+function AdminShellInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const { setOpenMobile } = useSidebar()
+
+  const closeMobile = () => setOpenMobile(false)
+
+  return (
+    <>
       <Sidebar>
-        <SidebarHeader className="px-4 py-5">
+        <SidebarHeader className="hidden px-4 py-5 md:block">
           <TdcLogo />
         </SidebarHeader>
         <SidebarContent>
@@ -33,7 +45,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/printers")} size="lg">
-                    <Link href="/admin/printers">
+                    <Link href="/admin/printers" onClick={closeMobile}>
                       <Printer />
                       Printere
                     </Link>
@@ -41,7 +53,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/import")} size="lg">
-                    <Link href="/admin/import">
+                    <Link href="/admin/import" onClick={closeMobile}>
                       <FileUp />
                       Deltakere
                     </Link>
@@ -49,7 +61,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/smooth-print")} size="lg">
-                    <Link href="/admin/smooth-print">
+                    <Link href="/admin/smooth-print" onClick={closeMobile}>
                       <Package />
                       Smooth Print
                     </Link>
@@ -57,7 +69,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/testutskrift")} size="lg">
-                    <Link href="/admin/testutskrift">
+                    <Link href="/admin/testutskrift" onClick={closeMobile}>
                       <FlaskConical />
                       Testutskrift
                     </Link>
@@ -81,6 +93,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
         {children}
       </SidebarInset>
-    </SidebarProvider>
+    </>
   )
 }
