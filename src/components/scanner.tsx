@@ -7,7 +7,16 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  applyTorch,
+  openRearCamera,
+  pickRearCamera,
+  trackSupportsTorch,
+  videoTrackFrom,
+  type TorchTrack,
+} from "@/lib/camera-torch"
 import { attendeeStatsSchema } from "@/lib/db/schema"
+import { parsePrinterSetupUrl, printerSetupPath } from "@/lib/printer-setup"
 import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 
@@ -15,75 +24,6 @@ const SETUP_KEY = "tdc-checkin-printer-seen"
 
 const iconButtonClass =
   "scan-icon-btn flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
-
-type TorchTrack = MediaStreamTrack & {
-  getCapabilities?: () => MediaTrackCapabilities & { torch?: boolean }
-  getSettings: () => MediaTrackSettings & { torch?: boolean }
-}
-
-function videoTrackFrom(video: HTMLVideoElement | null): TorchTrack | null {
-  const stream = video?.srcObject
-  if (!(stream instanceof MediaStream)) return null
-  return (stream.getVideoTracks()[0] as TorchTrack | undefined) ?? null
-}
-
-function trackSupportsTorch(track: TorchTrack): boolean {
-  return track.getCapabilities?.()?.torch === true
-}
-
-/**
- * Samsung reports getSettings().torch as false even when the LED is on, and a
- * top-level `{ torch }` constraint is ignored. Chrome documents the advanced form.
- */
-async function applyTorch(track: TorchTrack, on: boolean) {
-  const attempts: MediaTrackConstraints[] = [
-    { advanced: [{ torch: on } as MediaTrackConstraintSet] },
-    { torch: on } as MediaTrackConstraints,
-  ]
-  let lastError: unknown
-  for (const constraints of attempts) {
-    try {
-      await track.applyConstraints(constraints)
-      return
-    } catch (error) {
-      lastError = error
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("torch")
-}
-
-/** Main rear sensor. Logical / ultra-wide cameras on Samsung accept torch and do nothing. */
-function pickRearCamera(devices: MediaDeviceInfo[]) {
-  const rear = devices.filter((device) => /back|rear|environment|bak/i.test(device.label))
-  const pool = rear.length > 0 ? rear : devices
-  const main = pool.find(
-    (device) =>
-      /camera2?\s*0\b|back camera/i.test(device.label) && !/ultra|wide|tele|depth|macro/i.test(device.label),
-  )
-  const plain = pool.find((device) => !/ultra|wide|tele|depth|macro/i.test(device.label))
-  return (main ?? plain ?? pool[0])?.deviceId
-}
-
-async function openCamera(deviceId: string | undefined) {
-  const attempts: MediaTrackConstraints[] = deviceId
-    ? [
-        { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        { deviceId: { exact: deviceId } },
-      ]
-    : [
-        { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        { facingMode: "environment" },
-      ]
-  let lastError: unknown
-  for (const video of attempts) {
-    try {
-      return await navigator.mediaDevices.getUserMedia({ video, audio: false })
-    } catch (error) {
-      lastError = error
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("camera")
-}
 
 export function Scanner() {
   const stats = useQuery({
@@ -133,7 +73,7 @@ export function Scanner() {
       setTorchSupported(trackSupportsTorch(track))
     }
 
-    const controlsPromise = openCamera(deviceId).then((stream) => {
+    const controlsPromise = openRearCamera(deviceId).then((stream) => {
       const track = stream.getVideoTracks()[0] as TorchTrack | undefined
       trackRef.current = track ?? null
       if (stopped) {
@@ -143,8 +83,14 @@ export function Scanner() {
       return reader.decodeFromStream(stream, video, (result) => {
         if (!result || stopped) return
         stopped = true
-        const id = result.getText().trim()
-        if (id) router.push(`/deltaker/${encodeURIComponent(id)}`)
+        const text = result.getText().trim()
+        if (!text) return
+        const printer = parsePrinterSetupUrl(text)
+        if (printer) {
+          router.push(printerSetupPath(printer))
+          return
+        }
+        router.push(`/deltaker/${encodeURIComponent(text)}`)
       })
     })
 
@@ -335,11 +281,26 @@ export function Scanner() {
             Søk
           </Link>
         </Button>
-        {stats.data ? (
-          <p className="text-center text-sm opacity-70">
-            {stats.data.checkedIn} av {stats.data.total} innsjekket
-          </p>
-        ) : null}
+        <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+          {(
+            [
+              { label: "Totalt", value: stats.data?.total },
+              { label: "Innsjekket", value: stats.data?.checkedIn },
+              {
+                label: "Igjen",
+                value:
+                  stats.data != null ? stats.data.total - stats.data.checkedIn : undefined,
+              },
+            ] as const
+          ).map((item) => (
+            <div key={item.label} className="rounded-xl bg-black/35 px-2 py-2.5 backdrop-blur-sm">
+              <p className="font-display text-2xl tabular-nums leading-none">
+                {item.value != null ? item.value : "–"}
+              </p>
+              <p className="mt-1 text-xs tracking-wide opacity-60">{item.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </main>
   )
