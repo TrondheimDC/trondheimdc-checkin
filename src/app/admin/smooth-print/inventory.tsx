@@ -9,7 +9,7 @@ import { FileDropzone } from "@/components/admin/file-dropzone"
 import { RemoveSmoothPrintApkButton } from "@/components/admin/remove-smooth-print-apk"
 import { Button } from "@/components/ui/button"
 import { smoothPrintApkUploadSchema, type SmoothPrintApk } from "@/lib/db/schema"
-import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "@/lib/smooth-print-apks"
+import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "@/lib/print-url"
 import {
   fetchSmoothPrintApks,
   setSmoothPrintApkActive,
