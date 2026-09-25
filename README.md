@@ -42,8 +42,6 @@ Migrations in `drizzle/` run on server start. The database file is created under
 |---|---|
 | `DB_ENCRYPTION_KEY` | Optional. Encrypts the LibSQL file at rest. The app boots without it (plaintext). |
 | `NEXT_PUBLIC_BASE_PATH` | Mount prefix behind nginx, no trailing slash (e.g. `/checkin`). |
-| `LABEL_PAPER_SIZE_ID` | Smooth Print `size` value. Default `DieCutW38H90` = DK-11208 (38 × 90 mm). |
-| `SMOOTH_PRINT_ANDROID_URL` | Fallback Android APK URL when none is active in admin. Empty uses Brother’s download page. |
 
 ### Deploy note
 
@@ -83,7 +81,7 @@ Background on Smooth Print URLs, pairing, and paper sizes: **[RESEARCH.md](RESEA
 Staff flow is in the app at `/oppsett` (install Smooth Print → Bluetooth → pair → confirm in the app → test print).
 
 - **iOS:** [Smooth Print on the App Store](https://apps.apple.com/us/app/smooth-print/id1629559918)
-- **Android:** Host an APK under **Admin → Smooth Print** (active version is served at `/api/smooth-print/apk`), or set `SMOOTH_PRINT_ANDROID_URL` / use Brother’s page
+- **Android:** Host an APK under **Admin → Smooth Print** (active version is served at `/api/smooth-print/apk`). With no active APK, `/oppsett` links to Brother’s download page.
 
 The browser cannot see whether the printer is connected — staff confirm that in Smooth Print.
 

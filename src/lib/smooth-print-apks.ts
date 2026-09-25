@@ -104,5 +104,5 @@ export const DEFAULT_SMOOTH_PRINT_ANDROID_URL =
 export async function resolveAndroidDownloadUrl(apiPathFn: (path: string) => string): Promise<string> {
   const active = await smoothPrintApkRepository.getActive()
   if (active) return apiPathFn("/api/smooth-print/apk")
-  return process.env.SMOOTH_PRINT_ANDROID_URL || DEFAULT_SMOOTH_PRINT_ANDROID_URL
+  return DEFAULT_SMOOTH_PRINT_ANDROID_URL
 }

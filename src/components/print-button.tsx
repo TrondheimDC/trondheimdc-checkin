@@ -8,6 +8,7 @@ import { refinePlatform, supportsAndroidIntent, type PhonePlatform } from "@/lib
 import {
   buildAndroidPrintIntent,
   buildPrintUrl,
+  DEFAULT_PAPER_SIZE_ID,
   loadTemplateBase64,
 } from "@/lib/print-url"
 import { apiPath } from "@/lib/utils"
@@ -15,7 +16,6 @@ import { apiPath } from "@/lib/utils"
 export function PrintButton({
   name,
   line2,
-  paperSizeId,
   platform: platformProp,
   checkedIn = false,
   onCheckIn,
@@ -25,7 +25,6 @@ export function PrintButton({
 }: {
   name: string
   line2: string
-  paperSizeId: string
   platform: PhonePlatform
   checkedIn?: boolean
   onCheckIn?: () => Promise<void>
@@ -41,7 +40,7 @@ export function PrintButton({
   const alreadyPrinted = checkedIn || printed
 
   function openPrint(fileBase64: string) {
-    const input = { fileBase64, paperSizeId, name, line2 }
+    const input = { fileBase64, paperSizeId: DEFAULT_PAPER_SIZE_ID, name, line2 }
 
     if (platform === "android" && supportsAndroidIntent()) {
       const fallbackUrl = `${window.location.origin}${apiPath("/oppsett")}`

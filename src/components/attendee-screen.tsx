@@ -13,7 +13,7 @@ import { platformFromNavigator, type PhonePlatform } from "@/lib/platform"
 import { apiPath } from "@/lib/utils"
 import { attendeeResponseSchema } from "@/lib/db/schema"
 
-export function AttendeeScreen({ id, paperSizeId }: { id: string; paperSizeId: string }) {
+export function AttendeeScreen({ id }: { id: string }) {
   const queryClient = useQueryClient()
   const [platform, setPlatform] = useState<PhonePlatform>("other")
 
@@ -130,7 +130,6 @@ export function AttendeeScreen({ id, paperSizeId }: { id: string; paperSizeId: s
         <PrintButton
           name={attendee.name}
           line2={line2}
-          paperSizeId={paperSizeId}
           platform={platform}
           checkedIn={checkedIn}
           onCheckIn={() => setCheckedIn(true)}
