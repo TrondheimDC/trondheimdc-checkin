@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, like, sql } from "drizzle-orm"
+import { and, count, eq, isNull, like, or, sql } from "drizzle-orm"
 import { db } from "./db"
 import { attendees, checkEvents, type Attendee } from "./db/schema"
 
@@ -11,7 +11,7 @@ export interface AttendeeStats {
 
 export interface AttendeeRepository {
   getById(id: string): Promise<Attendee | null>
-  searchByName(query: string, options: { includeCheckedIn: boolean }): Promise<Attendee[]>
+  search(query: string, options: { includeCheckedIn: boolean }): Promise<Attendee[]>
   stats(): Promise<AttendeeStats>
   setCheckedIn(id: string, checkedIn: boolean): Promise<Attendee | null>
 }
@@ -27,11 +27,12 @@ export const attendeeRepository: AttendeeRepository = {
     return rows[0] ?? null
   },
 
-  async searchByName(query, { includeCheckedIn }) {
+  async search(query, { includeCheckedIn }) {
     const needle = query.trim()
     if (!needle) return []
-    const nameMatch = like(attendees.name, likePattern(needle))
-    const where = includeCheckedIn ? nameMatch : and(nameMatch, isNull(attendees.checkedInAt))
+    const pattern = likePattern(needle)
+    const textMatch = or(like(attendees.name, pattern), like(attendees.company, pattern))
+    const where = includeCheckedIn ? textMatch : and(textMatch, isNull(attendees.checkedInAt))
     return db.select().from(attendees).where(where).limit(20)
   },
 
