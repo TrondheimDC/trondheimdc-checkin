@@ -132,14 +132,11 @@ export function SetupQrScan({ onFound }: { onFound: (printer: PrinterSetupParams
         disabled={!torchSupported}
         onClick={() => void toggleTorch()}
       >
-        <span className="relative inline-flex">
-          {torchOn && torchSupported ? (
-            <Flashlight className="size-6" />
-          ) : (
-            <FlashlightOff className="size-6" />
-          )}
-          {!torchSupported ? <span className="scan-torch-slash" aria-hidden /> : null}
-        </span>
+        {torchOn && torchSupported ? (
+          <Flashlight className="size-6" />
+        ) : (
+          <FlashlightOff className="size-6" />
+        )}
       </button>
       {error ? (
         <p className="absolute inset-x-3 bottom-3 rounded-xl bg-black/75 px-3 py-2 text-center text-sm">

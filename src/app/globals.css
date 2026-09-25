@@ -451,19 +451,11 @@ h2 {
 
 .scan-torch-disabled {
   background: rgb(0 0 0 / 28%);
-  color: rgb(255 255 255 / 32%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
+  color: #fff;
 }
 
-.scan-torch-slash {
-  position: absolute;
-  inset: 15% auto 15% 50%;
-  width: 2px;
-  margin-left: -1px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 55%);
-  transform: rotate(-45deg);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 35%);
+.scan-torch-disabled svg {
+  opacity: 0.32;
 }
 
 .scan-live-dot {

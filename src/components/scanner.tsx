@@ -214,14 +214,11 @@ export function Scanner() {
             disabled={!torchSupported}
             onClick={() => void toggleTorch()}
           >
-            <span className="relative inline-flex">
-              {torchOn && torchSupported ? (
-                <Flashlight className="size-6" />
-              ) : (
-                <FlashlightOff className="size-6" />
-              )}
-              {!torchSupported ? <span className="scan-torch-slash" aria-hidden /> : null}
-            </span>
+            {torchOn && torchSupported ? (
+              <Flashlight className="size-6" />
+            ) : (
+              <FlashlightOff className="size-6" />
+            )}
           </button>
         </div>
         <Link
