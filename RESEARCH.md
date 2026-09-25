@@ -113,6 +113,22 @@ This project prints DK-11208.
 - How-to: [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md).
 - GraphQL API (`allEventOrderUsers` / `user.id`) is used by `tdc-sales` for sales sync; for badge print MVP the total report may be enough if barcode matches scan text. Confirm by scanning a real ticket.
 
+## Desktop printing (WebUSB) — not implemented
+
+**Decision:** desktop = **WebUSB** in Chrome/Edge over the QL’s USB-B cable. No print agent, no server→`:9100`, no system print dialog — too much operational pain.
+
+Phone path stays Smooth Print + LBX. Desktop encodes a Brother raster in-page (e.g. [`@thermal-label/brother-ql-web`](https://thermal-label.github.io/brother-ql/web)).
+
+### QL-820NWBc ports (Brother specs)
+
+- **USB host** (scanner on the printer): **N/A on NWBc** — desktop ticket input is PC webcam / USB HID / paste.
+- **USB device** (Type-B → PC): **yes** — WebUSB target.
+- Wi-Fi / Ethernet / Bluetooth exist but are **out of scope** for this desktop path.
+
+Unsupported browsers (Firefox / Safari): staff copy **«Bruk en nettleser som støtter WebUSB»**, with a note that only Chromium-based browsers support it today — link [caniuse.com/webusb](https://caniuse.com/webusb).
+
+Tracked under [docs/TODO.md → Desktop printing](docs/TODO.md#desktop-printing-webusb). Unverified: DK-11208 over WebUSB, desktop UI.
+
 ## Not verified on hardware
 
 - That a tap on iOS Safari actually opens Smooth Print and prints (Android APK confirmed with `fileattach`).

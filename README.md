@@ -90,6 +90,7 @@ The browser cannot see whether the printer is connected — staff confirm that i
 | Doc | Contents |
 |---|---|
 | [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md) | Export attendees from Checkin and import them |
+| [docs/MVP-verification.md](docs/MVP-verification.md) | Hardware QA checklist before calling MVP done |
 | [docs/TODO.md](docs/TODO.md) | Remaining work (MVP polish, Checkin API, pairing, templates) |
 | [RESEARCH.md](RESEARCH.md) | Brother Smooth Print URLs, OS/wireless support, pairing, label media |
 | [Smooth Print docs](https://support.brother.com/g/s/es/htmldoc/smoothprint/) | Official Brother HTML reference (print, status, find/connect, …) |

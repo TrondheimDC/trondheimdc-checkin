@@ -2,6 +2,8 @@
 
 Backlog for TDC Innsjekk. Check items off as they land.
 
+**MVP done?** Use the hardware QA checklist in [MVP-verification.md](./MVP-verification.md) — onboarding on iOS and Android, day-of scan/print, admin/deploy, and sign-off.
+
 Brother docs hub: [Smooth Print HTML documentation](https://support.brother.com/g/s/es/htmldoc/smoothprint/) — also summarized in [RESEARCH.md](../RESEARCH.md).
 
 ## High priority
@@ -21,7 +23,7 @@ Tasks:
 - [x] Spike UI via `/koble` → now redirects into `/oppsett` (MAC/serial/model → tap → `brotherwebprint://connect`)
 - [x] Setup QR payload is https `/oppsett?path=qr&…` (also accepts legacy `/koble?…`); admin stickers print that link
 - [x] Fold into `/oppsett`: after Smooth Print install, choose **Skann QR** (skip BT menu + OS pairing + app confirm) or **Manuelt** (old steps); both end on test print
-- [ ] Test iOS (MFi Bluetooth Classic) and Android separately; note callback / success UX limits (custom scheme callbacks)
+- [ ] QA onboarding on **iOS** and **Android** (full matrix in [MVP-verification.md](./MVP-verification.md)); note callback / success UX limits (custom scheme callbacks)
 - [ ] If hardware connect fails: document why in [RESEARCH.md](../RESEARCH.md) and keep manual path
 
 ## Before the conference (MVP polish)
@@ -30,7 +32,7 @@ Tasks:
 
 - [x] Admin inventory at `/admin/smooth-print`: upload APK, activate/deactivate (one active), delete
 - [x] Store files under `data/apks/` (gitignored); stream active via `GET /api/smooth-print/apk`
-- [x] `/oppsett` uses hosted APK when one is active; otherwise `SMOOTH_PRINT_ANDROID_URL` / Brother agreement page
+- [x] `/oppsett` uses hosted APK when one is active; otherwise Brother agreement page
 - [ ] Note license/redistribution constraints from Brother in the README if needed
 - [ ] Upload the conference APK and activate it before staff setup day
 
@@ -62,12 +64,66 @@ Tasks:
 
 ### Live Checkin integration
 
+Not required to call MVP done (CSV + planned re-import is enough for day-of). Still a follow-up task — decide architecture before coding.
+
+**Open decision — how we talk to Checkin:**
+
+| Mode | Summary |
+|---|---|
+| Live API | Door actions hit Checkin (or a proxy) each time — freshest, but network/Checkin become hard dependencies |
+| Periodic sync + forced sync | Local DB remains source of truth for scan/print; sync on an interval; staff can force “Sync now” — closer to today’s CSV model, survives brief outages, with a staleness window |
+| Hybrid | e.g. local lookup/print + live mark-checked-in (or the reverse) |
+
+Pros/cons and sign-off context: [MVP-verification.md → Checkin integration](./MVP-verification.md#checkin-integration).
+
+Tasks:
+
+- [ ] Decide mode (live API vs periodic + forced sync vs hybrid vs CSV-only for this conference)
 - [ ] Pull attendees from Checkin API instead of (or in addition to) CSV upload
 - [ ] Map barcode / ticket QR to the same id the scanner expects
 - [ ] Optional: sync check-in events back to Checkin if that matters for the door/ops workflow
-- [ ] Fall back to CSV/admin upload if the API is down on the day
+- [ ] Fall back to CSV/admin upload (or last good sync) if the API is down on the day
 
 `tdc-sales` already talks to Checkin’s GraphQL for sales; reuse patterns where they fit. For badge print, barcode must match scan text — confirm that before dropping CSV.
+
+### Desktop printing (WebUSB)
+
+**Exploratory, but direction is set:** land on **WebUSB** from Chromium. Network print agents, TCP `:9100` relays, and OS-driver/`window.print()` paths are too much pain for the gain — park them.
+
+Phone MVP stays on Smooth Print. Desktop skips Smooth Print / LBX and talks to the QL over USB from the browser.
+
+**Hardware (QL-820NWBc):**
+
+- **USB host** (scanner on the printer): **no** on NWBc — ticket scan on desktop is PC webcam / USB HID wedge / paste.
+- **USB device** (Type-B → PC): **yes** — this is the WebUSB path.
+
+**Scope we accept:**
+
+| | |
+|---|---|
+| OS | macOS / Windows / Linux (wherever Chrome/Edge + WebUSB work with the QL) |
+| Browsers | Chromium-based only today ([Can I use WebUSB](https://caniuse.com/webusb)) — not Firefox/Safari |
+| API | [`navigator.usb`](https://developer.mozilla.org/en-US/docs/Web/API/WebUSB_API) + Brother raster encode (e.g. [`@thermal-label/brother-ql-web`](https://thermal-label.github.io/brother-ql/web)) |
+| Not doing | Local print agent, server→`:9100`, Web Serial/BT, system print dialog |
+
+Secure context + user gesture for the device picker. Confirm **DK-11208** media id and layout vs phone `badge.lbx`.
+
+**Separate setup flow** (do not overload phone `/oppsett`):
+
+- e.g. `/oppsett/desktop` — feature-detect `"usb" in navigator`; `requestDevice` → test print → remember via `getDevices()`
+- Unsupported browser copy: **«Bruk en nettleser som støtter WebUSB»** — note that only Chromium-based browsers do today; link [caniuse.com/webusb](https://caniuse.com/webusb)
+- Day-of print uses the open WebUSB session; phones keep Smooth Print
+
+**UI:** phone-first today — likely need a light desktop mode (wider search, keyboard, non-camera ticket input). Decide during spike.
+
+Tasks:
+
+- [ ] Spike: WebUSB print one DK-11208 badge from Chrome to QL-820NWBc; note media id, orientation, margins vs phone LBX
+- [ ] Design `/oppsett/desktop` — Chromium + USB connect + test print
+- [ ] Decide UI: adapt screens vs explicit desktop mode; ticket input without phone camera
+- [ ] Wire attendee confirm → WebUSB print; keep Smooth Print for phones
+- [ ] Document Chrome/Edge-only and USB topology in [RESEARCH.md](../RESEARCH.md)
+- [ ] Decide: ship for a later conference, or park after spike
 
 ### Own P-touch / template editor
 
