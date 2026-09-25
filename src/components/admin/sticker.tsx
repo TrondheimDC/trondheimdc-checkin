@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { LoaderCircle, Printer } from "lucide-react"
+import { LoaderCircle, Printer, QrCode } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
 import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import {
@@ -31,6 +32,38 @@ export function StickerPreview({ name, url }: { name: string; url: string }) {
       <p className="w-full truncate text-center font-display text-lg font-bold">{name || "Navn"}</p>
       {src ? <img src={src} alt="" className="mt-2 size-32" /> : <div className="mt-2 size-32 bg-black/10" />}
     </div>
+  )
+}
+
+export function ShowStickerQrButton({ name, url }: { name: string; url: string }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <Button type="button" variant="surface" onClick={() => setOpen(true)}>
+        <QrCode className="size-5" aria-hidden />
+        Vis QR
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogTitle>QR for {name}</DialogTitle>
+          <DialogDescription>
+            Skann koden for å koble telefonen i Smooth Print.
+          </DialogDescription>
+          <div className="mt-4 flex justify-center">
+            <StickerPreview name={name} url={url} />
+          </div>
+          <div className="mt-6">
+            <DialogClose asChild>
+              <Button variant="surface" size="lg">
+                Lukk
+              </Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

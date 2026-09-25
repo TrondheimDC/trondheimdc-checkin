@@ -4,7 +4,8 @@ import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLayoutEffect, useState } from "react"
 import { StickerIllustration } from "@/components/admin/enroll-illustrations"
-import { PrintStickerButton, StickerPreview } from "@/components/admin/sticker"
+import { PrinterModelMeta, PrinterModelThumb } from "@/components/admin/printer-model"
+import { PrintStickerButton, ShowStickerQrButton } from "@/components/admin/sticker"
 import { RemovePrinterButton } from "@/components/admin/remove-printer"
 import { Button } from "@/components/ui/button"
 import type { Printer } from "@/lib/db/schema"
@@ -64,22 +65,25 @@ export function PrinterInventory({
             return (
               <li
                 key={printer.id}
-                className="flex flex-col gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-4 sm:flex-row"
+                className="flex flex-col gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-4"
               >
-                <StickerPreview name={printer.name} url={url} />
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <h2 className="text-2xl">{printer.name}</h2>
-                  <p className="font-mono text-sm break-all opacity-70">
-                    {printer.connectType === "WiFi" ? "IP" : "MAC"} {printer.address}
-                  </p>
-                  {printer.serial ? (
-                    <p className="font-mono text-sm break-all opacity-70">SN {printer.serial}</p>
-                  ) : null}
-                  <p className="text-sm opacity-60">{printer.model}</p>
-                  <div className="mt-auto flex flex-col gap-2 pt-3">
-                    <PrintStickerButton name={printer.name} url={url} />
-                    <RemovePrinterButton id={printer.id} />
+                <div className="flex gap-4">
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <h2 className="text-2xl">{printer.name}</h2>
+                    <PrinterModelMeta modelId={printer.model} />
+                    <p className="font-mono text-sm break-all opacity-70">
+                      {printer.connectType === "WiFi" ? "IP" : "MAC"} {printer.address}
+                    </p>
+                    {printer.serial ? (
+                      <p className="font-mono text-sm break-all opacity-70">SN {printer.serial}</p>
+                    ) : null}
                   </div>
+                  <PrinterModelThumb modelId={printer.model} size="lg" className="self-start" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <PrintStickerButton name={printer.name} url={url} />
+                  <ShowStickerQrButton name={printer.name} url={url} />
+                  <RemovePrinterButton id={printer.id} name={printer.name} />
                 </div>
               </li>
             )
