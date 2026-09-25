@@ -5,6 +5,8 @@ import { Search } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useDeferredValue, useEffect, useState } from "react"
+import { TdcLogo } from "@/components/tdc-logo"
+import { AppLoading } from "@/components/app-loading"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -54,7 +56,7 @@ export default function SearchPage() {
   })
 
   if (includeCheckedIn === null) {
-    return <main className="min-h-dvh bg-[var(--color-bg-base)]" />
+    return <AppLoading />
   }
 
   const searching = deferredQ.length > 0
@@ -64,8 +66,8 @@ export default function SearchPage() {
   return (
     <main className="attendee-reveal flex h-dvh flex-col gap-5 overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="shrink-0 pt-2">
-        <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">Manuell innsjekk</p>
-        <h1 className="mt-2 text-4xl">Søk etter navn</h1>
+        <TdcLogo />
+        <h1 className="mt-2 text-4xl">Søk</h1>
         <p className="mt-2 text-base opacity-70">
           {stats.data ? `${stats.data.checkedIn} av ${stats.data.total} innsjekket` : "Henter oppmøte…"}
         </p>
@@ -81,8 +83,8 @@ export default function SearchPage() {
           autoFocus
           value={q}
           onValueChange={setQ}
-          placeholder="Skriv navn…"
-          aria-label="Navn"
+          placeholder="Navn eller firma…"
+          aria-label="Navn eller firma"
           onKeyDown={(event) => {
             if (event.key === "Escape" && q.length > 0) {
               event.preventDefault()
@@ -112,7 +114,7 @@ export default function SearchPage() {
                 <Search className="size-7" />
               </div>
               <p className="max-w-[16rem] text-lg leading-snug opacity-60">
-                Begynn å skrive for å finne deltakeren
+                Søk etter navn eller firma
               </p>
             </div>
           ) : null}

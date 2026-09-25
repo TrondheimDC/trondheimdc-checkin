@@ -4,7 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Search, ScanLine } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
+import { CheckInButton } from "@/components/check-in-button"
 import { PrintButton } from "@/components/print-button"
+import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { labelLine } from "@/lib/label-line"
 import type { PhonePlatform } from "@/lib/platform"
@@ -21,7 +23,6 @@ export function AttendeeScreen({
   platform: PhonePlatform
 }) {
   const queryClient = useQueryClient()
-  const [overrideBusy, setOverrideBusy] = useState(false)
   const [overrideError, setOverrideError] = useState<string | null>(null)
   const query = useQuery({
     queryKey: ["attendee", id],
@@ -84,7 +85,7 @@ export function AttendeeScreen({
         </div>
         <div className="flex flex-col gap-3">
           <Button asChild size="lg">
-            <Link href="/sok">Søk etter navn</Link>
+            <Link href="/sok">Søk</Link>
           </Button>
           <Button asChild variant="surface" size="lg">
             <Link href="/">Skann neste</Link>
@@ -116,12 +117,7 @@ export function AttendeeScreen({
       <div className="attendee-badge-glow" aria-hidden />
 
       <div className="relative pt-4">
-        <p
-          className="search-item-in text-sm tracking-wide text-[var(--color-fg-brand)]"
-          style={{ animationDelay: "40ms" }}
-        >
-          {checkedIn ? "Innsjekket" : "Bekreft før utskrift"}
-        </p>
+        <TdcLogo className="search-item-in" />
 
         <div className="attendee-badge mt-6 flex min-h-[9.5rem] flex-col justify-center rounded-2xl bg-[var(--color-black-3)] px-6 py-7">
           <h1 className="text-4xl leading-tight sm:text-5xl">{attendee.name}</h1>
@@ -142,20 +138,18 @@ export function AttendeeScreen({
           checkedIn={checkedIn}
           onCheckIn={() => setCheckedIn(true)}
         />
-        <Button
-          variant="surface"
-          size="lg"
-          disabled={overrideBusy}
-          onClick={() => {
+        <CheckInButton
+          checkedIn={checkedIn}
+          onToggle={async () => {
             setOverrideError(null)
-            setOverrideBusy(true)
-            void setCheckedIn(!checkedIn)
-              .catch(() => setOverrideError("Klarte ikke å oppdatere innsjekk. Prøv igjen."))
-              .finally(() => setOverrideBusy(false))
+            try {
+              await setCheckedIn(!checkedIn)
+            } catch {
+              setOverrideError("Klarte ikke å oppdatere innsjekk. Prøv igjen.")
+              throw new Error("check-in failed")
+            }
           }}
-        >
-          {checkedIn ? "Angre innsjekk" : "Marker som innsjekket"}
-        </Button>
+        />
         <Button asChild variant="surface" size="lg">
           <Link href="/">
             <ScanLine className="size-5" aria-hidden />

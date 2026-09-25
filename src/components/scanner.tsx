@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { AppLoading } from "@/components/app-loading"
 import { attendeeStatsSchema } from "@/lib/db/schema"
 import { apiPath } from "@/lib/utils"
 
@@ -202,7 +203,7 @@ export function Scanner() {
   }
 
   if (ready === null) {
-    return <main className="min-h-dvh bg-black" />
+    return <AppLoading />
   }
 
   if (!ready) {
@@ -256,16 +257,30 @@ export function Scanner() {
           </button>
           <button
             type="button"
-            className={`${iconButtonClass} ${torchOn ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)] hover:bg-[var(--color-green-3)]" : ""} disabled:pointer-events-none disabled:opacity-40`}
+            className={`${iconButtonClass} ${
+              !torchSupported
+                ? "scan-torch-disabled pointer-events-none"
+                : torchOn
+                  ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)] hover:bg-[var(--color-green-3)]"
+                  : ""
+            }`}
             style={{ animationDelay: "120ms" }}
             aria-label={
               !torchSupported ? "Lykt ikke tilgjengelig" : torchOn ? "Slå av lykt" : "Slå på lykt"
             }
             aria-pressed={torchOn}
+            aria-disabled={!torchSupported}
             disabled={!torchSupported}
             onClick={() => void toggleTorch()}
           >
-            {torchOn ? <Flashlight className="size-6" /> : <FlashlightOff className="size-6" />}
+            <span className="relative inline-flex">
+              {torchOn && torchSupported ? (
+                <Flashlight className="size-6" />
+              ) : (
+                <FlashlightOff className="size-6" />
+              )}
+              {!torchSupported ? <span className="scan-torch-slash" aria-hidden /> : null}
+            </span>
           </button>
         </div>
         <Link
@@ -322,7 +337,7 @@ export function Scanner() {
         <Button asChild variant="surface" size="lg">
           <Link href="/sok">
             <Search className="size-5" aria-hidden />
-            Søk etter navn
+            Søk
           </Link>
         </Button>
         {stats.data ? (
