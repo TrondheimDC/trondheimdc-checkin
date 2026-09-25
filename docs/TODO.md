@@ -33,8 +33,8 @@ Tasks:
 - [x] Admin inventory at `/admin/smooth-print`: upload APK, activate/deactivate (one active), delete
 - [x] Store files under `data/apks/` (gitignored); stream active via `GET /api/smooth-print/apk`
 - [x] `/oppsett` uses hosted APK when one is active; otherwise Brother agreement page
+- [x] Conference APK uploaded and active (staff setup day)
 - [ ] Note license/redistribution constraints from Brother in the README if needed
-- [ ] Upload the conference APK and activate it before staff setup day
 
 ### Gate the app
 
@@ -54,8 +54,9 @@ Tasks:
 
 ### Day-of readiness
 
-- [ ] Confirm a **real ticket QR** payload matches the totalrapport `Barcode` column (scan → correct attendee)
-- [ ] Smoke-test print on **iOS Safari** (Android `fileattach` already verified; iOS not verified on hardware — see [RESEARCH.md](../RESEARCH.md))
+- [x] Confirm a **real ticket QR** payload matches the totalrapport `Barcode` column (scan → correct attendee)
+- [x] Full happy path on **Android** (scan → confirm → print)
+- [ ] Smoke-test print on **iOS Safari** (Android verified; iOS awaiting hardware — see [RESEARCH.md](../RESEARCH.md))
 - [ ] Re-import totalrapport near the event (and morning-of) so late signups / cancellations are in
 - [ ] Decide phone↔printer topology: one phone per printer; Brother does not document whether a second phone can steal Bluetooth while the first is still paired
 - [ ] Compare **`fileattach` (base64)** vs **`filename=<https://…/badge.lbx>`** on iOS and Android — reliability, speed, template updates ([RESEARCH.md](../RESEARCH.md))

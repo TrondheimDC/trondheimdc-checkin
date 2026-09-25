@@ -64,9 +64,9 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
-| 18 | Real ticket QR matches totalrapport `Barcode` → correct attendee | ☐ | ☐ | |
-| 19 | Search by name / company finds attendees | ☐ | ☐ | |
-| 20 | Confirm → print badge (`NAME` / `LINE2`) on DK-11208 | ☐ | ☐ | iOS Safari print not yet hardware-verified |
+| 18 | Real ticket QR matches totalrapport `Barcode` → correct attendee | ☑ | ☑ | Confirmed |
+| 19 | Search by name / company finds attendees | ☐ | ☑ | Android happy path done; iOS awaiting hardware |
+| 20 | Confirm → print badge (`NAME` / `LINE2`) on DK-11208 | ☐ | ☑ | Android verified; iOS Safari not yet on hardware |
 | 21 | Reprint / second print for same attendee behaves acceptably | ☐ | ☐ | |
 | 22 | Camera permission denied / missing: usable recovery | ☐ | ☐ | Search still works |
 | 23 | One phone ↔ one printer topology agreed for the door | ☐ | ☐ | Second-phone “steal” Bluetooth not documented by Brother |
@@ -87,7 +87,7 @@ Optional comparison (does not block MVP if current path is solid):
 | 26 | CLI import still works as fallback | ☐ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
 | 27 | Re-import plan: near-event + morning-of | ☐ | Late signups / cancellations |
 | 28 | Auth gate decided and applied (scanner / search / print / admin upload) | ☐ | `/oppsett` must stay usable on phones |
-| 29 | Conference Smooth Print APK uploaded and active | ☐ | Note Brother license/redistribution in README if needed |
+| 29 | Conference Smooth Print APK uploaded and active | ☑ | Note Brother license/redistribution in README if needed |
 | 30 | Deploy: HTTPS, base path / nginx, basic auth as agreed | ☐ | Camera + custom schemes need secure context |
 
 ---

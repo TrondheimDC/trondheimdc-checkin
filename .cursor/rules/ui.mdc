@@ -1,5 +1,5 @@
 ---
-description: Norwegian UI copy, forms, and no layout pop-in
+description: Norwegian UI copy, forms, CRUD, and no layout pop-in
 alwaysApply: true
 ---
 
@@ -9,5 +9,8 @@ Follow AGENTS.md.
 
 - Staff-facing copy is Norwegian bokmål. Keep printer, Smooth Print, P-touch Editor, QR, and MAC as those words.
 - Admin forms: React Hook Form + zodResolver on the shared Zod schemas (same as API / Drizzle).
+- Admin CRUD: list via RSC + TanStack Query; mutations update the cache; deletes use the printer confirm-dialog pattern (`RemovePrinterButton`).
+- Upload: one surface (not dropzone + separate upload button); show progress for large files; `.apk` or `.zip` (one APK inside, unpacked server-side).
 - Do not flash a loading line and then replace it with content. Server-render the first view.
 - Empty states are a composed block (illustration, heading, one action), not a single explanatory sentence.
+- Tappable controls (including choice cards) use shared `Button` — not a bare surface `<button>` that looks inert.

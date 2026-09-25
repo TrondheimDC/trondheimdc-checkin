@@ -11,6 +11,37 @@ Admin forms use **React Hook Form** with **`zodResolver`** and the same Zod sche
 - Parse again on the server with that schema before insert/update.
 - Do not hand-roll parallel validation that can drift from the DB.
 
+## Admin CRUD
+
+Reuse the inventory pattern. Do not invent a second way to load, mutate, or delete resources.
+
+### List
+
+- Server-load in the page RSC, seed TanStack Query (`setQueryData` / `HydrationBoundary`).
+- Client list reads the same query key. No “Henter…” flash before the first paint.
+
+### Create / upload
+
+- One upload surface (dropzone **or** button — not both). Selecting/dropping a file may start the upload; do not stack a second “Last opp” CTA next to the dropzone.
+- Large files (e.g. APK): show real upload progress (name, bar, percent / bytes). Use XHR if `fetch` cannot report progress. Accept `.apk` or a `.zip` with one `.apk`; unpack on the server and store the APK. Serve only `.apk` to phones.
+- On success: `setQueryData` to prepend/update the cache, then `invalidateQueries`.
+
+### Update
+
+- `useMutation` with optimistic `setQueryData`, roll back on error, `invalidateQueries` on settle.
+- Keep activate / deactivate (and similar toggles) as ordinary buttons — not confirm dialogs.
+
+### Delete (destructive)
+
+Match `RemovePrinterButton` (`src/components/admin/remove-printer.tsx`):
+
+- Danger-styled ghost trigger (`text-[var(--color-bg-danger)]` + danger hover mix).
+- Confirm in `Dialog`: short title (“Fjerne …?” / “Slette …?”), one-line consequence, danger confirm + **Avbryt** (`variant="surface"`). Name the resource in the body; keep the confirm button short (“Slett” / “Fjern …”) so long filenames do not overflow (`whitespace-nowrap` on buttons). Use `break-all` for APK/file names.
+- Close the dialog in `onMutate`, optimistically remove from the query cache, restore on error, invalidate on settle.
+- Put delete behind its own small component when the list row already has other actions — same shape as printers.
+
+Reference implementations: printers inventory + `RemovePrinterButton`; Smooth Print inventory + `RemoveSmoothPrintApkButton`.
+
 ## No pop-in
 
 The first paint of a screen is the real screen.
@@ -19,6 +50,22 @@ The first paint of a screen is the real screen.
 - Mutations use `useMutation` and update the query cache (`invalidateQueries` / optimistic `setQueryData`). Do not hand-roll `busy` + `fetch` + `router.refresh` for resource CRUD.
 - Empty, error, and ready states each have a stable layout. An empty state is an illustration, a short heading, and one action. It is not a leftover sentence.
 - If something must arrive later, reserve its box. Do not grow the page when it appears.
+
+## Setup URLs (`/oppsett`)
+
+Keep the address bar in sync with the wizard so staff can refresh and deeplink.
+
+- Query: `step` (`install` | `bt-on` | `choose` | `scan` | `connect` | `pair` | `confirm` | `test-print`), optional `path` (`qr` | `manual`), printer fields (`address`, `serial`, `model`, `type`), and after Smooth Print return `phase=connected`.
+- Update with `history.replaceState` (not `router.replace`) so each step change does not remount the client flow.
+- Sticker QRs use `printerSetupPath` → `path=qr&step=connect` plus printer fields.
+
+## Interactive controls
+
+Use the shared `Button` (`src/components/ui/button.tsx`) for anything staff should tap — including choice cards, not only primary CTAs.
+
+- Affordance lives on `Button`: `cursor-pointer`, hover/active surface mix, focus ring, press scale (`btn-press`). A bare `<button>` with only `bg-[var(--color-bg-surface)]` reads as a dead panel.
+- Choice / option tiles: `variant="surface"` plus layout overrides (`h-auto`, `items-start`, `justify-start`, `text-left`, `whitespace-normal`). Do not reimplement surface hover by hand.
+- Raw `<button>` is fine only when the control is not meant to look like an action (e.g. a labeled checkbox row), or when you deliberately match an existing non-Button pattern already in the app.
 
 ## Copy
 
