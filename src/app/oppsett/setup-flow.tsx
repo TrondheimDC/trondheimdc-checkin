@@ -18,7 +18,7 @@ const SETUP_KEY = "tdc-checkin-printer-seen"
 const IOS_APP = "https://apps.apple.com/us/app/smooth-print/id1629559918"
 
 const TEST_NAME = "Test"
-const TEST_LINE2 = "TrondheimDC"
+const TEST_LINE2 = "TDC"
 
 export type { PhonePlatform }
 

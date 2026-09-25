@@ -27,10 +27,10 @@ export const metadata: Metadata = {
     default: "TDC Innsjekk",
     template: "%s · TDC Innsjekk",
   },
-  description: "Innsjekk for Trondheim Developer Conference — skann QR, sjekk inn og skriv ut navneskilt.",
-  keywords: ["TDC", "Trondheim Developer Conference", "innsjekk", "navneskilt", "check-in"],
-  authors: [{ name: "Trondheim Developer Conference" }],
-  creator: "Trondheim Developer Conference",
+  description: "Innsjekk for TDC — skann QR, sjekk inn og skriv ut navneskilt.",
+  keywords: ["TDC", "innsjekk", "navneskilt", "check-in"],
+  authors: [{ name: "TDC" }],
+  creator: "TDC",
   appleWebApp: {
     capable: true,
     title: "TDC Innsjekk",
@@ -41,12 +41,12 @@ export const metadata: Metadata = {
     locale: "nb_NO",
     siteName: "TDC Innsjekk",
     title: "TDC Innsjekk",
-    description: "Skann QR, sjekk inn og skriv ut navneskilt for Trondheim Developer Conference.",
+    description: "Skann QR, sjekk inn og skriv ut navneskilt for TDC.",
   },
   twitter: {
     card: "summary",
     title: "TDC Innsjekk",
-    description: "Skann QR, sjekk inn og skriv ut navneskilt for Trondheim Developer Conference.",
+    description: "Skann QR, sjekk inn og skriv ut navneskilt for TDC.",
   },
   icons: {
     icon: [

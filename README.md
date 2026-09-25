@@ -1,59 +1,96 @@
-# Innsjekk
+# TDC Innsjekk
 
-Mobile check-in for printing DK-11208 badges on a Brother QL-820NWBc. Staff scan a QR code in the browser. A tap hands the job to Brother Smooth Print, which fetches a hosted `.lbx` template and prints over Bluetooth.
+Mobile check-in for [TDC](https://trondheimdc.no). Staff open the app on a phone, scan a ticket QR (or search by name/company), confirm the attendee, and print a name badge on a Brother QL-820NWBc via Smooth Print.
+
+```
+Scan / search → confirm → Smooth Print → Bluetooth → badge
+```
+
+One phone is paired with one printer. First-time printer pairing lives on `/oppsett`.
 
 ## Stack
 
-Next.js, Tailwind, a Radix button (same pattern as `tdc-sales`), TanStack Query, and Drizzle on a local LibSQL file. The scanner uses `@zxing/browser`: it stays out of the layout, works with the rear camera on iOS Safari and Android Chrome, and returns the raw QR text so the payload contract stays a plain id.
+- **Next.js** (App Router) + **React** + **Tailwind**
+- **TanStack Query** for client data
+- **Drizzle** + **LibSQL** (`data/checkin.db`, gitignored)
+- **@zxing/browser** for the rear-camera QR scanner
 
-## Setup
+The UI is a phone-first SPA: one boot splash, then soft navigations between scanner, search, attendee, and setup.
+
+## Develop
 
 ```bash
 pnpm install
+cp .env.example .env.local   # optional — see Environment
 pnpm dev
 ```
 
-Open the dev server on a phone over HTTPS. Camera access and the custom URL scheme both need a secure context. `next dev` on localhost is a secure context in the desktop browser only.
+Open the URL on a phone over **HTTPS**. Camera access and the Smooth Print custom URL scheme both need a secure context. `next dev` on `localhost` is only a secure context in the desktop browser.
 
-Copy `.env.example` if you need a base path or encryption.
+| Script | Purpose |
+|---|---|
+| `pnpm dev` | Local Next.js server |
+| `pnpm build` / `pnpm start` | Production build and serve |
+| `pnpm db:generate` | Generate Drizzle migrations after schema changes |
+| `pnpm import:attendees <csv>` | Replace the attendee list from a Checkin totalrapport CSV |
+
+Migrations in `drizzle/` run on server start. The database file is created under `data/` if it does not exist.
+
+### Environment
 
 | Variable | Purpose |
 |---|---|
-| `DB_ENCRYPTION_KEY` | Optional. When set, the LibSQL file is encrypted at rest. The app still boots without it. |
-| `NEXT_PUBLIC_BASE_PATH` | Mount prefix behind nginx, no trailing slash. |
-| `LABEL_PAPER_SIZE_ID` | Smooth Print `size` value. Defaults to `DieCutW38H90` (DK-11208, 38 × 90 mm). |
-| `SMOOTH_PRINT_ANDROID_URL` | Optional. Direct link for the Android app. Empty uses Brother's download page, which is a zip behind an agreement. |
+| `DB_ENCRYPTION_KEY` | Optional. Encrypts the LibSQL file at rest. The app boots without it (plaintext). |
+| `NEXT_PUBLIC_BASE_PATH` | Mount prefix behind nginx, no trailing slash (e.g. `/checkin`). |
+| `LABEL_PAPER_SIZE_ID` | Smooth Print `size` value. Default `DieCutW38H90` = DK-11208 (38 × 90 mm). |
+| `SMOOTH_PRINT_ANDROID_URL` | Optional direct Android APK URL. Empty uses Brother’s download/agreement page. |
 
-The database file is `data/checkin.db` and is gitignored. Migrations in `drizzle/` run on server start.
+### Deploy note
 
-## Template
+Put basic auth in front of the app. Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` and point nginx at the Next server. API and template URLs respect that prefix.
 
-P-touch Editor, on a Windows PC:
+## Attendee data
 
-1. New layout for QL-820NWBc, media DK-11208 (38 × 90 mm).
-2. Add two text objects. Set **Object name** to `NAME` and `LINE2`. Those names are what the print URL fills in.
-3. Use a Smooth Print font (Letter Gothic, Helsinki, or another font listed in Brother’s template guide). Numbering, database connections, and OLE objects are not supported.
-4. File → Save As → Template (`*.lbx`).
-5. Replace `public/templates/badge.lbx`.
+QR ids come from Checkin’s **totalrapport** (Barcode column), not the Deltakere Excel export.
 
-`LINE2` is `Company / Role`, with a missing part omitted. The app serves the file at `/templates/badge.lbx`. On print, the browser fetches it and passes it to Smooth Print via `fileattach` (base64), so Smooth Print does not need to download the template itself.
+```bash
+pnpm import:attendees ./totalrapport.csv
+```
 
-The repo includes a generated `badge.lbx` for DK-11208 with objects `NAME` and `LINE2` (P-touch LBX = zip of `label.xml` + `prop.xml`, based on a working QL-820NWB sample). Brother’s Smooth Print sample zip only ships RJ/TD templates, not QL. Re-export from P-touch Editor on Windows if you need a polished layout.
+Full steps (where to download, CSV conversion, column mapping): **[docs/checkin-totalrapport.md](docs/checkin-totalrapport.md)**.
 
-## Printer
+The import **replaces** the whole list. Cancelled and waitlist rows are skipped. Email, phone, and address are not stored.
 
-One phone per printer. Steps are on `/oppsett`, taken from Brother’s Bluetooth FAQ. Smooth Print is the app on both iOS and Android. Android is an APK from Brother’s developer download page, not a Play Store app.
+Seeded sample ids for local demos include `test`, `bjorn`, and `a-1001`…`a-1010`.
 
-Staff confirm in Smooth Print that the printer is listed. The browser cannot see that.
+## Badge template
 
-## nginx
+The hosted template is `public/templates/badge.lbx` (objects `NAME` and `LINE2`). On print, the browser fetches it and hands it to Smooth Print as base64 (`fileattach`), so Smooth Print does not need to download the file itself.
 
-Put basic auth in front of the app. Keep the app at `/`, or set `NEXT_PUBLIC_BASE_PATH` to the prefix and point nginx at the Next server. The app uses relative URLs and that prefix for API calls and the template URL.
+`LINE2` is `Company / Role`, with missing parts omitted.
 
-## Sample ids
+To rebuild the layout in P-touch Editor (Windows):
 
-Seeded ids include `test` (Test Testesen), `bjorn` (Bjørn Havre Melk), and `a-1001` through `a-1010`. Search is a case-insensitive substring of the name.
+1. New layout for QL-820NWBc, media **DK-11208** (38 × 90 mm).
+2. Two text objects named **`NAME`** and **`LINE2`**.
+3. Use a Smooth Print–supported font (see Brother’s template guide).
+4. Save as Template (`*.lbx`) and replace `public/templates/badge.lbx`.
 
-## Deltakerdata fra Checkin
+Background on Smooth Print URLs, pairing, and paper sizes: **[RESEARCH.md](RESEARCH.md)**.
 
-QR-id (= kolonnen **Barcode**) ligger i Checkins **totalrapport**, ikke i Excel-eksporten under Deltakere. Lagre som CSV UTF-8 og kjør `pnpm import:attendees ./totalrapport.csv`. Se [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md).
+## Printer setup
+
+Staff flow is in the app at `/oppsett` (install Smooth Print → Bluetooth → pair → confirm in the app → test print).
+
+- **iOS:** [Smooth Print on the App Store](https://apps.apple.com/us/app/smooth-print/id1629559918)
+- **Android:** APK from Brother (not Play Store); link configurable via `SMOOTH_PRINT_ANDROID_URL`
+
+The browser cannot see whether the printer is connected — staff confirm that in Smooth Print.
+
+## Further reading
+
+| Doc | Contents |
+|---|---|
+| [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md) | Export attendees from Checkin and import them |
+| [docs/TODO.md](docs/TODO.md) | Remaining work (MVP polish, Checkin API, pairing) |
+| [RESEARCH.md](RESEARCH.md) | Brother Smooth Print URLs, pairing, label media, verified claims |
