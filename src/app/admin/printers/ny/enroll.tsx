@@ -3,7 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
+import type { ChangeEvent } from "react"
 import { useForm } from "react-hook-form"
 import type { z } from "zod"
 import {
@@ -11,13 +12,29 @@ import {
   SerialIllustration,
   StickerIllustration,
 } from "@/components/admin/enroll-illustrations"
+import { SerialScanButton } from "@/components/admin/serial-scan"
 import { PrintStickerButton, StickerPreview } from "@/components/admin/sticker"
 import { Button } from "@/components/ui/button"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 import { printerBodySchema, printerResponseSchema, type Printer } from "@/lib/db/schema"
 import { printersQueryKey } from "@/lib/printer-queries"
 import { printerSetupPath } from "@/lib/printer-setup"
+import {
+  formatBluetoothMac,
+  formatMacInput,
+  isCompleteBluetoothMac,
+  macBackspace,
+  macDelete,
+  normalizePrinterSerial,
+} from "@/lib/printer-format"
 import { DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
-import { apiPath } from "@/lib/utils"
+import { apiPath, cn } from "@/lib/utils"
 
 type PrinterFormValues = z.input<typeof printerBodySchema>
 type PrinterBody = z.output<typeof printerBodySchema>
@@ -29,8 +46,8 @@ const steps = [
     art: MacMenuIllustration,
   },
   {
-    title: "Finn serienummeret",
-    body: "Det står på etiketten inni lokket, ved DK-rullen. iOS trenger det for Bluetooth-tilkobling.",
+    title: "Skann serienummeret",
+    body: "Strekkoden står på etiketten inni lokket, ved DK-rullen. iOS trenger serienummeret for Bluetooth.",
     art: SerialIllustration,
   },
   {
@@ -40,17 +57,44 @@ const steps = [
   },
 ]
 
-const fieldClass = "h-14 rounded-xl bg-[var(--color-bg-surface)] px-4 text-lg"
-const monoFieldClass = `${fieldClass} font-mono`
+const enrollInputGroupClass =
+  "h-14 rounded-xl border-0 bg-[var(--color-bg-surface)] shadow-none has-[[data-slot=input-group-control]:focus-visible]:border-transparent has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-[var(--color-fg-brand)]/40 dark:bg-[var(--color-bg-surface)]"
+
+const enrollControlClass =
+  "h-14 px-4 text-lg text-[var(--color-fg-base)] placeholder:text-[var(--color-fg-base)]/40 md:text-lg"
+
+const enrollMonoControlClass = `${enrollControlClass} font-mono uppercase`
+
+function upperOnChange(registerOnChange: (event: ChangeEvent<HTMLInputElement>) => void) {
+  return (event: ChangeEvent<HTMLInputElement>) => {
+    event.target.value = event.target.value.toUpperCase()
+    registerOnChange(event)
+  }
+}
+
+function commitMac(input: HTMLInputElement, next: { value: string; caret: number }, notify: () => void) {
+  input.value = next.value
+  input.setSelectionRange(next.caret, next.caret)
+  notify()
+  const caret = next.caret
+  requestAnimationFrame(() => {
+    if (input.value === next.value) input.setSelectionRange(caret, caret)
+  })
+}
 
 export function EnrollPrinter() {
   const queryClient = useQueryClient()
   const [saved, setSaved] = useState<Printer | null>(null)
   const [origin, setOrigin] = useState("")
+  const nameId = useId()
+  const addressId = useId()
+  const serialId = useId()
+  const modelId = useId()
 
   const {
     register,
     handleSubmit,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<PrinterFormValues, unknown, PrinterBody>({
@@ -68,6 +112,9 @@ export function EnrollPrinter() {
   const address = watch("address") ?? ""
   const serial = watch("serial") ?? ""
   const model = watch("model") ?? DEFAULT_PRINTER_MODEL
+
+  const addressField = register("address")
+  const serialField = register("serial")
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -93,8 +140,9 @@ export function EnrollPrinter() {
     },
   })
 
+  const mac = formatBluetoothMac(address)
   const previewPath = printerSetupPath({
-    address: address || "00:00:00:00:00:00",
+    address: isCompleteBluetoothMac(mac) ? mac : "00:00:00:00:00:00",
     serial,
     model,
     connectType: "BT",
@@ -138,66 +186,161 @@ export function EnrollPrinter() {
           className="grid gap-6 md:grid-cols-[1fr_11rem]"
           onSubmit={handleSubmit((data) => save.mutate(data))}
         >
-          <div className="flex flex-col gap-4">
-            <label className="flex flex-col gap-2">
-              Navn på printeren
-              <input
-                {...register("name")}
-                placeholder="Dør 1"
-                aria-invalid={Boolean(errors.name)}
-                className={fieldClass}
+          <FieldGroup className="gap-4">
+            <Field data-invalid={Boolean(errors.name) || undefined}>
+              <FieldLabel htmlFor={nameId} className="text-base text-[var(--color-fg-base)]">
+                Navn på printeren
+              </FieldLabel>
+              <InputGroup className={enrollInputGroupClass}>
+                <InputGroupInput
+                  id={nameId}
+                  {...register("name")}
+                  placeholder="Dør 1"
+                  aria-invalid={Boolean(errors.name)}
+                  className={enrollControlClass}
+                />
+              </InputGroup>
+              <FieldError
+                className="text-[var(--color-bg-danger)]"
+                errors={errors.name ? [errors.name] : undefined}
               />
-              {errors.name ? (
-                <p className="text-sm text-[var(--color-bg-danger)]">{errors.name.message}</p>
-              ) : null}
-            </label>
-            <label className="flex flex-col gap-2">
-              Bluetooth-MAC
-              <input
-                {...register("address")}
-                placeholder="00:1B:A9:00:00:00"
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                aria-invalid={Boolean(errors.address)}
-                className={monoFieldClass}
+            </Field>
+
+            <Field data-invalid={Boolean(errors.address) || undefined}>
+              <FieldLabel htmlFor={addressId} className="text-base text-[var(--color-fg-base)]">
+                Bluetooth-MAC
+              </FieldLabel>
+              <InputGroup className={enrollInputGroupClass}>
+                <InputGroupInput
+                  id={addressId}
+                  {...addressField}
+                  placeholder="00:1B:A9:00:00:00"
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  aria-invalid={Boolean(errors.address)}
+                  className={enrollMonoControlClass}
+                  onChange={(event) => {
+                    const input = event.target
+                    const next = formatMacInput(input.value, input.selectionStart ?? input.value.length)
+                    commitMac(input, next, () => addressField.onChange(event))
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Backspace" && event.key !== "Delete") return
+                    const input = event.currentTarget
+                    const start = input.selectionStart ?? 0
+                    const end = input.selectionEnd ?? 0
+                    if (start !== end) return
+                    const next =
+                      event.key === "Backspace" ? macBackspace(input.value, start) : macDelete(input.value, start)
+                    if (!next) return
+                    event.preventDefault()
+                    commitMac(input, next, () => addressField.onChange(event))
+                  }}
+                  onBeforeInput={(event) => {
+                    const inputType = (event.nativeEvent as InputEvent).inputType
+                    if (inputType !== "deleteContentBackward" && inputType !== "deleteContentForward") return
+                    const input = event.currentTarget
+                    const start = input.selectionStart ?? 0
+                    if ((input.selectionEnd ?? 0) !== start) return
+                    const next =
+                      inputType === "deleteContentBackward"
+                        ? macBackspace(input.value, start)
+                        : macDelete(input.value, start)
+                    if (!next) return
+                    event.preventDefault()
+                    commitMac(input, next, () => addressField.onChange(event))
+                  }}
+                  onBlur={(event) => {
+                    event.target.value = formatBluetoothMac(event.target.value)
+                    addressField.onChange(event)
+                    void addressField.onBlur(event)
+                  }}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText
+                    className={cn(
+                      "font-mono text-xs tabular-nums",
+                      isCompleteBluetoothMac(mac)
+                        ? "text-[var(--color-fg-brand)]"
+                        : "text-[var(--color-fg-base)]/40",
+                    )}
+                  >
+                    {mac.replace(/:/g, "").length}/12
+                  </InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+              <FieldDescription className="text-[var(--color-fg-base)]/60">
+                Kolon fylles inn automatisk. Lim gjerne hele linjen fra displayet.
+              </FieldDescription>
+              <FieldError
+                className="text-[var(--color-bg-danger)]"
+                errors={errors.address ? [errors.address] : undefined}
               />
-              {errors.address ? (
-                <p className="text-sm text-[var(--color-bg-danger)]">{errors.address.message}</p>
-              ) : null}
-            </label>
-            <label className="flex flex-col gap-2">
-              Serienummer
-              <input
-                {...register("serial")}
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                aria-invalid={Boolean(errors.serial)}
-                className={monoFieldClass}
+            </Field>
+
+            <Field data-invalid={Boolean(errors.serial) || undefined}>
+              <FieldLabel htmlFor={serialId} className="text-base text-[var(--color-fg-base)]">
+                Serienummer
+              </FieldLabel>
+              <InputGroup className={enrollInputGroupClass}>
+                <InputGroupInput
+                  id={serialId}
+                  {...serialField}
+                  onChange={upperOnChange(serialField.onChange)}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  aria-invalid={Boolean(errors.serial)}
+                  className={enrollMonoControlClass}
+                />
+                <InputGroupAddon align="inline-end">
+                  <SerialScanButton
+                    onScan={(value) => {
+                      setValue("serial", normalizePrinterSerial(value), {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }}
+                  />
+                </InputGroupAddon>
+              </InputGroup>
+              <FieldDescription className="text-[var(--color-fg-base)]/60">
+                Skriv inn, eller skann strekkoden inni lokket.
+              </FieldDescription>
+              <FieldError
+                className="text-[var(--color-bg-danger)]"
+                errors={errors.serial ? [errors.serial] : undefined}
               />
-              {errors.serial ? (
-                <p className="text-sm text-[var(--color-bg-danger)]">{errors.serial.message}</p>
-              ) : null}
-            </label>
-            <label className="flex flex-col gap-2">
-              Modell
-              <input
-                {...register("model")}
-                aria-invalid={Boolean(errors.model)}
-                className={monoFieldClass}
+            </Field>
+
+            <Field data-invalid={Boolean(errors.model) || undefined}>
+              <FieldLabel htmlFor={modelId} className="text-base text-[var(--color-fg-base)]">
+                Modell
+              </FieldLabel>
+              <InputGroup className={enrollInputGroupClass}>
+                <InputGroupInput
+                  id={modelId}
+                  {...register("model")}
+                  aria-invalid={Boolean(errors.model)}
+                  className={enrollControlClass}
+                />
+              </InputGroup>
+              <FieldError
+                className="text-[var(--color-bg-danger)]"
+                errors={errors.model ? [errors.model] : undefined}
               />
-              {errors.model ? (
-                <p className="text-sm text-[var(--color-bg-danger)]">{errors.model.message}</p>
-              ) : null}
-            </label>
+            </Field>
+
             {save.isError ? (
               <p className="text-[var(--color-bg-danger)]">Klarte ikke å lagre printeren.</p>
             ) : null}
             <Button type="submit" size="lg" disabled={save.isPending}>
               Lagre i inventaret
             </Button>
-          </div>
+          </FieldGroup>
           <StickerPreview name={name} url={previewUrl} />
         </form>
       )}

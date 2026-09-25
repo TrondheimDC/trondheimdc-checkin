@@ -22,12 +22,22 @@ export function MacMenuIllustration() {
 
 export function SerialIllustration() {
   return (
-    <svg viewBox="0 0 280 180" className="h-auto w-full" role="img" aria-label="Serienummer inni DK-rullen">
+    <svg viewBox="0 0 280 180" className="h-auto w-full" role="img" aria-label="Strekkode med serienummer inni lokket">
       <rect x="48" y="24" width="184" height="132" rx="18" fill="#292929" />
-      <rect x="70" y="46" width="140" height="70" rx="8" fill="#0f0f0f" />
-      <rect x="86" y="62" width="108" height="28" rx="4" fill="#fefefe" />
-      <text x="96" y="81" fill="#0f0f0f" fontSize="12" fontFamily="ui-monospace, monospace" fontWeight="700">
-        SER.NO. E00000
+      <rect x="70" y="46" width="140" height="78" rx="8" fill="#0f0f0f" />
+      <rect x="86" y="58" width="108" height="36" rx="4" fill="#fefefe" />
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => (
+        <rect
+          key={i}
+          x={92 + i * 8}
+          y="64"
+          width={i % 3 === 0 ? 3 : 1.5}
+          height="24"
+          fill="#0f0f0f"
+        />
+      ))}
+      <text x="96" y="110" fill="#fefefe" fontSize="11" fontFamily="ui-monospace, monospace" fontWeight="700">
+        E00000…
       </text>
       <path d="M118 128h44" stroke="#9bf7a9" strokeWidth="3" strokeLinecap="round" />
       <text x="70" y="150" fill="#fefefe" fontSize="11" fontFamily="sans-serif">
