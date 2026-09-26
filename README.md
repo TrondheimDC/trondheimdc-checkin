@@ -46,9 +46,29 @@ Migrations in `drizzle/` run on server start. The database file is created under
 | `BETTER_AUTH_URL` | Public origin of this app, no trailing slash (e.g. `http://localhost:3000`). |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | When set, a super-admin is seeded on boot (created if missing). |
 
-### Deploy note
+### Deploy
 
-Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` and point nginx at the Next server. API and template URLs respect that prefix. Auth is in-app (better-auth: admins + innsjekkstasjoner) — do not put HTTP basic auth in front of the whole app (breaks phones, APK download, and setup deep links). See [docs/auth-stasjoner.md](docs/auth-stasjoner.md).
+Production is a Docker image built in GitHub Actions, shipped to the VPS with `docker save` → rsync → `docker load` (no registry). Compose runs `innsjekk:latest` on `127.0.0.1:3010` with `./data` mounted for the DB and APKs.
+
+One-time on the server:
+
+```bash
+sudo mkdir -p /var/www/sites/innsjekk.trondheimdc.no/data
+sudo chown -R 1000:1000 /var/www/sites/innsjekk.trondheimdc.no/data
+# create .env from .env.example (DB_ENCRYPTION_KEY, auth secrets, etc.)
+# point nginx at https://innsjekk.trondheimdc.no → 127.0.0.1:3010
+```
+
+Repo secrets (same shape as utlegg): `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`.
+
+Local image check:
+
+```bash
+docker build -t innsjekk:latest .
+docker compose up -d   # needs a .env next to compose
+```
+
+Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` and point nginx at the Next server. Auth is in-app (better-auth: admins + innsjekkstasjoner) — do not put HTTP basic auth in front of the whole app (breaks phones, APK download, and setup deep links). See [docs/auth-stasjoner.md](docs/auth-stasjoner.md).
 
 Optional one-shot seed (same as boot):
 

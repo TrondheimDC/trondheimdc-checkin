@@ -3,6 +3,9 @@ import { IBM_Plex_Sans, Space_Grotesk, Space_Mono } from "next/font/google"
 import { Providers } from "./providers"
 import "./globals.css"
 
+// SQLite-backed app — never prerender pages against an empty build-time DB.
+export const dynamic = "force-dynamic"
+
 const plex = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
