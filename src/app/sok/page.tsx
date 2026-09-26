@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { Search } from "lucide-react"
+import { Check, Search } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useDeferredValue, useEffect, useState } from "react"
@@ -170,16 +170,27 @@ export default function SearchPage() {
                     onSelect={() => {
                       router.push(`/deltaker/${encodeURIComponent(attendee.id)}`)
                     }}
+                    className="flex-row items-center justify-between gap-3"
                     style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
                   >
-                    <span className="block font-display text-2xl leading-tight">{attendee.name}</span>
-                    {line2 ? (
-                      <span className="mt-1 block text-base opacity-70 group-data-[selected=true]:opacity-80">
-                        {line2}
+                    <span className="flex min-w-0 flex-col">
+                      <span className="block truncate font-display text-2xl leading-tight">
+                        {attendee.name}
                       </span>
-                    ) : null}
+                      {line2 ? (
+                        <span className="mt-1 block truncate text-base opacity-70 group-data-[selected=true]:opacity-80">
+                          {line2}
+                        </span>
+                      ) : null}
+                    </span>
                     {attendee.checkedInAt ? (
-                      <span className="mt-2 block text-sm tracking-wide">Innsjekket</span>
+                      <span
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-fg-brand)]/15 text-[var(--color-fg-brand)] group-data-[selected=true]:bg-[var(--color-fg-always-dark)]/15 group-data-[selected=true]:text-[var(--color-fg-always-dark)]"
+                        title="Innsjekket"
+                      >
+                        <Check className="size-5" aria-hidden />
+                        <span className="sr-only">Innsjekket</span>
+                      </span>
                     ) : null}
                   </CommandItem>
                 )
