@@ -62,11 +62,10 @@ export default function SearchPage() {
 
   return (
     <main className="attendee-reveal flex h-dvh flex-col gap-5 overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <header className="shrink-0 pt-2">
+      <header className="flex shrink-0 items-center justify-between pt-2">
         <TdcLogo />
-        <h1 className="mt-2 text-4xl">Søk</h1>
-        <p className="mt-2 text-base opacity-70">
-          {stats.data ? `${stats.data.checkedIn} av ${stats.data.total} innsjekket` : "Henter oppmøte…"}
+        <p className="text-base tabular-nums opacity-70">
+          {stats.data ? `${stats.data.checkedIn} av ${stats.data.total}` : "Henter…"}
         </p>
       </header>
 
