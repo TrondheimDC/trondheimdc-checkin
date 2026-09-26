@@ -48,27 +48,16 @@ Migrations in `drizzle/` run on server start. The database file is created under
 
 ### Deploy
 
-Production is a Docker image built in GitHub Actions, shipped to the VPS with `docker save` → rsync → `docker load` (no registry). Compose runs `innsjekk:latest` on `127.0.0.1:3010` with `./data` mounted for the DB and APKs.
+See **[docs/deploy.md](docs/deploy.md)** for the full flow (GitHub Actions → `docker save` / `load` → Compose on the VPS).
 
-One-time on the server:
-
-```bash
-sudo mkdir -p /var/www/sites/innsjekk.trondheimdc.no/data
-sudo chown -R 1000:1000 /var/www/sites/innsjekk.trondheimdc.no/data
-# create .env from .env.example (DB_ENCRYPTION_KEY, auth secrets, etc.)
-# point nginx at https://innsjekk.trondheimdc.no → 127.0.0.1:3010
-```
-
-Repo secrets (same shape as utlegg): `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`.
-
-Local image check:
+Quick local check:
 
 ```bash
 docker build -t innsjekk:latest .
-docker compose up -d   # needs a .env next to compose
+docker compose up -d   # needs a .env next to compose; serves 127.0.0.1:3010
 ```
 
-Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` and point nginx at the Next server. Auth is in-app (better-auth: admins + innsjekkstasjoner) — do not put HTTP basic auth in front of the whole app (breaks phones, APK download, and setup deep links). See [docs/auth-stasjoner.md](docs/auth-stasjoner.md).
+Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` at build time and point nginx at the container. Auth is in-app (better-auth: admins + innsjekkstasjoner) — do not put HTTP basic auth in front of the whole app (breaks phones, APK download, and setup deep links). See [docs/auth-stasjoner.md](docs/auth-stasjoner.md).
 
 Optional one-shot seed (same as boot):
 
@@ -118,6 +107,7 @@ The browser cannot see whether the printer is connected — staff confirm that i
 
 | Doc | Contents |
 |---|---|
+| [docs/deploy.md](docs/deploy.md) | Production deploy: Docker save/load, Compose, server bootstrap |
 | [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md) | Export attendees from Checkin and import them |
 | [docs/auth-stasjoner.md](docs/auth-stasjoner.md) | Decided auth: better-auth, admins, innsjekkstasjoner, stickers |
 | [docs/MVP-verification.md](docs/MVP-verification.md) | Hardware QA checklist before calling MVP done |
