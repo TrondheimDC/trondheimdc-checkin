@@ -166,25 +166,17 @@ export function Scanner() {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-black">
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-black">
       <video
         ref={videoRef}
-        className="h-dvh w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
         muted
         playsInline
         autoPlay
         disablePictureInPicture
       />
 
-      <div className="scan-reticle" aria-hidden>
-        <span className="scan-reticle-corner tl" />
-        <span className="scan-reticle-corner tr" />
-        <span className="scan-reticle-corner bl" />
-        <span className="scan-reticle-corner br" />
-        {!error ? <span className="scan-reticle-line" /> : null}
-      </div>
-
-      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <div className="relative z-10 flex shrink-0 items-start justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex gap-2">
           <button
             type="button"
@@ -231,7 +223,17 @@ export function Scanner() {
         </Link>
       </div>
 
-      <div className="scan-hud absolute inset-x-0 bottom-0 flex flex-col gap-3 bg-gradient-to-t from-black via-black/85 to-transparent p-4 pt-16 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-7">
+        <div className="scan-reticle" aria-hidden>
+          <span className="scan-reticle-corner tl" />
+          <span className="scan-reticle-corner tr" />
+          <span className="scan-reticle-corner bl" />
+          <span className="scan-reticle-corner br" />
+          {!error ? <span className="scan-reticle-line" /> : null}
+        </div>
+      </div>
+
+      <div className="scan-hud relative z-10 flex shrink-0 flex-col gap-3 bg-gradient-to-t from-black via-black/85 to-transparent p-4 pt-16 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           {!error ? (
             <span className="scan-live-dot size-2.5 rounded-full bg-[var(--color-fg-brand)]" aria-hidden />
