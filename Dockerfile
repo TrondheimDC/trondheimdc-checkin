@@ -3,6 +3,8 @@
 # https://nextjs.org/docs/app/api-reference/config/next-config-js/output
 
 # Current Node LTS (Next.js 16 needs >= 20.9). Official with-docker example uses 24.
+# Bun as runtime (`bun server.js`) was tried; it breaks on @libsql resolution in the
+# pnpm-traced standalone tree. Stay on Node until we migrate lockfile or use adapter-bun.
 ARG NODE_VERSION=24-alpine
 
 # -----------------------------------------------------------------------------
