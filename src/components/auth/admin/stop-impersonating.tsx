@@ -1,9 +1,6 @@
 "use client"
 
-import {
-  type AdminAuthClient,
-  isImpersonatingSession
-} from "@better-auth-ui/core/plugins/admin"
+import { type AdminAuthClient, isImpersonatingSession } from "@better-auth-ui/core/plugins/admin"
 import { useAuth, useAuthPlugin, useSession } from "@better-auth-ui/react"
 import { useStopImpersonating } from "@better-auth-ui/react/plugins/admin"
 import { UserRoundCheck } from "lucide-react"

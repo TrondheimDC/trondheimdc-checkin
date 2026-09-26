@@ -17,7 +17,7 @@ import {
   CommandLoading,
 } from "@/components/ui/command"
 import type { AttendeeStats } from "@/lib/attendees"
-import { attendeesSearchResponseSchema, attendeeStatsSchema } from "@/lib/db/schema"
+import { attendeeStatsSchema, attendeesSearchResponseSchema } from "@/lib/db/schema"
 import { labelLine } from "@/lib/label-line"
 import { setLocalFlag, useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"

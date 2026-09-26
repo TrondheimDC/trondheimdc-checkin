@@ -7,7 +7,13 @@ export type ResolvedApkUpload =
   | { ok: true; originalName: string; bytes: Buffer }
   | {
       ok: false
-      error: "empty_file" | "not_apk" | "no_apk_in_zip" | "many_apks_in_zip" | "zip_too_large" | "bad_zip"
+      error:
+        | "empty_file"
+        | "not_apk"
+        | "no_apk_in_zip"
+        | "many_apks_in_zip"
+        | "zip_too_large"
+        | "bad_zip"
     }
 
 function isApkEntryName(path: string) {

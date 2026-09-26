@@ -7,7 +7,13 @@ import { useEffect, useRef, useState } from "react"
 import { LoginQrUnderPrinterIllustration } from "@/components/admin/enroll-illustrations"
 import { ScanCamera } from "@/components/scan-camera"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
@@ -18,9 +24,9 @@ import {
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import {
   normalizePrinterTokenBodyInput,
-  parsePrinterTokenInput,
   PRINTER_TOKEN_BODY_LENGTH,
   PRINTER_TOKEN_PREFIX_LABEL,
+  parsePrinterTokenInput,
   printerTokenBody,
 } from "@/lib/printer-token"
 import { apiPath } from "@/lib/utils"
@@ -168,7 +174,12 @@ export function DoorLoginForm() {
               <QrCode className="size-5" aria-hidden />
               Skann QR
             </Button>
-            <Button type="button" variant="surface" size="lg" onClick={() => setAcquireMode("manual")}>
+            <Button
+              type="button"
+              variant="surface"
+              size="lg"
+              onClick={() => setAcquireMode("manual")}
+            >
               <Keyboard className="size-5" aria-hidden />
               Skriv inn kode manuelt
             </Button>
@@ -213,7 +224,11 @@ export function DoorLoginForm() {
             {error ? (
               <FieldError className="text-[var(--color-bg-danger)]">{error}</FieldError>
             ) : null}
-            <Button type="submit" size="lg" disabled={manualDraft.length < PRINTER_TOKEN_BODY_LENGTH}>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={manualDraft.length < PRINTER_TOKEN_BODY_LENGTH}
+            >
               Fortsett
             </Button>
             <Button

@@ -9,11 +9,7 @@ import { Check, X } from "lucide-react"
 import { useState } from "react"
 import type { AdditionalFieldProps } from "@/components/auth/additional-field"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput
-} from "@/components/ui/input-group"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
 import { usernamePlugin } from "@/lib/auth/username-plugin"
 
@@ -31,16 +27,15 @@ export function UsernameField({
   onChange,
   isInvalid,
   errors,
-  isPending
+  isPending,
 }: AdditionalFieldProps) {
-  const { authClient, localization: authLocalization } =
-    useAuth<UsernameAuthClient>()
+  const { authClient, localization: authLocalization } = useAuth<UsernameAuthClient>()
   const {
     localization,
     minUsernameLength,
     maxUsernameLength,
     isUsernameAvailable: checkAvailability,
-    usernamePrefix
+    usernamePrefix,
   } = useAuthPlugin(usernamePlugin)
 
   const currentUsername = String(field.defaultValue ?? "")
@@ -52,9 +47,9 @@ export function UsernameField({
     mutate: requestAvailability,
     data: availability,
     error: availabilityError,
-    reset: resetAvailability
+    reset: resetAvailability,
   } = useIsUsernameAvailable(authClient, {
-    onError: () => {}
+    onError: () => {},
   })
 
   const debouncer = useDebouncer(
@@ -67,7 +62,7 @@ export function UsernameField({
 
       requestAvailability({ username: trimmed })
     },
-    { wait: 500 }
+    { wait: 500 },
   )
 
   function handleChange(next: string) {
@@ -81,20 +76,14 @@ export function UsernameField({
   }
 
   const isCheckingAvailability =
-    !!checkAvailability &&
-    !!username.trim() &&
-    username.trim() !== currentUsername
+    !!checkAvailability && !!username.trim() && username.trim() !== currentUsername
 
   return (
     <Field data-invalid={isInvalid || !!nativeError}>
       <FieldLabel htmlFor={name}>{field.label}</FieldLabel>
 
       <InputGroup>
-        {usernamePrefix && (
-          <InputGroupAddon align="inline-start">
-            {usernamePrefix}
-          </InputGroupAddon>
-        )}
+        {usernamePrefix && <InputGroupAddon align="inline-start">{usernamePrefix}</InputGroupAddon>}
 
         <InputGroupInput
           id={name}
@@ -115,14 +104,8 @@ export function UsernameField({
             const msg = el.validity.valueMissing
               ? authLocalization.auth.fieldRequired
               : el.validity.tooShort
-                ? authLocalization.auth.tooShort.replace(
-                    "{{min}}",
-                    String(minUsernameLength)
-                  )
-                : authLocalization.auth.tooLong.replace(
-                    "{{max}}",
-                    String(maxUsernameLength)
-                  )
+                ? authLocalization.auth.tooShort.replace("{{min}}", String(minUsernameLength))
+                : authLocalization.auth.tooLong.replace("{{max}}", String(maxUsernameLength))
             setNativeError(msg)
           }}
           aria-invalid={isInvalid || !!nativeError}

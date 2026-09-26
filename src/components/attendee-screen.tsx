@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Search, ScanLine } from "lucide-react"
+import { ScanLine, Search } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { CheckInButton } from "@/components/check-in-button"
@@ -9,12 +9,12 @@ import { PrintButton } from "@/components/print-button"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { useSetCheckedIn } from "@/hooks/use-set-checked-in"
+import { attendeeResponseSchema } from "@/lib/db/schema"
 import { labelLine } from "@/lib/label-line"
-import { platformFromNavigator, type PhonePlatform } from "@/lib/platform"
+import { type PhonePlatform, platformFromNavigator } from "@/lib/platform"
 import { SCAN_AUTO_PRINT_DEFAULT, SCAN_AUTO_PRINT_KEY } from "@/lib/scan-settings"
 import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
-import { attendeeResponseSchema } from "@/lib/db/schema"
 
 export function AttendeeScreen({ id }: { id: string }) {
   const queryClient = useQueryClient()
@@ -50,7 +50,10 @@ export function AttendeeScreen({ id }: { id: string }) {
             <div className="attendee-loader-sweep" />
             <div className="relative flex h-full flex-col justify-center gap-3 px-6">
               <div className="attendee-loader-bar h-7 w-[78%]" />
-              <div className="attendee-loader-bar h-4 w-[46%]" style={{ animationDelay: "0.15s" }} />
+              <div
+                className="attendee-loader-bar h-4 w-[46%]"
+                style={{ animationDelay: "0.15s" }}
+              />
             </div>
           </div>
           <p className="attendee-loader-label mt-8 text-center font-display text-sm uppercase text-[var(--color-fg-brand)]">
@@ -67,7 +70,9 @@ export function AttendeeScreen({ id }: { id: string }) {
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <p className="text-sm tracking-wide text-[var(--color-bg-danger)]">Noe gikk galt</p>
           <h1 className="text-4xl">Kunne ikke hente deltakeren</h1>
-          <p className="max-w-[18rem] text-base opacity-60">Sjekk nettverket og prøv å skanne på nytt.</p>
+          <p className="max-w-[18rem] text-base opacity-60">
+            Sjekk nettverket og prøv å skanne på nytt.
+          </p>
         </div>
         <Button asChild size="lg">
           <Link href="/">Skann neste</Link>

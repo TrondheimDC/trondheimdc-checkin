@@ -1,4 +1,4 @@
-import { DEFAULT_PRINTER_MODEL, type ConnectType } from "@/lib/print-url"
+import { type ConnectType, DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
 
 export type PrinterSetupParams = {
   address: string

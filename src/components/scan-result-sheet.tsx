@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useSetCheckedIn } from "@/hooks/use-set-checked-in"
 import type { Attendee } from "@/lib/db/schema"
 import { labelLine } from "@/lib/label-line"
-import { platformFromNavigator, type PhonePlatform } from "@/lib/platform"
+import { type PhonePlatform, platformFromNavigator } from "@/lib/platform"
 
 /**
  * Non-modal card centred over a live camera — next scan replaces the current

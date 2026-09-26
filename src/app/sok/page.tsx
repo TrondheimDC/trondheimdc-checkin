@@ -1,6 +1,6 @@
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
-import { SearchScreen } from "./search-screen"
 import { attendeeRepository } from "@/lib/attendees"
+import { SearchScreen } from "./search-screen"
 
 export default async function SearchPage() {
   const stats = await attendeeRepository.stats()

@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form"
 import { FileDropzone } from "@/components/admin/file-dropzone"
 import { RemoveSmoothPrintApkButton } from "@/components/admin/remove-smooth-print-apk"
 import { Button } from "@/components/ui/button"
-import { smoothPrintApkUploadSchema, type SmoothPrintApk } from "@/lib/db/schema"
+import { type SmoothPrintApk, smoothPrintApkUploadSchema } from "@/lib/db/schema"
 import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "@/lib/print-url"
 import {
   fetchSmoothPrintApks,
@@ -34,9 +34,11 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
   const [cacheReady, setCacheReady] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
   const [uploadingName, setUploadingName] = useState<string | null>(null)
-  const [progress, setProgress] = useState<{ loaded: number; total: number; percent: number } | null>(
-    null,
-  )
+  const [progress, setProgress] = useState<{
+    loaded: number
+    total: number
+    percent: number
+  } | null>(null)
 
   useLayoutEffect(() => {
     queryClient.setQueryData(smoothPrintApksQueryKey, serverApks)
@@ -123,8 +125,8 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
       <header className="pt-2">
         <h1 className="text-4xl">Smooth Print</h1>
         <p className="mt-2 max-w-xl text-base opacity-70">
-          Last opp Android-APK (eller zip med én APK — pakkes ut på serveren). Én versjon kan være aktiv —
-          da bruker /oppsett den i stedet for Brothers nedlastingsside.{" "}
+          Last opp Android-APK (eller zip med én APK — pakkes ut på serveren). Én versjon kan være
+          aktiv — da bruker /oppsett den i stedet for Brothers nedlastingsside.{" "}
           <a
             href={DEFAULT_SMOOTH_PRINT_ANDROID_URL}
             target="_blank"
@@ -136,7 +138,9 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
           .
         </p>
         <p className="mt-2 text-sm opacity-60">
-          {hasActive ? "Aktiv APK er i bruk på /oppsett." : "Ingen aktiv APK — /oppsett bruker Brothers URL."}
+          {hasActive
+            ? "Aktiv APK er i bruk på /oppsett."
+            : "Ingen aktiv APK — /oppsett bruker Brothers URL."}
         </p>
       </header>
 
@@ -162,7 +166,9 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
               <span className="flex size-14 items-center justify-center rounded-2xl bg-black/30 text-[var(--color-fg-brand)]">
                 <Package className="size-7" strokeWidth={1.75} />
               </span>
-              <span className="max-w-full truncate text-lg font-medium">{uploadingName ?? "APK"}</span>
+              <span className="max-w-full truncate text-lg font-medium">
+                {uploadingName ?? "APK"}
+              </span>
               <div
                 className="h-2 w-full overflow-hidden rounded-full bg-black/40"
                 role="progressbar"

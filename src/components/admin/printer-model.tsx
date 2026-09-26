@@ -1,4 +1,4 @@
-import { getPrinterModel, printerModelLabel, type PrinterModel } from "@/lib/printer-models"
+import { getPrinterModel, type PrinterModel, printerModelLabel } from "@/lib/printer-models"
 import { apiPath, cn } from "@/lib/utils"
 
 export function PrinterModelThumb({
@@ -11,8 +11,7 @@ export function PrinterModelThumb({
   size?: "sm" | "md" | "lg"
 }) {
   const model = getPrinterModel(modelId)
-  const sizeClass =
-    size === "lg" ? "size-36" : size === "sm" ? "size-16" : "size-28"
+  const sizeClass = size === "lg" ? "size-36" : size === "sm" ? "size-16" : "size-28"
 
   return (
     <div
@@ -35,16 +34,8 @@ export function PrinterModelThumb({
   )
 }
 
-export function PrinterModelMeta({
-  modelId,
-  className,
-}: {
-  modelId: string
-  className?: string
-}) {
-  return (
-    <p className={cn("text-sm font-medium", className)}>{printerModelLabel(modelId)}</p>
-  )
+export function PrinterModelMeta({ modelId, className }: { modelId: string; className?: string }) {
+  return <p className={cn("text-sm font-medium", className)}>{printerModelLabel(modelId)}</p>
 }
 
 export function PrinterModelOption({

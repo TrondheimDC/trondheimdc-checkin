@@ -1,8 +1,8 @@
+import { and, desc, eq, ne } from "drizzle-orm"
 import { mkdir, unlink, writeFile } from "fs/promises"
 import { join } from "path"
-import { and, desc, eq, ne } from "drizzle-orm"
 import { db } from "./db"
-import { smoothPrintApkSchema, smoothPrintApks, type SmoothPrintApk } from "./db/schema"
+import { type SmoothPrintApk, smoothPrintApkSchema, smoothPrintApks } from "./db/schema"
 import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "./print-url"
 
 export { DEFAULT_SMOOTH_PRINT_ANDROID_URL }
@@ -20,7 +20,8 @@ async function ensureApksDir() {
 }
 
 function safeStoredName(originalName: string) {
-  const base = originalName.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^\.+/, "") || "smooth-print.apk"
+  const base =
+    originalName.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^\.+/, "") || "smooth-print.apk"
   const withExt = base.toLowerCase().endsWith(".apk") ? base : `${base}.apk`
   return `${crypto.randomUUID()}-${withExt}`
 }
@@ -100,7 +101,9 @@ export const smoothPrintApkRepository = {
   },
 }
 
-export async function resolveAndroidDownloadUrl(apiPathFn: (path: string) => string): Promise<string> {
+export async function resolveAndroidDownloadUrl(
+  apiPathFn: (path: string) => string,
+): Promise<string> {
   const active = await smoothPrintApkRepository.getActive()
   if (active) return apiPathFn("/api/smooth-print/apk")
   return DEFAULT_SMOOTH_PRINT_ANDROID_URL

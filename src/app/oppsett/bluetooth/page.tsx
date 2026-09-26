@@ -30,7 +30,8 @@ export default function BluetoothPairHelpPage() {
             <li>Gå til Innstillinger → Bluetooth på telefonen og velg QL-820NWB(XXXX).</li>
             <li>Sjekk at koden er lik på begge, og bekreft på printeren og telefonen.</li>
             <li>
-              Skal denne telefonen brukes fast, kan du sette Automatic Reconnection til ON igjen etterpå.
+              Skal denne telefonen brukes fast, kan du sette Automatic Reconnection til ON igjen
+              etterpå.
             </li>
           </ol>
         </section>

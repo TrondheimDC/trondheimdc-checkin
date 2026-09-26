@@ -12,12 +12,12 @@ import {
   applyTorch,
   openRearCamera,
   pickRearCamera,
+  type TorchTrack,
   trackSupportsTorch,
   videoTrackFrom,
-  type TorchTrack,
 } from "@/lib/camera-torch"
-import { attendeeResponseSchema, attendeeStatsSchema, type Attendee } from "@/lib/db/schema"
-import { refinePlatform, platformFromNavigator } from "@/lib/platform"
+import { type Attendee, attendeeResponseSchema, attendeeStatsSchema } from "@/lib/db/schema"
+import { platformFromNavigator, refinePlatform } from "@/lib/platform"
 import { consumePrintOutcome } from "@/lib/print-outcome"
 import { parsePrinterSetupUrl, printerSetupPath } from "@/lib/printer-setup"
 import {
@@ -90,7 +90,10 @@ export function Scanner({ printerName }: { printerName?: string }) {
       if (response.status === 404) {
         lastAcceptedRef.current = { text, at: Date.now() }
         setScanHint("Ukjent QR — skann på nytt")
-        window.setTimeout(() => setScanHint((current) => (current?.startsWith("Ukjent") ? null : current)), 2000)
+        window.setTimeout(
+          () => setScanHint((current) => (current?.startsWith("Ukjent") ? null : current)),
+          2000,
+        )
         return
       }
       if (!response.ok) throw new Error("lookup failed")
@@ -108,7 +111,10 @@ export function Scanner({ printerName }: { printerName?: string }) {
       router.push(`/deltaker/${encodeURIComponent(body.attendee.id)}`)
     } catch {
       setScanHint("Kunne ikke hente deltaker. Prøv igjen.")
-      window.setTimeout(() => setScanHint((current) => (current?.startsWith("Kunne") ? null : current)), 2000)
+      window.setTimeout(
+        () => setScanHint((current) => (current?.startsWith("Kunne") ? null : current)),
+        2000,
+      )
     } finally {
       busyRef.current = false
     }
@@ -310,7 +316,10 @@ export function Scanner({ printerName }: { printerName?: string }) {
       <div className="scan-hud relative z-10 flex shrink-0 flex-col gap-3 bg-gradient-to-t from-black via-black/85 to-transparent p-4 pt-16 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           {!hudMessage ? (
-            <span className="scan-live-dot size-2.5 rounded-full bg-[var(--color-fg-brand)]" aria-hidden />
+            <span
+              className="scan-live-dot size-2.5 rounded-full bg-[var(--color-fg-brand)]"
+              aria-hidden
+            />
           ) : null}
           <p
             className={`text-sm tracking-wide ${
@@ -369,12 +378,14 @@ export function Scanner({ printerName }: { printerName?: string }) {
                   { label: "Innsjekket", value: stats.data?.checkedIn },
                   {
                     label: "Igjen",
-                    value:
-                      stats.data != null ? stats.data.total - stats.data.checkedIn : undefined,
+                    value: stats.data != null ? stats.data.total - stats.data.checkedIn : undefined,
                   },
                 ] as const
               ).map((item) => (
-                <div key={item.label} className="rounded-xl bg-black/35 px-2 py-2.5 backdrop-blur-sm">
+                <div
+                  key={item.label}
+                  className="rounded-xl bg-black/35 px-2 py-2.5 backdrop-blur-sm"
+                >
                   <p className="font-display text-2xl tabular-nums leading-none">
                     {item.value != null ? item.value : "–"}
                   </p>

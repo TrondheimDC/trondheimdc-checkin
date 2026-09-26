@@ -39,7 +39,8 @@ export function pickRearCamera(devices: MediaDeviceInfo[]) {
   const pool = rear.length > 0 ? rear : devices
   const main = pool.find(
     (device) =>
-      /camera2?\s*0\b|back camera/i.test(device.label) && !/ultra|wide|tele|depth|macro/i.test(device.label),
+      /camera2?\s*0\b|back camera/i.test(device.label) &&
+      !/ultra|wide|tele|depth|macro/i.test(device.label),
   )
   const plain = pool.find((device) => !/ultra|wide|tele|depth|macro/i.test(device.label))
   return (main ?? plain ?? pool[0])?.deviceId

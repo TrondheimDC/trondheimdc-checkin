@@ -22,14 +22,14 @@ export function SignOut({ className }: SignOutProps) {
     onError: () => {
       navigate({
         to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
-        replace: true
+        replace: true,
       })
     },
     onSuccess: () =>
       navigate({
         to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
-        replace: true
-      })
+        replace: true,
+      }),
   })
 
   const hasSignedOut = useRef(false)

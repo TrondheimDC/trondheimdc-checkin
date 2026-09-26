@@ -1,6 +1,6 @@
 import { hashPassword } from "better-auth/crypto"
-import { eq } from "drizzle-orm"
 import { randomUUID } from "crypto"
+import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { account, user } from "@/lib/db/schema"
 
@@ -23,9 +23,7 @@ export async function ensureSuperAdminFromEnv(): Promise<void> {
     return
   }
   if (!/^[a-z0-9_.]+$/.test(username)) {
-    console.warn(
-      "ADMIN_USERNAME must be letters, digits, underscore, or dot — skipping admin seed",
-    )
+    console.warn("ADMIN_USERNAME must be letters, digits, underscore, or dot — skipping admin seed")
     return
   }
 

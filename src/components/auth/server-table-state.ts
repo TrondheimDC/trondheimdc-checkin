@@ -6,13 +6,13 @@ import {
   functionalUpdate,
   type PaginationState,
   type SortingState,
-  type Updater
+  type Updater,
 } from "@tanstack/react-table"
 import { useCallback, useEffect, useMemo } from "react"
 
 export function useServerTableState({
   initialSorting = [],
-  pageSize
+  pageSize,
 }: {
   initialSorting?: SortingState
   pageSize: number
@@ -21,7 +21,7 @@ export function useServerTableState({
   const globalFilterAtom = useCreateAtom("")
   const paginationAtom = useCreateAtom<PaginationState>({
     pageIndex: 0,
-    pageSize
+    pageSize,
   })
   const sortingAtom = useCreateAtom<SortingState>(initialSorting)
   const columnFilters = useSelector(columnFiltersAtom)
@@ -33,9 +33,9 @@ export function useServerTableState({
       columnFilters: columnFiltersAtom,
       globalFilter: globalFilterAtom,
       pagination: paginationAtom,
-      sorting: sortingAtom
+      sorting: sortingAtom,
     }),
-    [columnFiltersAtom, globalFilterAtom, paginationAtom, sortingAtom]
+    [columnFiltersAtom, globalFilterAtom, paginationAtom, sortingAtom],
   )
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useServerTableState({
     const subscriptions = [
       columnFiltersAtom.subscribe(resetPage),
       globalFilterAtom.subscribe(resetPage),
-      sortingAtom.subscribe(resetPage)
+      sortingAtom.subscribe(resetPage),
     ]
 
     return () => {
@@ -60,7 +60,7 @@ export function useServerTableState({
     (updater: Updater<PaginationState>) => {
       paginationAtom.set((current) => functionalUpdate(updater, current))
     },
-    [paginationAtom]
+    [paginationAtom],
   )
 
   return {
@@ -69,6 +69,6 @@ export function useServerTableState({
     globalFilter,
     pagination,
     setPagination,
-    sorting
+    sorting,
   }
 }

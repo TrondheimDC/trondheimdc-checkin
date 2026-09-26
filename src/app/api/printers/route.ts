@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from "next/server"
 import { isSession, requireAdminApiSession } from "@/lib/auth-api"
 import {
   printerBodySchema,
@@ -5,7 +6,6 @@ import {
   printersResponseSchema,
 } from "@/lib/db/schema"
 import { printerRepository } from "@/lib/printers"
-import { NextRequest, NextResponse } from "next/server"
 
 export async function GET() {
   const session = await requireAdminApiSession()

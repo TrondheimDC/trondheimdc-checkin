@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server"
 import { getSessionCookie } from "better-auth/cookies"
+import { NextRequest, NextResponse } from "next/server"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
 
@@ -9,7 +9,8 @@ function withBase(path: string) {
 
 /** Paths that stay public (auth itself). Static .lbx/.apk/.jpg bypass the matcher. */
 function isPublicPath(pathname: string): boolean {
-  const p = basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
+  const p =
+    basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
   if (p.startsWith("/api/auth")) return true
   if (p.startsWith("/auth")) return true
   if (p.startsWith("/logg-inn")) return true
@@ -17,7 +18,8 @@ function isPublicPath(pathname: string): boolean {
 }
 
 function isAdminPath(pathname: string): boolean {
-  const p = basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
+  const p =
+    basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
   if (p.startsWith("/admin")) return true
   if (p.startsWith("/api/printers")) return true
   if (p.startsWith("/api/attendees/import")) return true
@@ -26,7 +28,8 @@ function isAdminPath(pathname: string): boolean {
 }
 
 function isDoorPath(pathname: string): boolean {
-  const p = basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
+  const p =
+    basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
   if (p === "/") return true
   if (p.startsWith("/sok")) return true
   if (p.startsWith("/deltaker")) return true

@@ -4,7 +4,13 @@ import { ScanBarcode } from "lucide-react"
 import { useState } from "react"
 import { ScanCamera } from "@/components/scan-camera"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { InputGroupButton } from "@/components/ui/input-group"
 import { normalizePrinterSerial } from "@/lib/printer-format"
 

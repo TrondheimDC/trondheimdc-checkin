@@ -1,11 +1,11 @@
 import { headers } from "next/headers"
 import { userAgent } from "next/server"
-import { SetupFlow, type SetupStepId } from "./setup-flow"
 import { platformFromOsName } from "@/lib/platform"
-import { DEFAULT_PRINTER_MODEL, type ConnectType } from "@/lib/print-url"
+import { type ConnectType, DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
 import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
 import { apiPath } from "@/lib/utils"
+import { SetupFlow, type SetupStepId } from "./setup-flow"
 
 const STEP_IDS = new Set<SetupStepId>([
   "install",

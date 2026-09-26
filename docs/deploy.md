@@ -14,7 +14,7 @@ push to master
         → docker compose up -d
 ```
 
-PR builds (`.github/workflows/pr.yml`) only verify that the image builds. They do not deploy.
+PR checks (`.github/workflows/pr.yml`) run Biome lint only. They do not build or deploy the image.
 
 | Piece | Value |
 |---|---|
@@ -112,6 +112,6 @@ docker compose up -d
 | Doc / file | Contents |
 |---|---|
 | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Build, save, rsync, load, compose up |
-| [`.github/workflows/pr.yml`](../.github/workflows/pr.yml) | PR image build |
+| [`.github/workflows/pr.yml`](../.github/workflows/pr.yml) | PR lint (Biome) |
 | [`Dockerfile`](../Dockerfile) | Multi-stage standalone image |
 | [`docker-compose.yml`](../docker-compose.yml) | Runtime on the VPS |

@@ -1,8 +1,8 @@
+import { NextResponse } from "next/server"
+import { z } from "zod"
 import { attendeeRepository } from "@/lib/attendees"
 import { isSession, requireDoorApiSession } from "@/lib/auth-api"
 import { attendeeResponseSchema, setCheckedInBodySchema } from "@/lib/db/schema"
-import { NextResponse } from "next/server"
-import { z } from "zod"
 
 const idParamSchema = z.string().min(1).max(200)
 

@@ -1,8 +1,8 @@
+import { drizzle } from "drizzle-orm/libsql"
 import { copyFileSync, existsSync, mkdirSync, unlinkSync } from "fs"
+import Database from "libsql"
 import { join } from "path"
 import { pathToFileURL } from "url"
-import { drizzle } from "drizzle-orm/libsql"
-import Database from "libsql"
 import * as schema from "./db/schema"
 
 const dataDir = join(process.cwd(), "data")

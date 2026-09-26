@@ -105,7 +105,10 @@ export const printerSecretsSchema = z.object({
 export const printerCreateResponseSchema = printerResponseSchema.merge(printerSecretsSchema)
 
 export const printerPatchResponseSchema = printerResponseSchema.extend({
-  pin: z.string().regex(/^\d{6}$/).optional(),
+  pin: z
+    .string()
+    .regex(/^\d{6}$/)
+    .optional(),
   token: z.string().min(1).optional(),
 })
 

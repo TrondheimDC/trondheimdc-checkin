@@ -1,39 +1,34 @@
 import { relations, sql } from "drizzle-orm"
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core"
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 import { encryptedText } from "./encrypted-text"
 import { objectId } from "./object-id"
 
-export const user = sqliteTable(
-  "user",
-  {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: integer("email_verified", { mode: "boolean" })
-      .default(false)
-      .notNull(),
-    image: text("image"),
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
-      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-      .notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    /** App: `prt_BODY` for door printers; SQLite: body only. Admin usernames pass through. */
-    username: objectId("username", "prt").unique(),
-    displayUsername: text("display_username"),
-    role: text("role"),
-    banned: integer("banned", { mode: "boolean" }).default(false),
-    banReason: text("ban_reason"),
-    banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
-    validFrom: text("valid_from"),
-    validTo: text("valid_to"),
-    printerId: text("printer_id"),
-    /** Plaintext in the app; ciphertext in SQLite. Admins reveal this later. */
-    pin: encryptedText("pin_encrypted"),
-  },
-)
+export const user = sqliteTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
+  image: text("image"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  /** App: `prt_BODY` for door printers; SQLite: body only. Admin usernames pass through. */
+  username: objectId("username", "prt").unique(),
+  displayUsername: text("display_username"),
+  role: text("role"),
+  banned: integer("banned", { mode: "boolean" }).default(false),
+  banReason: text("ban_reason"),
+  banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+  validFrom: text("valid_from"),
+  validTo: text("valid_to"),
+  printerId: text("printer_id"),
+  /** Plaintext in the app; ciphertext in SQLite. Admins reveal this later. */
+  pin: encryptedText("pin_encrypted"),
+})
 
 export const session = sqliteTable(
   "session",

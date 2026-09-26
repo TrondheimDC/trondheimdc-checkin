@@ -1,6 +1,6 @@
 import { and, count, eq, inArray, isNull, like, or, sql } from "drizzle-orm"
 import { db } from "./db"
-import { attendees, checkEvents, type Attendee } from "./db/schema"
+import { type Attendee, attendees, checkEvents } from "./db/schema"
 
 export type { Attendee }
 
@@ -107,7 +107,9 @@ export const attendeeRepository: AttendeeRepository = {
       const now = new Date().toISOString()
       const nextIds = new Set(next.map((attendee) => attendee.id))
       const deactivate = new Set(deactivateIds)
-      const existing = await tx.select({ id: attendees.id, deletedAt: attendees.deletedAt }).from(attendees)
+      const existing = await tx
+        .select({ id: attendees.id, deletedAt: attendees.deletedAt })
+        .from(attendees)
       const byId = new Map(existing.map((row) => [row.id, row]))
 
       let added = 0
@@ -121,10 +123,7 @@ export const attendeeRepository: AttendeeRepository = {
       }
 
       const removedIds = existing
-        .filter(
-          (row) =>
-            row.deletedAt == null && (!nextIds.has(row.id) || deactivate.has(row.id)),
-        )
+        .filter((row) => row.deletedAt == null && (!nextIds.has(row.id) || deactivate.has(row.id)))
         .map((row) => row.id)
 
       if (removedIds.length > 0) {

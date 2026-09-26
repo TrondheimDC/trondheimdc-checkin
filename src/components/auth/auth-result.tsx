@@ -1,22 +1,12 @@
 "use client"
 
-import {
-  type AuthResult,
-  getAuthResultMessage,
-  parseAuthResult
-} from "@better-auth-ui/core"
+import { type AuthResult, getAuthResultMessage, parseAuthResult } from "@better-auth-ui/core"
 import { useAuth } from "@better-auth-ui/react"
 import { CircleCheckIcon, CircleXIcon, TriangleAlertIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 type AuthResultProps = {
@@ -26,9 +16,7 @@ type AuthResultProps = {
 
 function AuthResultView({ className, fallbackIntent }: AuthResultProps) {
   const { basePaths, localization, navigate, viewPaths } = useAuth()
-  const [result, setResult] = useState<AuthResult>(() =>
-    parseAuthResult("", fallbackIntent)
-  )
+  const [result, setResult] = useState<AuthResult>(() => parseAuthResult("", fallbackIntent))
 
   useEffect(() => {
     setResult(parseAuthResult(window.location.search, fallbackIntent))
@@ -40,32 +28,32 @@ function AuthResultView({ className, fallbackIntent }: AuthResultProps) {
       case "accountSettings":
         return {
           label: localization.auth.callbackViewAccountSettings,
-          to: `${basePaths.settings}/${viewPaths.settings.security}`
+          to: `${basePaths.settings}/${viewPaths.settings.security}`,
         }
       case "continue":
         return {
           label: localization.auth.callbackContinue,
-          to: result.redirectTo ?? "/"
+          to: result.redirectTo ?? "/",
         }
       case "forgotPassword":
         return {
           label: localization.auth.forgotPassword,
-          to: `${basePaths.auth}/${viewPaths.auth.forgotPassword}`
+          to: `${basePaths.auth}/${viewPaths.auth.forgotPassword}`,
         }
       case "signUp":
         return {
           label: localization.auth.signUp,
-          to: `${basePaths.auth}/${viewPaths.auth.signUp}`
+          to: `${basePaths.auth}/${viewPaths.auth.signUp}`,
         }
       case "verifyEmail":
         return {
           label: localization.auth.verifyEmail,
-          to: `${basePaths.auth}/${viewPaths.auth.verifyEmail}`
+          to: `${basePaths.auth}/${viewPaths.auth.verifyEmail}`,
         }
       default:
         return {
           label: localization.auth.signIn,
-          to: `${basePaths.auth}/${viewPaths.auth.signIn}`
+          to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
         }
     }
   })()
@@ -87,7 +75,7 @@ function AuthResultView({ className, fallbackIntent }: AuthResultProps) {
               ? "text-primary"
               : result.intent === "warning"
                 ? "text-amber-600 dark:text-amber-400"
-                : "text-destructive"
+                : "text-destructive",
           )}
         />
         <CardTitle className="text-xl">{message.title}</CardTitle>

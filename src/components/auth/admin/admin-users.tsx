@@ -5,7 +5,7 @@ import {
   fieldsWithModelValues,
   getAdditionalFieldDefaultValues,
   getAdditionalFieldSubmitValues,
-  getClampedTablePageIndex
+  getClampedTablePageIndex,
 } from "@better-auth-ui/core"
 import {
   type AdminAuthClient,
@@ -20,18 +20,14 @@ import {
   revokeAdminUserSessionsOptions,
   setAdminUserPasswordOptions,
   unbanAdminUserOptions,
-  updateAdminUserOptions
+  updateAdminUserOptions,
 } from "@better-auth-ui/core/plugins/admin"
-import {
-  useAuth,
-  useAuthPlugin,
-  useSession
-} from "@better-auth-ui/react"
+import { useAuth, useAuthPlugin, useSession } from "@better-auth-ui/react"
 import {
   useAdminPermission,
   useAdminUser,
   useAdminUserSessions,
-  useAdminUsers
+  useAdminUsers,
 } from "@better-auth-ui/react/plugins/admin"
 import { useDebouncedValue } from "@tanstack/react-pacer"
 import { keepPreviousData, useMutation } from "@tanstack/react-query"
@@ -49,7 +45,7 @@ import {
   ShieldAlertIcon,
   Trash2Icon,
   UserPlusIcon,
-  UserRound
+  UserRound,
 } from "lucide-react"
 import { type FormEvent, useEffect, useMemo, useState } from "react"
 import { UserAvatar } from "@/components/auth/user/user-avatar"
@@ -61,7 +57,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,33 +66,22 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel
-} from "@/components/ui/field"
-import {
-  InputGroup,
-  InputGroupInput
-} from "@/components/ui/input-group"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { InputGroup, InputGroupInput } from "@/components/ui/input-group"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { adminEmailFromUsername, adminLabel } from "@/lib/admin-identity"
 import { adminPlugin } from "@/lib/auth/admin-plugin"
-import {
-  adminEmailFromUsername,
-  adminLabel
-} from "@/lib/admin-identity"
 import { cn } from "@/lib/utils"
 import { getAuthAdditionalFieldValidators, useAuthForm } from "../auth-form"
 import { useServerTableState } from "../server-table-state"
@@ -106,7 +91,7 @@ import { createAdminColumnHelper, useAdminTable } from "./admin-table"
 function StatusPill({
   banned,
   activeLabel = "Aktiv",
-  bannedLabel = "Utestengt"
+  bannedLabel = "Utestengt",
 }: {
   banned?: boolean | null
   activeLabel?: string
@@ -141,11 +126,7 @@ export type AdminUsersProps = {
 }
 
 const formatDate = (value: Date | string | undefined | null) =>
-  value
-    ? new Intl.DateTimeFormat("nb-NO", { dateStyle: "medium" }).format(
-        new Date(value)
-      )
-    : "–"
+  value ? new Intl.DateTimeFormat("nb-NO", { dateStyle: "medium" }).format(new Date(value)) : "–"
 
 const asAdminRoles = (roles: string[]) => roles as ("user" | "admin")[]
 
@@ -167,15 +148,15 @@ const adminColumns = adminColumnHelper.columns([
   adminColumnHelper.accessor("name", { id: "name" }),
   adminColumnHelper.accessor("role", {
     id: "role",
-    enableSorting: false
+    enableSorting: false,
   }),
   adminColumnHelper.accessor("banned", {
     id: "status",
-    enableSorting: false
+    enableSorting: false,
   }),
   adminColumnHelper.accessor((user) => new Date(user.createdAt).getTime(), {
-    id: "createdAt"
-  })
+    id: "createdAt",
+  }),
 ])
 const EMPTY_USERS: AdminUser[] = []
 const INITIAL_ADMIN_SORTING: SortingState = [{ id: "createdAt", desc: true }]
@@ -184,7 +165,7 @@ const INITIAL_ADMIN_SORTING: SortingState = [{ id: "createdAt", desc: true }]
 export function AdminUsers({
   className,
   onSelectedUserIdChange,
-  selectedUserId: controlledSelectedUserId
+  selectedUserId: controlledSelectedUserId,
 }: AdminUsersProps) {
   const auth = useAuth<AdminAuthClient>()
   const config = useAuthPlugin(adminPlugin)
@@ -192,25 +173,22 @@ export function AdminUsers({
   const [localSelectedUserId, setLocalSelectedUserId] = useState<string>()
   const tableState = useServerTableState({
     initialSorting: INITIAL_ADMIN_SORTING,
-    pageSize: config.pageSize
+    pageSize: config.pageSize,
   })
-  const { columnFilters, globalFilter, pagination, setPagination, sorting } =
-    tableState
+  const { columnFilters, globalFilter, pagination, setPagination, sorting } = tableState
   const [createOpen, setCreateOpen] = useState(false)
   const [debouncedSearch] = useDebouncedValue(globalFilter.trim(), {
-    wait: DEFAULT_TABLE_SEARCH_DEBOUNCE_MS
+    wait: DEFAULT_TABLE_SEARCH_DEBOUNCE_MS,
   })
   const status = String(
-    columnFilters.find((filter) => filter.id === "status")?.value ?? "all"
+    columnFilters.find((filter) => filter.id === "status")?.value ?? "all",
   ) as StatusFilter
   const primarySort = sorting[0]
   // better-auth admin searchField is only email|name — we mirror username into name.
   const sortBy = primarySort?.id === "name" ? "name" : "createdAt"
   const sortDirection = primarySort?.desc ? "desc" : "asc"
   const isSelectionControlled = onSelectedUserIdChange !== undefined
-  const selectedUserId = isSelectionControlled
-    ? controlledSelectedUserId
-    : localSelectedUserId
+  const selectedUserId = isSelectionControlled ? controlledSelectedUserId : localSelectedUserId
 
   const setSelectedUserId = (userId: string | undefined) => {
     if (!isSelectionControlled) setLocalSelectedUserId(userId)
@@ -232,21 +210,15 @@ export function AdminUsers({
       // (active/banned) is applied client-side below instead.
       filterField: "role",
       filterOperator: "eq" as const,
-      filterValue: "admin"
+      filterValue: "admin",
     }),
-    [
-      debouncedSearch,
-      pagination.pageIndex,
-      pagination.pageSize,
-      sortBy,
-      sortDirection
-    ]
+    [debouncedSearch, pagination.pageIndex, pagination.pageSize, sortBy, sortDirection],
   )
   const permission = useAdminPermission(auth.authClient, { user: ["list"] })
   const users = useAdminUsers(auth.authClient, {
     enabled: permission.data?.success === true,
     params,
-    placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
   })
   const canCreate = useAdminPermission(auth.authClient, { user: ["create"] })
   const canGet = useAdminPermission(auth.authClient, { user: ["get"] })
@@ -260,21 +232,11 @@ export function AdminUsers({
 
   useEffect(() => {
     if (!users.isSuccess) return
-    const pageIndex = getClampedTablePageIndex(
-      pagination.pageIndex,
-      pagination.pageSize,
-      total
-    )
+    const pageIndex = getClampedTablePageIndex(pagination.pageIndex, pagination.pageSize, total)
     if (pageIndex !== pagination.pageIndex) {
       setPagination((current) => ({ ...current, pageIndex }))
     }
-  }, [
-    pagination.pageIndex,
-    pagination.pageSize,
-    setPagination,
-    total,
-    users.isSuccess
-  ])
+  }, [pagination.pageIndex, pagination.pageSize, setPagination, total, users.isSuccess])
   const table = useAdminTable(
     {
       atoms: tableState.atoms,
@@ -284,9 +246,9 @@ export function AdminUsers({
       manualFiltering: true,
       manualPagination: true,
       manualSorting: true,
-      rowCount: total
+      rowCount: total,
     },
-    () => null
+    () => null,
   )
   const from = total ? pagination.pageIndex * pagination.pageSize + 1 : 0
   const to = Math.min(total, (pagination.pageIndex + 1) * pagination.pageSize)
@@ -294,7 +256,7 @@ export function AdminUsers({
   const statusFilters: { value: StatusFilter; label: string }[] = [
     { value: "all", label: localization.filterAllStatuses },
     { value: "active", label: localization.active },
-    { value: "banned", label: localization.banned }
+    { value: "banned", label: localization.banned },
   ]
   const rows = table.getRowModel().rows
   const showPagination = total > pagination.pageSize
@@ -399,10 +361,7 @@ export function AdminUsers({
                   className="h-auto w-full items-center justify-start gap-4 px-4 py-4 text-left whitespace-normal"
                   onClick={() => canOpen && setSelectedUserId(user.id)}
                 >
-                  <UserAvatar
-                    className="size-12 shrink-0 bg-black/30 text-base"
-                    user={user}
-                  />
+                  <UserAvatar className="size-12 shrink-0 bg-black/30 text-base" user={user} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-xl font-semibold">{label}</span>
@@ -469,7 +428,7 @@ function AdminState({
   action,
   description,
   icon,
-  title
+  title,
 }: {
   action?: React.ReactNode
   description: string
@@ -490,12 +449,7 @@ function AdminState({
   )
 }
 
-const skeletonRowIds = [
-  "admin-row-1",
-  "admin-row-2",
-  "admin-row-3",
-  "admin-row-4"
-]
+const skeletonRowIds = ["admin-row-1", "admin-row-2", "admin-row-3", "admin-row-4"]
 
 function UserListSkeleton() {
   return (
@@ -518,7 +472,7 @@ function UserListSkeleton() {
 
 function CreateUserDialog({
   open,
-  onOpenChange
+  onOpenChange,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -526,14 +480,12 @@ function CreateUserDialog({
   const auth = useAuth<AdminAuthClient>()
   const config = useAuthPlugin(adminPlugin)
   const { data: session } = useSession(auth.authClient)
-  const createUser = useMutation(
-    createAdminUserOptions(auth.authClient, session?.user.id)
-  )
+  const createUser = useMutation(createAdminUserOptions(auth.authClient, session?.user.id))
   const fields = usernameFields(auth.additionalFields)
   const form = useAuthForm({
     defaultValues: {
       additionalFields: getAdditionalFieldDefaultValues(fields),
-      password: ""
+      password: "",
     },
     onSubmit: async ({ value }) => {
       const username = String(value.additionalFields.username ?? "")
@@ -546,21 +498,21 @@ function CreateUserDialog({
             data: {
               ...getAdditionalFieldSubmitValues(fields, {
                 ...value.additionalFields,
-                username
+                username,
               }),
-              emailVerified: true
+              emailVerified: true,
             },
             email: adminEmailFromUsername(username),
             name: username,
             password: value.password,
-            role: asAdminRoles(["admin"])
+            role: asAdminRoles(["admin"]),
           },
-          { onSuccess: close }
+          { onSuccess: close },
         )
       } catch {
         // The mutation reports the error through its configured handler.
       }
-    }
+    },
   })
 
   const close = () => {
@@ -570,18 +522,13 @@ function CreateUserDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(value) => (value ? onOpenChange(true) : close())}
-    >
+    <Dialog open={open} onOpenChange={(value) => (value ? onOpenChange(true) : close())}>
       <DialogContent>
         <form.AppForm>
           <form.AuthFormRoot className="flex flex-col gap-4">
             <DialogHeader>
               <DialogTitle>{config.localization.createUser}</DialogTitle>
-              <DialogDescription>
-                Bare brukernavn og passord.
-              </DialogDescription>
+              <DialogDescription>Bare brukernavn og passord.</DialogDescription>
             </DialogHeader>
             <FieldGroup>
               {fields.map((configuredField) => (
@@ -590,7 +537,7 @@ function CreateUserDialog({
                   name={`additionalFields.${configuredField.name}`}
                   validators={getAuthAdditionalFieldValidators(
                     configuredField,
-                    auth.localization.auth.fieldRequired
+                    auth.localization.auth.fieldRequired,
                   )}
                 >
                   {(field) => (
@@ -612,9 +559,7 @@ function CreateUserDialog({
                         autoComplete="new-password"
                         id="admin-create-password"
                         name={field.name}
-                        onChange={(event) =>
-                          field.handleChange(event.target.value)
-                        }
+                        onChange={(event) => field.handleChange(event.target.value)}
                         placeholder={auth.localization.auth.passwordPlaceholder}
                         required
                         type="password"
@@ -647,7 +592,7 @@ function UserInspector({
   canGetUser,
   open,
   onOpenChange,
-  userId
+  userId,
 }: {
   canGetUser: boolean
   open: boolean
@@ -659,72 +604,70 @@ function UserInspector({
   const contributedTabs = auth.plugins.flatMap((plugin) =>
     (plugin.adminUserTabs ?? []).map((tab) => ({
       ...tab,
-      value: `${plugin.id}:${tab.id}`
-    }))
+      value: `${plugin.id}:${tab.id}`,
+    })),
   )
   const detail = useAdminUser(auth.authClient, userId, {
-    enabled: canGetUser
+    enabled: canGetUser,
   })
   const user = detail.data
   const sessionsPermission = useAdminPermission(
     auth.authClient,
     {
-      session: ["list"]
+      session: ["list"],
     },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
   const sessions = useAdminUserSessions(auth.authClient, userId, {
-    enabled: sessionsPermission.data?.success === true
+    enabled: sessionsPermission.data?.success === true,
   })
   const { data: actor } = useSession(auth.authClient)
   const canUpdate = useAdminPermission(
     auth.authClient,
     { user: ["update"] },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
   const canSetEmail = useAdminPermission(
     auth.authClient,
     { user: ["set-email"] },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
   const canSetPassword = useAdminPermission(
     auth.authClient,
     {
-      user: ["set-password"]
+      user: ["set-password"],
     },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
   const canBan = useAdminPermission(
     auth.authClient,
     { user: ["ban"] },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
   const canImpersonate = useAdminPermission(
     auth.authClient,
     {
-      user: ["impersonate"]
+      user: ["impersonate"],
     },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
-  const targetIsAdmin = user
-    ? isAdminTarget(user, config.adminRoles, config.adminUserIds)
-    : false
+  const targetIsAdmin = user ? isAdminTarget(user, config.adminRoles, config.adminUserIds) : false
   const canImpersonateAdmins = useAdminPermission(
     auth.authClient,
     { user: ["impersonate-admins"] },
-    { enabled: Boolean(userId && targetIsAdmin) }
+    { enabled: Boolean(userId && targetIsAdmin) },
   )
   const canDelete = useAdminPermission(
     auth.authClient,
     { user: ["delete"] },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
   const canRevoke = useAdminPermission(
     auth.authClient,
     {
-      session: ["revoke"]
+      session: ["revoke"],
     },
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId) },
   )
 
   const [banReason, setBanReason] = useState("")
@@ -734,9 +677,7 @@ function UserInspector({
   const [dangerousAction, setDangerousAction] = useState<DangerousAction>()
   const isSelf = user?.id === actor?.user.id
 
-  const updateUser = useMutation(
-    updateAdminUserOptions(auth.authClient, actor?.user.id)
-  )
+  const updateUser = useMutation(updateAdminUserOptions(auth.authClient, actor?.user.id))
 
   useEffect(() => {
     if (user?.id) updateUser.reset()
@@ -747,34 +688,28 @@ function UserInspector({
   }, [open, updateUser.reset])
 
   const ban = useMutation(banAdminUserOptions(auth.authClient, actor?.user.id))
-  const unban = useMutation(
-    unbanAdminUserOptions(auth.authClient, actor?.user.id)
-  )
-  const remove = useMutation(
-    removeAdminUserOptions(auth.authClient, actor?.user.id)
-  )
-  const impersonate = useMutation(
-    impersonateAdminUserOptions(auth.authClient, actor?.user.id)
-  )
+  const unban = useMutation(unbanAdminUserOptions(auth.authClient, actor?.user.id))
+  const remove = useMutation(removeAdminUserOptions(auth.authClient, actor?.user.id))
+  const impersonate = useMutation(impersonateAdminUserOptions(auth.authClient, actor?.user.id))
   const revokeSession = useMutation(
-    revokeAdminUserSessionOptions(auth.authClient, actor?.user.id, userId)
+    revokeAdminUserSessionOptions(auth.authClient, actor?.user.id, userId),
   )
   const revokeSessions = useMutation(
-    revokeAdminUserSessionsOptions(auth.authClient, actor?.user.id, userId)
+    revokeAdminUserSessionsOptions(auth.authClient, actor?.user.id, userId),
   )
   const configuredUserFields = useMemo(
     () =>
       usernameFields(
         fieldsWithModelValues(
           auth.additionalFields ?? [],
-          user ? (user as unknown as Record<string, unknown>) : {}
-        )
+          user ? (user as unknown as Record<string, unknown>) : {},
+        ),
       ),
-    [auth.additionalFields, user]
+    [auth.additionalFields, user],
   )
   const profileForm = useAuthForm({
     defaultValues: {
-      additionalFields: getAdditionalFieldDefaultValues(configuredUserFields)
+      additionalFields: getAdditionalFieldDefaultValues(configuredUserFields),
     },
     onSubmit: async ({ value }) => {
       if (!user) return
@@ -791,27 +726,27 @@ function UserInspector({
           data: {
             ...getAdditionalFieldSubmitValues(configuredUserFields, {
               ...value.additionalFields,
-              username
+              username,
             }),
             name: username,
             ...(canSetEmail.data?.success
               ? {
                   email: adminEmailFromUsername(username),
-                  emailVerified: true
+                  emailVerified: true,
                 }
-              : {})
-          }
+              : {}),
+          },
         })
         onOpenChange(false)
       } catch {
         // Mutation errors are rendered next to the form.
       }
-    }
+    },
   })
 
   useEffect(() => {
     profileForm.reset({
-      additionalFields: getAdditionalFieldDefaultValues(configuredUserFields)
+      additionalFields: getAdditionalFieldDefaultValues(configuredUserFields),
     })
   }, [configuredUserFields, profileForm.reset, user])
 
@@ -823,15 +758,15 @@ function UserInspector({
         {
           banExpiresIn: banDurationSeconds,
           banReason: banReason.trim() || undefined,
-          userId: user.id
+          userId: user.id,
         },
         {
           onSuccess: () => {
             setBanDuration("")
             setBanReason("")
             setDangerousAction(undefined)
-          }
-        }
+          },
+        },
       )
     }
     if (dangerousAction === "delete")
@@ -841,14 +776,11 @@ function UserInspector({
           onSuccess: () => {
             setDangerousAction(undefined)
             onOpenChange(false)
-          }
-        }
+          },
+        },
       )
     if (dangerousAction === "revokeAll")
-      revokeSessions.mutate(
-        { userId: user.id },
-        { onSuccess: () => setDangerousAction(undefined) }
-      )
+      revokeSessions.mutate({ userId: user.id }, { onSuccess: () => setDangerousAction(undefined) })
     if (dangerousAction === "impersonate")
       impersonate.mutate(
         { userId: user.id },
@@ -857,8 +789,8 @@ function UserInspector({
             setDangerousAction(undefined)
             if (config.impersonationRedirectTo)
               auth.navigate({ to: config.impersonationRedirectTo })
-          }
-        }
+          },
+        },
       )
   }
   const closeDangerousAction = () => {
@@ -896,10 +828,7 @@ function UserInspector({
             {user ? (
               <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <UserAvatar
-                    className="size-12 bg-black/30 text-base"
-                    user={user}
-                  />
+                  <UserAvatar className="size-12 bg-black/30 text-base" user={user} />
                   <div className="min-w-0">
                     <DialogTitle className="truncate">
                       {adminLabel(user as AdminUserWithUsername)}
@@ -946,9 +875,7 @@ function UserInspector({
             ) : (
               <>
                 <DialogTitle>{config.localization.userDetails}</DialogTitle>
-                <DialogDescription>
-                  {config.localization.usersDescription}
-                </DialogDescription>
+                <DialogDescription>{config.localization.usersDescription}</DialogDescription>
               </>
             )}
           </DialogHeader>
@@ -959,20 +886,14 @@ function UserInspector({
               <Skeleton className="h-4 w-64" />
             </div>
           ) : user ? (
-            <Tabs
-              className="min-h-0 gap-0 overflow-hidden"
-              defaultValue="overview"
-            >
+            <Tabs className="min-h-0 gap-0 overflow-hidden" defaultValue="overview">
               <TabsList className="mx-6 h-11 shrink-0 bg-transparent" variant="line">
                 <TabsTrigger value="overview">
                   <UserRound aria-hidden="true" className="opacity-70" />
                   {config.localization.overview}
                 </TabsTrigger>
                 <TabsTrigger
-                  disabled={
-                    sessionsPermission.isPending ||
-                    !sessionsPermission.data?.success
-                  }
+                  disabled={sessionsPermission.isPending || !sessionsPermission.data?.success}
                   value="sessions"
                 >
                   <Monitor aria-hidden="true" className="opacity-70" />
@@ -999,24 +920,20 @@ function UserInspector({
                               name={`additionalFields.${configuredField.name}`}
                               validators={getAuthAdditionalFieldValidators(
                                 configuredField,
-                                auth.localization.auth.fieldRequired
+                                auth.localization.auth.fieldRequired,
                               )}
                             >
                               {(field) => (
                                 <field.AuthFormAdditionalField
                                   field={configuredField}
-                                  isPending={
-                                    updateUser.isPending ||
-                                    !canUpdate.data?.success
-                                  }
+                                  isPending={updateUser.isPending || !canUpdate.data?.success}
                                 />
                               )}
                             </profileForm.AppField>
                           ))}
                         </FieldGroup>
                         <p className="text-sm opacity-60">
-                          {config.localization.created}:{" "}
-                          {formatDate(user.createdAt)}
+                          {config.localization.created}: {formatDate(user.createdAt)}
                         </p>
                         {user.banned && user.banReason ? (
                           <p className="text-sm opacity-60">
@@ -1029,14 +946,9 @@ function UserInspector({
                       </section>
                       <Separator className="bg-white/10" />
                       <section className="flex flex-col gap-4 p-6">
-                        <h3 className="text-lg font-semibold">
-                          {config.localization.security}
-                        </h3>
+                        <h3 className="text-lg font-semibold">{config.localization.security}</h3>
                         <Button
-                          disabled={
-                            canSetPassword.isPending ||
-                            !canSetPassword.data?.success
-                          }
+                          disabled={canSetPassword.isPending || !canSetPassword.data?.success}
                           onClick={() => setPasswordOpen(true)}
                           type="button"
                           variant="surface"
@@ -1047,16 +959,10 @@ function UserInspector({
                       </section>
                       <Separator className="bg-white/10" />
                       <section className="flex flex-col gap-4 p-6">
-                        <h3 className="text-lg font-semibold">
-                          {config.localization.dangerZone}
-                        </h3>
+                        <h3 className="text-lg font-semibold">{config.localization.dangerZone}</h3>
                         <div className="flex flex-col gap-2">
                           <Button
-                            disabled={
-                              canBan.isPending ||
-                              !canBan.data?.success ||
-                              isSelf
-                            }
+                            disabled={canBan.isPending || !canBan.data?.success || isSelf}
                             onClick={() =>
                               user.banned
                                 ? unban.mutate({ userId: user.id })
@@ -1071,11 +977,7 @@ function UserInspector({
                               : config.localization.banUser}
                           </Button>
                           <Button
-                            disabled={
-                              canDelete.isPending ||
-                              !canDelete.data?.success ||
-                              isSelf
-                            }
+                            disabled={canDelete.isPending || !canDelete.data?.success || isSelf}
                             onClick={() => setDangerousAction("delete")}
                             type="button"
                             variant="ghost"
@@ -1094,9 +996,7 @@ function UserInspector({
                     </div>
                     <div className="flex flex-col gap-2 border-t border-white/10 bg-black/20 px-6 py-4">
                       <profileForm.Subscribe
-                        selector={(state) =>
-                          String(state.values.additionalFields.username ?? "")
-                        }
+                        selector={(state) => String(state.values.additionalFields.username ?? "")}
                       >
                         {(username) => (
                           <profileForm.AuthFormSubmitButton
@@ -1124,19 +1024,13 @@ function UserInspector({
                   </profileForm.AuthFormRoot>
                 </profileForm.AppForm>
               </TabsContent>
-              <TabsContent
-                className="min-h-0 overflow-y-auto p-6"
-                value="sessions"
-              >
+              <TabsContent className="min-h-0 overflow-y-auto p-6" value="sessions">
                 <div className="flex flex-col gap-3">
                   {sessionsPermission.isPending || sessions.isPending ? (
                     skeletonRowIds
                       .slice(0, 3)
                       .map((id) => (
-                        <Skeleton
-                          className="h-20 w-full rounded-2xl"
-                          key={`session-${id}`}
-                        />
+                        <Skeleton className="h-20 w-full rounded-2xl" key={`session-${id}`} />
                       ))
                   ) : !sessionsPermission.data?.success ? (
                     <p className="text-sm opacity-70">
@@ -1146,11 +1040,7 @@ function UserInspector({
                     <>
                       <Button
                         className="self-end"
-                        disabled={
-                          canRevoke.isPending ||
-                          !canRevoke.data?.success ||
-                          isSelf
-                        }
+                        disabled={canRevoke.isPending || !canRevoke.data?.success || isSelf}
                         onClick={() => setDangerousAction("revokeAll")}
                         variant="surface"
                         size="sm"
@@ -1167,8 +1057,7 @@ function UserInspector({
                               {item.userAgent || config.localization.sessions}
                             </div>
                             <div className="mt-1 text-xs opacity-60">
-                              {formatDate(item.createdAt)} ·{" "}
-                              {formatDate(item.expiresAt)}
+                              {formatDate(item.createdAt)} · {formatDate(item.expiresAt)}
                             </div>
                             {config.showIpAddress && item.ipAddress ? (
                               <div className="mt-1 font-mono text-xs opacity-60">
@@ -1184,9 +1073,7 @@ function UserInspector({
                               !canRevoke.data?.success ||
                               isSelf
                             }
-                            onClick={() =>
-                              revokeSession.mutate({ sessionToken: item.token })
-                            }
+                            onClick={() => revokeSession.mutate({ sessionToken: item.token })}
                             size="icon-sm"
                             variant="ghost"
                             className="text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
@@ -1225,11 +1112,7 @@ function UserInspector({
           )}
         </DialogContent>
       </Dialog>
-      <PasswordDialog
-        open={passwordOpen}
-        onOpenChange={setPasswordOpen}
-        userId={user?.id}
-      />
+      <PasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} userId={user?.id} />
       <AlertDialog
         open={Boolean(dangerousAction)}
         onOpenChange={(value) => !value && closeDangerousAction()}
@@ -1238,17 +1121,13 @@ function UserInspector({
           <AlertDialogHeader>
             <AlertDialogTitle>{dangerLabel}</AlertDialogTitle>
             <AlertDialogDescription>
-              {user
-                ? adminLabel(user as AdminUserWithUsername)
-                : null}
+              {user ? adminLabel(user as AdminUserWithUsername) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {dangerousAction === "ban" ? (
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="admin-ban-reason">
-                  {config.localization.banReason}
-                </FieldLabel>
+                <FieldLabel htmlFor="admin-ban-reason">{config.localization.banReason}</FieldLabel>
                 <InputGroup>
                   <InputGroupInput
                     id="admin-ban-reason"
@@ -1271,9 +1150,7 @@ function UserInspector({
                     value={banDuration}
                   />
                 </InputGroup>
-                <p className="text-xs opacity-60">
-                  {config.localization.banDurationDescription}
-                </p>
+                <p className="text-xs opacity-60">{config.localization.banDurationDescription}</p>
               </Field>
             </FieldGroup>
           ) : null}
@@ -1304,7 +1181,7 @@ function UserInspector({
 function PasswordDialog({
   open,
   onOpenChange,
-  userId
+  userId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -1317,7 +1194,7 @@ function PasswordDialog({
   const mutation = useMutation(
     setAdminUserPasswordOptions(auth.authClient, () => {
       setTimeout(() => mutation.reset(), 0)
-    })
+    }),
   )
   const close = () => {
     setPassword("")
@@ -1333,27 +1210,20 @@ function PasswordDialog({
         { userId, newPassword: password },
         {
           onError: (error) => setErrorMessage(getAdminErrorMessage(error)),
-          onSuccess: close
-        }
+          onSuccess: close,
+        },
       )
   }
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(value) => (value ? onOpenChange(true) : close())}
-    >
+    <Dialog open={open} onOpenChange={(value) => (value ? onOpenChange(true) : close())}>
       <DialogContent>
         <form className="flex flex-col gap-4" onSubmit={submit}>
           <DialogHeader>
             <DialogTitle>{config.localization.setPassword}</DialogTitle>
-            <DialogDescription>
-              Nytt passord for brukeren.
-            </DialogDescription>
+            <DialogDescription>Nytt passord for brukeren.</DialogDescription>
           </DialogHeader>
           <Field data-invalid={Boolean(errorMessage)}>
-            <FieldLabel htmlFor="admin-new-password">
-              {config.localization.password}
-            </FieldLabel>
+            <FieldLabel htmlFor="admin-new-password">{config.localization.password}</FieldLabel>
             <InputGroup>
               <InputGroupInput
                 aria-invalid={Boolean(errorMessage)}

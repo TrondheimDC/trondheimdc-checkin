@@ -1,5 +1,5 @@
-import { DEFAULT_PRINTER_MODEL } from "@/lib/printer-models"
 import type { PhonePlatform } from "@/lib/platform"
+import { DEFAULT_PRINTER_MODEL } from "@/lib/printer-models"
 
 /** DK-11208 (38 × 90 mm). Matches Brother QL LabelSize DieCutW38H90. */
 export const DEFAULT_PAPER_SIZE_ID = "DieCutW38H90"
@@ -7,8 +7,7 @@ export const DEFAULT_PAPER_SIZE_ID = "DieCutW38H90"
 /** Android applicationId from Smooth Print 1.9.0 APK. */
 export const SMOOTH_PRINT_ANDROID_PACKAGE = "com.brother.ptouch.smoothprint"
 
-export const IOS_APP_STORE =
-  "https://apps.apple.com/us/app/smooth-print/id1629559918"
+export const IOS_APP_STORE = "https://apps.apple.com/us/app/smooth-print/id1629559918"
 
 /** Brother’s Android APK agreement / download (not on Play Store). */
 export const DEFAULT_SMOOTH_PRINT_ANDROID_URL =
@@ -60,7 +59,9 @@ export function buildPrintQuery(input: {
     pairs.push(["successCallback", input.callback.successCallback])
     pairs.push(["failureCallback", input.callback.failureCallback])
   }
-  return pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")
+  return pairs
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&")
 }
 
 /** Short content-dependent id so Smooth Print does not reuse a stale cached .lbx. */
@@ -134,7 +135,9 @@ export function buildConnectQuery(input: {
   ]
   if (serial) pairs.push(["serialnum", serial])
   if (input.callbackUrl) pairs.push(["connectcallback", input.callbackUrl])
-  return pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")
+  return pairs
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&")
 }
 
 export function buildConnectUrl(input: {
@@ -174,10 +177,7 @@ export function buildAndroidConnectIntent(input: {
  * On Android, assigning `location.href` (especially to `intent://…`) navigates
  * the tab and reloads the wizard — use a hidden iframe so Chrome stays put.
  */
-export function openSmoothPrintScheme(
-  url: string,
-  platform: "ios" | "android" | "other",
-): void {
+export function openSmoothPrintScheme(url: string, platform: "ios" | "android" | "other"): void {
   if (platform === "ios") {
     window.location.href = url
     return

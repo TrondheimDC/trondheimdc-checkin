@@ -1,7 +1,7 @@
 "use client"
 
-import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query"
-import { attendeeResponseSchema, type Attendee } from "@/lib/db/schema"
+import { type QueryClient, useMutation, useQueryClient } from "@tanstack/react-query"
+import { type Attendee, attendeeResponseSchema } from "@/lib/db/schema"
 import { apiPath } from "@/lib/utils"
 
 type AttendeeStats = { total: number; checkedIn: number }

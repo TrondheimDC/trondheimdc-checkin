@@ -1,11 +1,11 @@
 import {
-  OBJECT_ID_ALPHABET,
-  OBJECT_ID_BODY_LENGTH,
   createObjectId,
   formatObjectId,
   isObjectIdBody,
-  objectIdBody,
+  OBJECT_ID_ALPHABET,
+  OBJECT_ID_BODY_LENGTH,
   type ObjectId,
+  objectIdBody,
 } from "@/lib/db/object-id"
 
 /** Lowercase prefix — static in the UI, like a serial-number label. */

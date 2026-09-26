@@ -1,7 +1,4 @@
-import type {
-  AuthPluginComponents,
-  AuthPlugin as AuthPluginPrimitive
-} from "@better-auth-ui/react"
+import type { AuthPluginComponents, AuthPlugin as AuthPluginPrimitive } from "@better-auth-ui/react"
 
 declare module "@better-auth-ui/core" {
   /** Widens `useAuth().plugins` to the shadcn-typed `AuthPlugin`. */
@@ -23,8 +20,4 @@ export type SettingsViewProps = {
 }
 
 /** Shadcn plugin type. Plugin authors import this from `@/lib/auth/auth-plugin`. */
-export type AuthPlugin = AuthPluginPrimitive<
-  AuthPluginComponents,
-  AuthViewProps,
-  SettingsViewProps
->
+export type AuthPlugin = AuthPluginPrimitive<AuthPluginComponents, AuthViewProps, SettingsViewProps>

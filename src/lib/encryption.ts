@@ -20,9 +20,7 @@ const deriveKey = (secret: string) =>
 const primaryKey = deriveKey(encryptionSecret ?? betterAuthSecret)
 
 /** Dedicated ENCRYPTION_KEY still decrypts values written with the auth secret. */
-const decryptionKeys = encryptionSecret
-  ? [primaryKey, deriveKey(betterAuthSecret)]
-  : [primaryKey]
+const decryptionKeys = encryptionSecret ? [primaryKey, deriveKey(betterAuthSecret)] : [primaryKey]
 
 export const isEncrypted = (value: string) => value.startsWith(ENCRYPTION_PREFIX)
 

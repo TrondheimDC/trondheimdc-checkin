@@ -29,12 +29,7 @@ export type AuthProps = {
  * When it's disabled, the `<Auth>` router redirects these to `signIn` so a
  * plugin's `fallbackViews.auth.signIn` (e.g. magic link) takes over.
  */
-const PASSWORD_ONLY_VIEWS = [
-  "signUp",
-  "forgotPassword",
-  "resetPassword",
-  "resetLinkSent"
-]
+const PASSWORD_ONLY_VIEWS = ["signUp", "forgotPassword", "resetPassword", "resetLinkSent"]
 
 const AUTH_VIEWS: Partial<Record<AuthView, ComponentType<AuthProps>>> = {
   callback: AuthCallback,
@@ -46,7 +41,7 @@ const AUTH_VIEWS: Partial<Record<AuthView, ComponentType<AuthProps>>> = {
   forgotPassword: ForgotPassword,
   resetPassword: ResetPassword,
   resetLinkSent: ResetLinkSent,
-  verifyEmail: VerifyEmail
+  verifyEmail: VerifyEmail,
 }
 
 /**
@@ -63,40 +58,28 @@ const AUTH_VIEWS: Partial<Record<AuthView, ComponentType<AuthProps>>> = {
  * @param view - Explicit auth view to render (e.g., `"signIn"`, `"signUp"`)
  * @returns The React element for the resolved authentication view
  */
-export function Auth({
-  className,
-  path,
-  socialLayout,
-  socialPosition,
-  view
-}: AuthProps) {
-  const { basePaths, emailAndPassword, plugins, viewPaths, navigate } =
-    useAuth()
+export function Auth({ className, path, socialLayout, socialPosition, view }: AuthProps) {
+  const { basePaths, emailAndPassword, plugins, viewPaths, navigate } = useAuth()
 
   if (!view && !path) {
     throw new Error("[Better Auth UI] Either `view` or `path` must be provided")
   }
 
   const authView =
-    view ||
-    (Object.keys(viewPaths.auth) as AuthView[]).find(
-      (key) => viewPaths.auth[key] === path
-    )
+    view || (Object.keys(viewPaths.auth) as AuthView[]).find((key) => viewPaths.auth[key] === path)
 
   // When email + password auth is disabled, password-only views (signUp,
   // forgotPassword, resetPassword) have no meaning. Redirect them to signIn,
   // where a plugin's `fallbackViews.auth.signIn` (e.g. magic link) takes
   // over as the primary entry point.
   const shouldRedirectToSignIn =
-    !emailAndPassword?.enabled &&
-    authView &&
-    PASSWORD_ONLY_VIEWS.includes(authView)
+    !emailAndPassword?.enabled && authView && PASSWORD_ONLY_VIEWS.includes(authView)
 
   useEffect(() => {
     if (shouldRedirectToSignIn) {
       navigate({
         to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
-        replace: true
+        replace: true,
       })
     }
   }, [shouldRedirectToSignIn, navigate, basePaths.auth, viewPaths.auth.signIn])
@@ -115,10 +98,7 @@ export function Auth({
     const pluginView =
       view ??
       authView ??
-      (pluginAuthPaths &&
-        Object.keys(pluginAuthPaths).find(
-          (key) => pluginAuthPaths[key] === path
-        ))
+      (pluginAuthPaths && Object.keys(pluginAuthPaths).find((key) => pluginAuthPaths[key] === path))
     if (!pluginView) continue
 
     const PluginView = plugin.views?.auth?.[pluginView]
@@ -137,9 +117,8 @@ export function Auth({
   //    (password auth is off). Used by `magicLinkPlugin` to render the
   //    magic-link form as the primary passwordless sign-in surface.
   if (authView === "signIn" && !emailAndPassword?.enabled) {
-    const Fallback = plugins.find(
-      (plugin) => plugin.fallbackViews?.auth?.signIn
-    )?.fallbackViews?.auth?.signIn
+    const Fallback = plugins.find((plugin) => plugin.fallbackViews?.auth?.signIn)?.fallbackViews
+      ?.auth?.signIn
 
     if (Fallback) {
       return (
@@ -156,15 +135,11 @@ export function Auth({
 
   if (!AuthView) {
     throw new Error(
-      `[Better Auth UI] Unknown view "${authView}". Valid views are: ${Object.keys(AUTH_VIEWS).join(", ")}`
+      `[Better Auth UI] Unknown view "${authView}". Valid views are: ${Object.keys(AUTH_VIEWS).join(", ")}`,
     )
   }
 
   return (
-    <AuthView
-      className={className}
-      socialLayout={socialLayout}
-      socialPosition={socialPosition}
-    />
+    <AuthView className={className} socialLayout={socialLayout} socialPosition={socialPosition} />
   )
 }

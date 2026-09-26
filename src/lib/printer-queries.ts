@@ -1,9 +1,9 @@
 import {
+  type Printer,
   printerCreateResponseSchema,
   printerPatchResponseSchema,
   printerSecretsSchema,
   printersResponseSchema,
-  type Printer,
 } from "@/lib/db/schema"
 import { apiPath } from "@/lib/utils"
 

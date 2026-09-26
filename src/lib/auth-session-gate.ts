@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm"
+import type { Session } from "@/lib/auth"
+import { isWithinValidityWindow } from "@/lib/auth-validity"
 import { db } from "@/lib/db"
 import { session as sessionTable } from "@/lib/db/schema"
-import { isWithinValidityWindow } from "@/lib/auth-validity"
-import type { Session } from "@/lib/auth"
 
 /** Cheap gate using fields already on the session user (no extra query). */
 export function sessionUserStillAllowed(user: {

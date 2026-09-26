@@ -9,13 +9,19 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
   return (
     <CommandPrimitive
       data-slot="command"
-      className={cn("flex h-full w-full flex-col bg-transparent text-[var(--color-fg-base)]", className)}
+      className={cn(
+        "flex h-full w-full flex-col bg-transparent text-[var(--color-fg-base)]",
+        className,
+      )}
       {...props}
     />
   )
 }
 
-function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Input>) {
+function CommandInput({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
     <div data-slot="command-input-wrapper" className="relative shrink-0">
       <Search
@@ -38,13 +44,19 @@ function CommandList({ className, ...props }: React.ComponentProps<typeof Comman
   return (
     <CommandPrimitive.List
       data-slot="command-list"
-      className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden outline-none", className)}
+      className={cn(
+        "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden outline-none",
+        className,
+      )}
       {...props}
     />
   )
 }
 
-function CommandEmpty({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+function CommandEmpty({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
@@ -54,7 +66,10 @@ function CommandEmpty({ className, ...props }: React.ComponentProps<typeof Comma
   )
 }
 
-function CommandLoading({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Loading>) {
+function CommandLoading({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Loading>) {
   return (
     <CommandPrimitive.Loading
       data-slot="command-loading"
@@ -64,11 +79,17 @@ function CommandLoading({ className, ...props }: React.ComponentProps<typeof Com
   )
 }
 
-function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
+function CommandGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
       data-slot="command-group"
-      className={cn("flex flex-col gap-3 pb-2 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:flex-col [&_[cmdk-group-items]]:gap-3", className)}
+      className={cn(
+        "flex flex-col gap-3 pb-2 [&_[cmdk-group-items]]:flex [&_[cmdk-group-items]]:flex-col [&_[cmdk-group-items]]:gap-3",
+        className,
+      )}
       {...props}
     />
   )

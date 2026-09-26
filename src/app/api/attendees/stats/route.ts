@@ -1,7 +1,7 @@
+import { NextResponse } from "next/server"
 import { attendeeRepository } from "@/lib/attendees"
 import { isSession, requireDoorApiSession } from "@/lib/auth-api"
 import { attendeeStatsSchema } from "@/lib/db/schema"
-import { NextResponse } from "next/server"
 
 export async function GET() {
   const session = await requireDoorApiSession()
