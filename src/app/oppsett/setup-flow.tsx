@@ -164,23 +164,27 @@ function inferPathForStep(stepId: SetupStepId, fallback: SetupPath | null): Setu
   return fallback
 }
 
+type PendingResume = { path: SetupPath; stepId: SetupStepId }
+
 function resolveEntry(input: {
   initialPath: SetupPath | null
   initialStep: SetupStepId | null
   initialPrinter: PrinterSetupParams | null
   afterConnect: boolean
+  initialPrimed: boolean
 }): {
   path: SetupPath | null
   preludeStep: number
   step: number
   connected: boolean
+  pendingResume: PendingResume | null
 } {
   const omitScan = Boolean(input.initialPrinter)
 
   if (input.afterConnect) {
     const path = input.initialPath ?? "qr"
     const at = pathStepIndex(path, "test-print", omitScan)
-    return { path, preludeStep: 0, step: at >= 0 ? at : 0, connected: true }
+    return { path, preludeStep: 0, step: at >= 0 ? at : 0, connected: true, pendingResume: null }
   }
 
   const stepId = input.initialStep
@@ -192,6 +196,7 @@ function resolveEntry(input: {
         preludeStep: preludeIdx >= 0 ? preludeIdx : 0,
         step: 0,
         connected: false,
+        pendingResume: null,
       }
     }
 
@@ -199,21 +204,34 @@ function resolveEntry(input: {
     if (path) {
       const at = pathStepIndex(path, stepId, omitScan)
       if (at >= 0) {
-        return { path, preludeStep: 0, step: at, connected: false }
+        // A sticker QR lands here directly (path=qr&step=connect). On a phone that has not
+        // been through this flow yet, still show "install app" / "printer Bluetooth on"
+        // first — a scan alone does not mean Smooth Print is installed. Once primed (this
+        // session already passed the prelude), a refresh/deeplink resumes at the real step.
+        if (input.initialPrinter && !input.initialPrimed) {
+          return {
+            path: null,
+            preludeStep: 0,
+            step: 0,
+            connected: false,
+            pendingResume: { path, stepId },
+          }
+        }
+        return { path, preludeStep: 0, step: at, connected: false, pendingResume: null }
       }
     }
 
     const preludeIdx = PRELUDE.findIndex((item) => item.id === stepId)
     if (preludeIdx >= 0) {
-      return { path: null, preludeStep: preludeIdx, step: 0, connected: false }
+      return { path: null, preludeStep: preludeIdx, step: 0, connected: false, pendingResume: null }
     }
   }
 
   if (input.initialPath) {
-    return { path: input.initialPath, preludeStep: 0, step: 0, connected: false }
+    return { path: input.initialPath, preludeStep: 0, step: 0, connected: false, pendingResume: null }
   }
 
-  return { path: null, preludeStep: 0, step: 0, connected: false }
+  return { path: null, preludeStep: 0, step: 0, connected: false, pendingResume: null }
 }
 
 function buildSetupSearch(input: {
@@ -226,6 +244,9 @@ function buildSetupSearch(input: {
   const params = new URLSearchParams()
   if (input.path) params.set("path", input.path)
   params.set("step", input.stepId)
+  // Marks that this browser session already passed the install/Bluetooth-on prelude, so a
+  // refresh or deeplink mid-flow resumes where staff left off instead of re-running it.
+  if (input.path) params.set("primed", "1")
   if (input.printer) {
     params.set("address", input.printer.address)
     if (input.printer.serial) params.set("serial", input.printer.serial)
@@ -246,6 +267,7 @@ export type SetupFlowProps = {
   initialPrinter?: PrinterSetupParams | null
   afterConnect?: boolean
   connectResult?: string | null
+  initialPrimed?: boolean
 }
 
 export function SetupFlow({
@@ -255,17 +277,20 @@ export function SetupFlow({
   initialPrinter = null,
   afterConnect = false,
   connectResult = null,
+  initialPrimed = false,
 }: SetupFlowProps) {
   const router = useRouter()
   const omitScan = Boolean(initialPrinter)
   const [entry] = useState(() =>
-    resolveEntry({ initialPath, initialStep, initialPrinter, afterConnect }),
+    resolveEntry({ initialPath, initialStep, initialPrinter, afterConnect, initialPrimed }),
   )
   const [path, setPath] = useState<SetupPath | null>(entry.path)
   const [printer, setPrinter] = useState<PrinterSetupParams | null>(initialPrinter)
   /** Index into PRELUDE while path is null. */
   const [preludeStep, setPreludeStep] = useState(entry.preludeStep)
   const [step, setStep] = useState(entry.step)
+  /** Sticker QR reached us before the prelude — resume into this path/step once it's done. */
+  const [pendingResume, setPendingResume] = useState<PendingResume | null>(entry.pendingResume)
   const [seen, setSeen] = useState(false)
   const [connectedOk, setConnectedOk] = useState(entry.connected)
   const [didConnect, setDidConnect] = useState(entry.connected)
@@ -633,7 +658,17 @@ export function SetupFlow({
         {!path && (current.kind === "install" || current.id === "bt-on") ? (
           <Button
             className="h-12 w-full text-base"
-            onClick={() => setPreludeStep((value) => value + 1)}
+            onClick={() => {
+              if (current.id === "bt-on" && pendingResume) {
+                const { path: resumePath, stepId: resumeStepId } = pendingResume
+                setPendingResume(null)
+                setPath(resumePath)
+                const nextOmit = resumePath === "qr" ? omitScan : false
+                setStep(pathStepIndex(resumePath, resumeStepId, nextOmit))
+                return
+              }
+              setPreludeStep((value) => value + 1)
+            }}
           >
             Neste
           </Button>

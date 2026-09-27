@@ -33,6 +33,7 @@ export default async function SetupPage({
     type?: string
     phase?: string
     result?: string
+    primed?: string
   }>
 }) {
   const query = await searchParams
@@ -63,6 +64,7 @@ export default async function SetupPage({
         initialPrinter={initialPrinter}
         afterConnect={query.phase === "connected"}
         connectResult={query.result ?? null}
+        initialPrimed={query.primed === "1"}
       />
     </>
   )

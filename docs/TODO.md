@@ -23,8 +23,15 @@ Tasks:
 - [x] Spike UI via `/koble` → now redirects into `/oppsett` (MAC/serial/model → tap → `brotherwebprint://connect`)
 - [x] Setup QR payload is https `/oppsett?path=qr&…` (also accepts legacy `/koble?…`); admin stickers print that link
 - [x] Fold into `/oppsett`: after Smooth Print install, choose **Skann QR** (skip BT menu + OS pairing + app confirm) or **Manuelt** (old steps); both end on test print
-- [ ] QA onboarding on **iOS** and **Android** (full matrix in [MVP-verification.md](./MVP-verification.md)); note callback / success UX limits (custom scheme callbacks)
-- [ ] If hardware connect fails: document why in [RESEARCH.md](../RESEARCH.md) and keep manual path
+- [x] Fix: sticker QR deep link (`path=qr&step=connect`) skipped install/Bluetooth-on prelude on a fresh phone — now shown once, then a primed session resumes instantly on refresh/deeplink (`src/app/oppsett/setup-flow.tsx`)
+- [ ] QA onboarding on **iOS** and **Android** (full matrix in [MVP-verification.md](./MVP-verification.md)); note callback / success UX limits (custom scheme callbacks) — first iOS pass done, findings in [RESEARCH.md → iOS field test](../RESEARCH.md#ios-field-test-2026-09-26-real-ql-820nwbc--iphone-safari); still need Android and a second iOS pass
+- [ ] If hardware connect fails: document why in [RESEARCH.md](../RESEARCH.md) and keep manual path — iOS connect over Bluetooth needed OS-level pairing done first; see RESEARCH.md, still needs a retest to confirm whether that's avoidable
+- [x] `brotherwebprint://print` had no return-to-webapp callback — wired up `successCallback`/`failureCallback` (https URLs back to `/deltaker/[id]`) in `src/lib/print-url.ts` + `src/components/print-button.tsx`; confirmed on iOS that it does return to Safari and appends its own `errorCode=SUCCESS`
+- [x] Callback opened a **new Safari tab per print** on iOS (confirmed on hardware; a fragment-based callback is not an option — Smooth Print percent-encodes `#` into the path and concatenates without a separator). Mitigated: `print-button.tsx` now pre-sets the tab's address bar to the exact success-callback shape before firing the print (iOS only), so a successful print should match and reuse the tab; failure still opens a new tab
+- [x] Retest on iOS: tab-reuse pre-set works — Safari reuses the tab. But it still does a **full reload** (not caused by our own `replaceState` calls, confirmed — see [RESEARCH.md](../RESEARCH.md)), which flashes the whole app + attendee loading skeletons on every print
+- [x] Faster turnaround idea (navigate to `/` via `visibilitychange` as soon as the tab regains focus after Smooth Print, instead of waiting on the callback's reload): tried, found a bug before it ever reached hardware (flag never clears on a successful print since a reload never fires `visibilitychange`, so the next unrelated app-switch would misfire a navigation), reverted — see [RESEARCH.md](../RESEARCH.md). Worth another idea for turnaround speed, but not this one as-is
+- [ ] Attendee list at 900 people: decide whether `/sok` should show everyone by default when the search box is empty (currently only searches once you type). Full virtualization is real integration work, not cheap — `cmdk`'s keyboard nav (arrow keys / Home / End) queries the live DOM for all rendered items, so a windowed subset breaks it unless carefully coordinated. Cheaper path: cap the default list (e.g. first ~150) or paginate/"load more", not true virtualization; needs a persisted setting too if we keep the current empty-state (`useLocalFlag`, same pattern as "Vis innsjekkede")
+- [ ] Spike: can iOS print DK-11208 badges via AirPrint (native print dialog, no Smooth Print) for Wi-Fi-connected printers? See [RESEARCH.md → AirPrint](../RESEARCH.md#airprint--possible-way-to-skip-smooth-print-on-ios-entirely-unverified). Bluetooth-paired printers would still need Smooth Print either way
 
 ## Before the conference (MVP polish)
 
@@ -36,11 +43,25 @@ Tasks:
 - [x] Conference APK uploaded and active (staff setup day)
 - [ ] Note license/redistribution constraints from Brother in the README if needed
 
-### Gate the app
+### Auth & innsjekkstasjoner
 
-- [ ] Require login (or equivalent) before scanner / search / print
-- [ ] Decide mechanism: HTTP basic auth at nginx, app-level password, or real accounts
-- [ ] Keep `/oppsett` usable for first-time printer setup without making auth painful on phones
+**Decided.** Full design: [auth-stasjoner.md](./auth-stasjoner.md).
+
+better-auth + better-auth-ui. Roles: `admin` | `stasjon` (UI: Innsjekkstasjon). Long-lived magic-link QR (Slack / under-printer sticker) + 6-digit PIN fallback. Stasjon linked to a printer; enroll mirrors printers. `/oppsett` stays public. No nginx basic auth; Checkin is not the staff IdP.
+
+- [x] Add better-auth (Drizzle/LibSQL), admin plugin, roles `admin` / `stasjon`
+- [x] User fields: `validFrom`, `validTo`, optional `printerId`; long `session.expiresIn` + enforce validity window
+- [x] Middleware / route gates: door + admin APIs require session; `/oppsett`, `/koble`, active APK public
+- [x] Install better-auth-ui (shadcn): `@better-auth-ui/auth`, `admin`, `user-button` + Sonner; Norwegian localization
+- [x] Admin sign-in (`/auth/sign-in`) + door `/logg-inn` (PIN + magic token); better-auth-ui SignIn + username for admin
+- [x] Admin `/admin/brukere` via better-auth-ui; `UserButton` in admin shell
+- [ ] Add shadcn: `select`, `calendar`+`popover`, `dropdown-menu`, `badge` as needed for stasjon enroll polish
+- [x] `/admin/stasjoner` inventory + `/admin/stasjoner/ny` enroll (custom; mirror printers)
+- [x] Login sticker uses same `printer.lbx` template as pairing (name + QR)
+- [x] Door `/logg-inn`: magic-link token + **PIN-only** (no username); Vis PIN in admin
+- [x] Stamp `check_events` with acting stasjon/user for audit
+- [x] Super-admin seeded from `ADMIN_USERNAME` / `ADMIN_PASSWORD` on boot; env in `.env.example` / README
+- [x] Protect CSV import and other admin mutations behind admin role
 
 ### Admin CSV upload
 
@@ -49,7 +70,6 @@ Tasks:
 - [x] Enroll flow with illustrations, sticker preview, and print of a DK-11208 label (name above QR → `/oppsett?path=qr`)
 - [ ] Confirm the generated `printer.lbx` QR actually prints on the QL (template is hand-built, not from P-touch Editor)
 - [x] Replace attendee list via API; show import counts / skipped rows
-- [ ] Protect the upload behind the same auth gate
 - [ ] Keep CLI import as a fallback ([checkin-totalrapport.md](./checkin-totalrapport.md))
 
 ### Day-of readiness

@@ -11,11 +11,24 @@ export const IOS_APP_STORE =
 export const DEFAULT_SMOOTH_PRINT_ANDROID_URL =
   "https://support.brother.com/g/b/agreement.aspx?dlid=dlfp101087_000"
 
+/**
+ * Brother requires both callbacks or neither ("If only one parameter is specified,
+ * the setting will be invalid"). Docs assume a native app's own scheme, but plain
+ * https URLs work on iOS — Smooth Print hands off to whatever handles the URL, and
+ * Safari always claims http(s) — so Smooth Print returns to the browser after
+ * printing instead of staying open.
+ *
+ * Smooth Print appends its own `errorCode=` to whichever URL it is given; callers
+ * decide where that append lands. See buildPrintCallback in print-button.tsx.
+ */
+export type PrintCallback = { successCallback: string; failureCallback: string }
+
 export function buildPrintQuery(input: {
   fileBase64: string
   paperSizeId: string
   name: string
   line2: string
+  callback?: PrintCallback
 }): string {
   const size = input.paperSizeId || DEFAULT_PAPER_SIZE_ID
   // filename is the name Smooth Print stores for the attached bytes.
@@ -28,7 +41,7 @@ export function buildPrintQuery(input: {
   // Do not pass printMode=original: Brother's SDK returns SetMarginError for
   // this die-cut. Do not pass orientation either; the LBX already says portrait.
   // The template page is 38×90 pt-for-mm, so the default fit_to_page scale is 1.
-  return [
+  const pairs: [string, string][] = [
     ["filename", `badge-${stamp}.lbx`],
     ["fileattach", input.fileBase64],
     ["formatarchiveupdate", "1"],
@@ -37,8 +50,11 @@ export function buildPrintQuery(input: {
     ["text_NAME", input.name],
     ["text_LINE2", input.line2],
   ]
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join("&")
+  if (input.callback) {
+    pairs.push(["successCallback", input.callback.successCallback])
+    pairs.push(["failureCallback", input.callback.failureCallback])
+  }
+  return pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")
 }
 
 /** Short content-dependent id so Smooth Print does not reuse a stale cached .lbx. */
@@ -56,6 +72,7 @@ export function buildPrintUrl(input: {
   paperSizeId: string
   name: string
   line2: string
+  callback?: PrintCallback
 }): string {
   return `brotherwebprint://print?${buildPrintQuery(input)}`
 }
@@ -70,6 +87,7 @@ export function buildAndroidPrintIntent(input: {
   name: string
   line2: string
   fallbackUrl: string
+  callback?: PrintCallback
 }): string {
   const query = buildPrintQuery(input)
   const fallback = encodeURIComponent(input.fallbackUrl)
