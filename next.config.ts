@@ -4,6 +4,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
 
 const nextConfig: NextConfig = {
   basePath,
+  allowedDevOrigins: ["preview1.t3code.asamsig.com"],
   async headers() {
     return [
       {
