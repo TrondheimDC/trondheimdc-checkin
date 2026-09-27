@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
-import { Camera, Flashlight, FlashlightOff, Search, Settings } from "lucide-react"
+import { Camera, Flashlight, FlashlightOff, MapPin, Search, Settings } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -213,25 +213,27 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
             )}
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          {stasjonName ? (
-            <span
-              className="scan-icon-btn flex h-12 items-center rounded-full bg-black/55 px-4 text-sm font-medium text-white backdrop-blur-md"
-              style={{ animationDelay: "140ms" }}
-            >
-              {stasjonName}
-            </span>
-          ) : null}
-          <Link
-            href="/innstillinger"
-            className={iconButtonClass}
-            style={{ animationDelay: "160ms" }}
-            aria-label="Innstillinger"
-          >
-            <Settings className="size-6" />
-          </Link>
-        </div>
+        <Link
+          href="/innstillinger"
+          className={iconButtonClass}
+          style={{ animationDelay: "160ms" }}
+          aria-label="Innstillinger"
+        >
+          <Settings className="size-6" />
+        </Link>
       </div>
+
+      {stasjonName ? (
+        <div className="pointer-events-none absolute inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-10 flex justify-center">
+          <span
+            className="scan-icon-btn flex h-12 items-center gap-2 rounded-full bg-black/55 px-4 text-sm font-medium text-white backdrop-blur-md"
+            style={{ animationDelay: "140ms" }}
+          >
+            <MapPin className="size-4 text-[var(--color-fg-brand)]" aria-hidden />
+            {stasjonName}
+          </span>
+        </div>
+      ) : null}
 
       <div className="relative z-10 flex flex-1 items-center justify-center px-7">
         <div className="scan-reticle" aria-hidden>
