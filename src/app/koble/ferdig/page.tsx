@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-/** Smooth Print may still hit the old callback — send people into setup test. */
+/** Old Smooth Print connectcallback target — send people into setup. */
 export default async function ConnectDonePage({
   searchParams,
 }: {
@@ -9,8 +9,8 @@ export default async function ConnectDonePage({
   const { result } = await searchParams
   const params = new URLSearchParams({
     path: "qr",
-    step: "test-print",
-    phase: "connected",
+    step: "connect",
+    primed: "1",
   })
   if (result) params.set("result", result)
   redirect(`/oppsett?${params}`)

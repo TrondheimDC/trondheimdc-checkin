@@ -10,6 +10,7 @@ import { apiPath } from "@/lib/utils"
 const STEP_IDS = new Set<SetupStepId>([
   "install",
   "bt-on",
+  "scan",
   "connect",
   "pair",
   "confirm",

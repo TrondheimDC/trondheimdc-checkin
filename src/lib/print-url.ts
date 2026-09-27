@@ -113,7 +113,8 @@ export function buildConnectQuery(input: {
   address: string
   serial: string
   model: string
-  callbackUrl: string
+  /** Omit so Smooth Print stays in front; staff return to the wizard themselves. */
+  callbackUrl?: string
 }): string {
   const pairs: [string, string][] = [
     ["connecttype", input.connectType],
@@ -122,7 +123,7 @@ export function buildConnectQuery(input: {
   ]
   const serial = input.serial.trim().toUpperCase()
   if (serial) pairs.push(["serialnum", serial])
-  pairs.push(["connectcallback", input.callbackUrl])
+  if (input.callbackUrl) pairs.push(["connectcallback", input.callbackUrl])
   return pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")
 }
 
@@ -131,7 +132,7 @@ export function buildConnectUrl(input: {
   address: string
   serial: string
   model: string
-  callbackUrl: string
+  callbackUrl?: string
 }): string {
   return `brotherwebprint://connect?${buildConnectQuery(input)}`
 }
@@ -141,7 +142,7 @@ export function buildAndroidConnectIntent(input: {
   address: string
   serial: string
   model: string
-  callbackUrl: string
+  callbackUrl?: string
   fallbackUrl: string
 }): string {
   const query = buildConnectQuery(input)
@@ -152,6 +153,30 @@ export function buildAndroidConnectIntent(input: {
     `S.browser_fallback_url=${encodeURIComponent(input.fallbackUrl)};` +
     `end`
   )
+}
+
+/**
+ * Launch a `brotherwebprint://` URL.
+ *
+ * Safari only opens custom schemes via `location.href` from a user gesture.
+ * On Android, assigning `location.href` (especially to `intent://…`) navigates
+ * the tab and reloads the wizard — use a hidden iframe so Chrome stays put.
+ */
+export function openSmoothPrintScheme(
+  url: string,
+  platform: "ios" | "android" | "other",
+): void {
+  if (platform === "ios") {
+    window.location.href = url
+    return
+  }
+  const iframe = document.createElement("iframe")
+  iframe.setAttribute("aria-hidden", "true")
+  iframe.tabIndex = -1
+  iframe.style.display = "none"
+  iframe.src = url
+  document.body.appendChild(iframe)
+  window.setTimeout(() => iframe.remove(), 2000)
 }
 
 export function templateUrl(file = "badge.lbx"): string {

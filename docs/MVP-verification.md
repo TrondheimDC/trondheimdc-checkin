@@ -25,39 +25,40 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
-| 1 | Fresh `/oppsett`: install → printer BT on → OS pair → Smooth Print select (or sticker connect) → test print | ☐ | ☐ | Linear on both; no in-app Skann QR. Android: force-close Smooth Print |
-| 2 | Sticker deeplink (`/oppsett?path=qr&…`): connect opens Smooth Print after OS pair | ☐ | ☐ | |
-| 3 | After connect, printer is usable for print (or failure is obvious) | ☐ | ☐ | If hardware connect fails, document in RESEARCH.md; keep manual confirm |
-| 4 | Manual confirm path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☐ | ☐ | Matching codes on phone + printer |
-| 5 | Test print produces a valid label on DK-11208 | ☐ | ☐ | Android: no print callbacks; overlay dialog only if Smooth Print was closed |
-| 6 | Returning to `/oppsett` later is still usable (re-pair / re-test) | ☐ | ☐ | |
+| 1 | Fresh `/oppsett`: install → verify BT → Skann QR → connect → test print | ☐ | ☐ | Android: Ferdig after install (don’t open SP); cold-start connect returns to browser |
+| 2 | Scan step: Start kamera + Manuelt oppsett fallback (OS pair → confirm) | ☐ | ☐ | |
+| 3 | Sticker deeplink (`/oppsett?path=qr&…`): prelude then connect (skips camera) | ☐ | ☑ | iOS still to verify |
+| 4 | After connect, printer is usable for print (or failure is obvious) | ☐ | ☑ | Keep manual fallback |
+| 5 | Manual confirm path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☐ | ☐ | Matching codes on phone + printer |
+| 6 | Test print produces a valid label on DK-11208 | ☐ | ☐ | Android: no print callbacks; overlay dialog only if Smooth Print was closed |
+| 7 | Returning to `/oppsett` later is still usable (re-pair / re-test) | ☐ | ☐ | |
 
 ### iOS-specific
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 7 | App Store Smooth Print install link works | ☐ | |
-| 8 | Bluetooth Classic (MFi) pairing works with QL-820NWBc | ☐ | |
-| 9 | Custom scheme opens from a user tap in Safari (`brotherwebprint://…`) | ☐ | Safari blocks non-gesture opens |
-| 10 | Missing Smooth Print: staff get a clear next step (not a silent fail) | ☐ | Android has intent → `/oppsett`; iOS may still be weaker |
+| 8 | App Store Smooth Print install link works | ☐ | |
+| 9 | Bluetooth Classic (MFi) pairing works with QL-820NWBc | ☐ | |
+| 10 | Custom scheme opens from a user tap in Safari (`brotherwebprint://…`) | ☐ | Safari blocks non-gesture opens |
+| 11 | Missing Smooth Print: staff get a clear next step (not a silent fail) | ☐ | Android has intent → `/oppsett`; iOS may still be weaker |
 
 ### Android-specific
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 11 | Hosted APK from Admin → Smooth Print installs (active APK) | ☐ | Upload/activate conference APK before setup day |
-| 12 | Fallback when no APK is active still reaches a download | ☐ | Brother agreement page |
-| 13 | Missing Smooth Print: intent / fallback to `/oppsett` works | ☐ | |
-| 14 | Connect + print via custom scheme / intent from Chrome | ☐ | |
-| 15 | Print overlay dialog (no callbacks): Smooth Print **closed** → dialog; Smooth Print **in background** → switches into app | ☐ | Staff must force-close after install and after selecting printer |
+| 12 | Hosted APK from Admin → Smooth Print installs (active APK) | ☐ | Upload/activate conference APK before setup day |
+| 13 | Fallback when no APK is active still reaches a download | ☐ | Brother agreement page |
+| 14 | Missing Smooth Print: intent / fallback to `/oppsett` works | ☐ | |
+| 15 | Connect + print via custom scheme / intent from Chrome | ☐ | |
+| 16 | Print overlay dialog (no callbacks): Smooth Print **closed** → dialog; Smooth Print **in background** → switches into app | ☐ | Force-close before print, not after install |
 
 ### Admin → phone sticker loop
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 16 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
-| 17 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☐ | Confirm `printer.lbx` on real QL |
-| 18 | Scanning that sticker on phone opens the right connect flow | ☐ | Both OS; Android still requires OS Bluetooth pair first |
+| 17 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
+| 18 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☐ | Confirm `printer.lbx` on real QL |
+| 19 | Scanning that sticker on phone opens the right connect flow | ☐ | Both OS; Android connect happy path verified without OS-pair-first |
 
 ---
 

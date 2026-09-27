@@ -69,7 +69,7 @@ brotherwebprint://print?filename=<url-encoded lbx>&size=<paper size id>&copies=1
 
 Callbacks do fire on Android with an https URL. The success shape is only `?result=SUCCESS` (no `errorcode`, unlike iOS). Every return opened a **new Chrome tab** (full page load). That is worse check-in UX than Smooth Print's own result dialog, which appears when the callback pair is omitted and dismisses back onto the same tab with no reload.
 
-**Confirmed on hardware (2026-09-27): the overlay dialog only appears if Smooth Print is not already running.** If Smooth Print is open in the background (recent apps), a print without callbacks **switches to the Smooth Print app** and stays there — no dialog over Chrome. Staff must force-close Smooth Print (swipe away from recents) after install and after adding/selecting a printer. Documented in the Android `/oppsett` copy.
+**Confirmed on hardware (2026-09-27): the overlay dialog only appears if Smooth Print is not already running.** If Smooth Print is open in the background (recent apps), a print without callbacks **switches to the Smooth Print app** and stays there — no dialog over Chrome. Staff must force-close Smooth Print (swipe away from recents) **before the test/badge print** — not right after install. Leaving Smooth Print available through `connect` is intentional: Android brings the app to the foreground so staff can see whether connect succeeded.
 
 Chrome decides tab reuse in `IntentHandler.getTabOpenType` ([current source](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/android/java/src/org/chromium/chrome/browser/IntentHandler.java)). Default for a URL from another app is a new tab. Reuse needs intent extras (`REUSE_URL_MATCHING_TAB_ELSE_NEW_TAB`, or `Browser.EXTRA_APPLICATION_ID`) that a callback URL string cannot set, and Smooth Print concatenates the result onto the end of that string. We never confirmed whether Smooth Print sets `REUSE_URL_MATCHING_TAB_ELSE_NEW_TAB`: the first Android pre-set used the iOS query (`…&errorcode=SUCCESS`), so the URLs could not match. Product call is to drop the callback rather than keep chasing tab reuse.
 
@@ -77,32 +77,33 @@ Also:
 
 - Brother: if the callback pair is set, "the printing outcomes will not be displayed in Smooth Print." Without it, the dialog is the success/failure signal — **only when Smooth Print was not already in the background**.
 - Check-in is already committed before the scheme fires. The callback is not what records it.
-- Setup `connectcallback` stays — the wizard needs that return. After connect on Android, staff must still force-close Smooth Print before the test print.
+- Setup omits `connectcallback` too — same new-tab problem as print callbacks. Staff confirm in the wizard after returning from Smooth Print.
 - iOS cannot drop the print callback: without it, Smooth Print stays in front (2026-09-26 field test).
 
 **Not the next step: `http://localhost:8088/print` (Android only).** Brother documents an HTTP print that returns XML instead of launching a URL. Unverified; CORS, long `fileattach` GETs, and whether the port listens can all kill it. Not needed for the omit decision.
 
-### Setup order — decision 2026-09-27
+### Setup order — decision 2026-09-27 (revised same day)
 
-`/oppsett` is a linear flow on **both** iOS and Android. No in-app “Skann QR” / “Manuelt” fork. Sticker deeplink still supplies printer fields for the connect step.
+Happy path after Android hardware confirmed `brotherwebprint://connect` from the sticker QR:
 
-1. **Install Smooth Print** (Android: force-close it afterward so it is not in the background).
-2. **Turn on Bluetooth** on the printer (Menu → Bluetooth).
-3. **OS-level Bluetooth pairing** (Settings → Bluetooth → select printer). Phone and printer each show a code — they must match; OK on the printer and accept on the phone.
-4. **Select the printer in Smooth Print** (manual confirm) **or** sticker deeplink → `brotherwebprint://connect` (when printer fields are already in the URL). Android: force-close Smooth Print again.
-5. **Test print** (no print callbacks on Android) — on Android expect the overlay dialog over Chrome.
+1. **Install Smooth Print** (Android: press Ferdig — do **not** open the app; come back to the wizard).
+2. **Verify Bluetooth** on the printer — Bluetooth icon top-right on the display; if missing: Menu → Bluetooth (6) and turn on.
+3. **Skann QR** on the printer sticker → `connect` in Smooth Print (in-app camera; Start kamera). Sticker deeplink with fields already in the URL skips the camera and lands on connect after the prelude.
+4. **Test print** (no print callbacks on Android). Android: force-close Smooth Print first so the overlay dialog appears over Chrome.
 
-In-app camera scan of the printer sticker is not offered; open `/oppsett` from the sticker link (or enroll fields) instead.
+**Happy path on Android (verified 2026-09-27):** if Smooth Print was never opened after install, connect cold-starts the app → permission / terms / Bluetooth prompts → connects → returns to the browser. If the app was already open in the background, staff stay in Smooth Print instead.
+
+**Manual fallback** (from the scan step): OS Bluetooth pair (matching codes) → select printer in Smooth Print → test print. Android: force-close after selecting, before test print.
 
 ### Connect URL scheme (verified against Brother docs 2026-09-27)
 
 Brother: [Connect printer](https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/connect_printer/)
 
 ```
-brotherwebprint://connect?connecttype=BT&connectaddress=<MAC>&serialnum=<SN>&model=<model>&connectcallback=<url ending in key=>
+brotherwebprint://connect?connecttype=BT&connectaddress=<MAC>&serialnum=<SN>&model=<model>
 ```
 
-Our `buildConnectQuery` / `buildConnectUrl` / `buildAndroidConnectIntent` match that:
+Optional `connectcallback=<url ending in key=>` exists in Brother’s docs; we omit it in the app.
 
 | Parameter | Ours | Notes |
 |---|---|---|
@@ -110,7 +111,7 @@ Our `buildConnectQuery` / `buildConnectUrl` / `buildAndroidConnectIntent` match 
 | `connectaddress` | MAC or IP, uppercased | Bluetooth MAC for BT |
 | `serialnum` | if non-empty | Brother: **required on iOS** for QL (and MW/PJ/PT/RJ/TD) over Bluetooth |
 | `model` | e.g. QL-820NWBc | |
-| `connectcallback` | https URL ending in `result=` | Same concatenation pattern as print callbacks |
+| `connectcallback` | optional | Omit in `/oppsett` — callbacks open a new tab; staff return to the wizard themselves |
 
 Find/search (`brotherwebprint://search?…`) is documented separately and not used in the app yet. Android also has `http://localhost:8088/connect` (XML response) — unused.
 
@@ -146,7 +147,7 @@ Worth trying as a **poll** before / after print: is the printer connected, ready
 - Find (Bluetooth search): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/find_printer/
 - Connect (Bluetooth MAC / iOS QL serial, or Wi-Fi IP): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/connect_printer/
 
-**Priority:** can a **setup QR** run find/connect *after* OS Bluetooth pairing so scanning registers the printer in Smooth Print without the manual confirm step? Tracked in [docs/TODO.md](docs/TODO.md). Connect scheme is wired (`buildConnectUrl`); `/oppsett` puts OS pair before connect on both platforms.
+**Android (2026-09-27):** sticker / in-app scan → `brotherwebprint://connect` works as the happy path without walking OS pair + manual confirm first. iOS still needs a hardware retest (earlier notes said OS pair may be required first). Manual path remains the fallback.
 
 ### AirPrint — possible way to skip Smooth Print on iOS entirely (unverified)
 

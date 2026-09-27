@@ -22,13 +22,14 @@ Tasks:
 
 - [x] Spike UI via `/koble` → now redirects into `/oppsett` (MAC/serial/model → tap → `brotherwebprint://connect`)
 - [x] Setup QR payload is https `/oppsett?path=qr&…` (also accepts legacy `/koble?…`); admin stickers print that link
-- [x] `/oppsett` is linear on both platforms: install → printer BT on → OS Bluetooth pair (matching codes) → select in Smooth Print or sticker `connect` → test print. No in-app Skann QR. Android also force-closes Smooth Print after install and after selecting the printer. See [RESEARCH.md → Setup order](../RESEARCH.md#setup-order--decision-2026-09-27)
+- [x] `/oppsett` happy path: install → printer BT on → Skann QR (Start kamera) → Smooth Print `connect` → test print. Manual fallback from scan: OS pair → select in Smooth Print → test. See [RESEARCH.md → Setup order](../RESEARCH.md#setup-order--decision-2026-09-27-revised-same-day)
 - [x] Fix: sticker QR deep link (`path=qr&step=connect`) skipped install/Bluetooth-on prelude on a fresh phone — now shown once, then a primed session resumes instantly on refresh/deeplink (`src/app/oppsett/setup-flow.tsx`)
-- [x] Android: Smooth Print must not be in the background for the print overlay dialog — confirmed on hardware; documented in setup copy + RESEARCH
-- [x] Connect URL scheme checked against Brother docs — `buildConnectQuery` matches (`connecttype`, `connectaddress`, `serialnum`, `model`, `connectcallback`)
-- [ ] Verify sticker `brotherwebprint://connect` *after* OS Bluetooth pair on iOS and Android (does it select the printer cleanly? Android: force-close before test print).
-- [ ] QA onboarding on **iOS** and **Android** (full matrix in [MVP-verification.md](./MVP-verification.md)); note callback / success UX limits — first iOS pass done; Android setup order updated 2026-09-27
-- [ ] If hardware connect fails: document why in [RESEARCH.md](../RESEARCH.md) and keep manual path — iOS connect over Bluetooth needed OS-level pairing done first; see RESEARCH.md, still needs a retest to confirm whether that's avoidable
+- [x] Android: install with Ferdig (do not open the app); force-close Smooth Print only before print (overlay dialog). Connect opens the app when needed.
+- [x] Connect URL scheme checked against Brother docs — `buildConnectQuery` matches (`connecttype`, `connectaddress`, `serialnum`, `model`); `connectcallback` omitted (new-tab problem)
+- [x] Android: sticker / in-app `brotherwebprint://connect` verified on hardware (happy path without OS-pair-first).
+- [ ] Verify sticker / in-app `brotherwebprint://connect` on **iOS** (earlier notes: may still need OS Bluetooth pair first).
+- [ ] QA onboarding on **iOS** and **Android** (full matrix in [MVP-verification.md](./MVP-verification.md)); note callback / success UX limits — first iOS pass done; Android connect happy path 2026-09-27
+- [ ] If iOS connect fails without prior OS pair: document in [RESEARCH.md](../RESEARCH.md) and keep / emphasize manual path
 - [x] `brotherwebprint://print` had no return-to-webapp callback — wired up `successCallback`/`failureCallback` (https URLs back to `/deltaker/[id]`) in `src/lib/print-url.ts` + `src/components/print-button.tsx`; confirmed on iOS that it does return to Safari and appends its own `errorCode=SUCCESS`
 - [x] Callback opened a **new Safari tab per print** on iOS (confirmed on hardware; a fragment-based callback is not an option — Smooth Print percent-encodes `#` into the path and concatenates without a separator). Mitigated: `print-button.tsx` now pre-sets the tab's address bar to the exact success-callback shape before firing the print (iOS only), so a successful print should match and reuse the tab; failure still opens a new tab
 - [x] Retest on iOS: tab-reuse pre-set works — Safari reuses the tab. But it still does a **full reload** (not caused by our own `replaceState` calls, confirmed — see [RESEARCH.md](../RESEARCH.md)), which flashes the whole app + attendee loading skeletons on every print

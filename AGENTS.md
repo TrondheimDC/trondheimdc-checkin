@@ -55,12 +55,13 @@ The first paint of a screen is the real screen.
 
 Keep the address bar in sync with the wizard so staff can refresh and deeplink.
 
-- Query: `step` (`install` | `bt-on` | `connect` | `pair` | `confirm` | `test-print`), optional `path` (`qr` | `manual`), `primed=1` after the first paint, printer fields (`address`, `serial`, `model`, `type`), and after Smooth Print return `phase=connected`.
+- Query: `step` (`install` | `bt-on` | `scan` | `connect` | `pair` | `confirm` | `test-print`), optional `path` (`qr` | `manual`), `primed=1` after the prelude, printer fields (`address`, `serial`, `model`, `type`). No connect callbacks (`connectcallback` omitted).
 - Update with `history.replaceState` (not `router.replace`) so each step change does not remount the client flow.
 - Help subpages link back to a concrete step (`/oppsett?step=pair&primed=1`, `/oppsett?step=install&primed=1`) — not `history.back()`.
-- Resume: honor `step` when present; a fresh sticker deeplink (`step=connect` / later without `primed`) still starts at install.
-- Sticker QRs use `printerSetupPath` → `path=qr&step=connect` plus printer fields.
-- Linear on **both** platforms (no in-app Skann QR): install → printer Bluetooth on → OS Bluetooth pair → select in Smooth Print **or** sticker `connect` → test print. On Android, force-close Smooth Print after install and after selecting the printer — if it sits in the background, print switches into the app instead of the overlay dialog.
+- Resume: honor `step` when present; a fresh sticker deeplink (`step=connect` / later without `primed`) still starts at install → BT-on, then resumes.
+- Sticker QRs use `printerSetupPath` → `path=qr&step=connect` plus printer fields (skips in-app scan).
+- Happy path: install → printer Bluetooth on → **Skann QR** (Start kamera) → Smooth Print `connect` → test print. Fallback from scan: **Manuelt oppsett** → OS Bluetooth pair → select in Smooth Print → test print.
+- Android: after install, press Ferdig — do **not** open Smooth Print. A cold start on connect asks for permissions/terms, then returns to the browser. Force-close only before test print so the overlay dialog appears.
 
 ## Interactive controls
 
