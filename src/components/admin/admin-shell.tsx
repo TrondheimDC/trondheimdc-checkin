@@ -1,12 +1,14 @@
 "use client"
 
-import { FileUp, FlaskConical, Package, Printer, Shapes } from "lucide-react"
+import { FileUp, FlaskConical, MapPin, Package, Printer, Shapes, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { UserButton } from "@/components/auth/user/user-button"
 import { TdcLogo } from "@/components/tdc-logo"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -52,6 +54,14 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/stasjoner")} size="lg">
+                    <Link href="/admin/stasjoner" onClick={closeMobile}>
+                      <MapPin />
+                      Innsjekkstasjoner
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/import")} size="lg">
                     <Link href="/admin/import" onClick={closeMobile}>
                       <FileUp />
@@ -76,6 +86,14 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/brukere")} size="lg">
+                    <Link href="/admin/brukere" onClick={closeMobile}>
+                      <Users />
+                      Brukere
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton disabled size="lg" className="opacity-40" title="Ikke laget ennå">
                     <Shapes />
                     P-touch Editor
@@ -85,11 +103,22 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        <SidebarFooter className="border-t border-white/10 p-3">
+          <UserButton
+            className="w-full justify-start"
+            align="start"
+            side="top"
+            hideSettings
+          />
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <div className="flex items-center gap-2 border-b border-white/10 p-3 md:hidden">
           <SidebarTrigger />
           <TdcLogo />
+          <div className="ml-auto">
+            <UserButton size="icon" align="end" hideSettings />
+          </div>
         </div>
         {children}
       </SidebarInset>

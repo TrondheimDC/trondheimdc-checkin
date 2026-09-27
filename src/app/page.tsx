@@ -1,5 +1,7 @@
 import { Scanner } from "@/components/scanner"
+import { requireDoorSession } from "@/lib/auth-session"
 
-export default function HomePage() {
-  return <Scanner />
+export default async function HomePage() {
+  const session = await requireDoorSession()
+  return <Scanner stasjonName={session.user.name} />
 }

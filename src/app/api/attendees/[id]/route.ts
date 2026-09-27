@@ -1,4 +1,5 @@
 import { attendeeRepository } from "@/lib/attendees"
+import { isSession, requireDoorApiSession } from "@/lib/auth-api"
 import { attendeeResponseSchema, setCheckedInBodySchema } from "@/lib/db/schema"
 import { NextResponse } from "next/server"
 import { z } from "zod"
@@ -6,6 +7,9 @@ import { z } from "zod"
 const idParamSchema = z.string().min(1).max(200)
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const session = await requireDoorApiSession()
+  if (!isSession(session)) return session
+
   const { id: rawId } = await context.params
   const id = idParamSchema.safeParse(decodeURIComponent(rawId))
   if (!id.success) {
@@ -18,6 +22,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const session = await requireDoorApiSession()
+  if (!isSession(session)) return session
+
   const { id: rawId } = await context.params
   const id = idParamSchema.safeParse(decodeURIComponent(rawId))
   if (!id.success) {
@@ -29,7 +36,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: "invalid_body" }, { status: 400 })
   }
 
-  const attendee = await attendeeRepository.setCheckedIn(id.data, body.data.checkedIn)
+  const attendee = await attendeeRepository.setCheckedIn(id.data, body.data.checkedIn, {
+    userId: session.user.id,
+    name: session.user.name,
+  })
   if (!attendee) return NextResponse.json({ error: "not_found" }, { status: 404 })
   return NextResponse.json(attendeeResponseSchema.parse({ attendee }))
 }
