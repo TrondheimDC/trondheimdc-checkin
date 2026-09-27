@@ -21,7 +21,11 @@ export interface AttendeeRepository {
   getById(id: string): Promise<Attendee | null>
   search(query: string, options: { includeCheckedIn: boolean }): Promise<Attendee[]>
   stats(): Promise<AttendeeStats>
-  setCheckedIn(id: string, checkedIn: boolean): Promise<Attendee | null>
+  setCheckedIn(
+    id: string,
+    checkedIn: boolean,
+    actor?: { userId: string; name: string } | null,
+  ): Promise<Attendee | null>
   replaceAll(next: Attendee[], deactivateIds?: string[]): Promise<ImportSyncResult>
 }
 
@@ -67,7 +71,7 @@ export const attendeeRepository: AttendeeRepository = {
     }
   },
 
-  async setCheckedIn(id, checkedIn) {
+  async setCheckedIn(id, checkedIn, actor) {
     const now = new Date().toISOString()
     return db.transaction(async (tx) => {
       const updated = await tx
@@ -81,6 +85,8 @@ export const attendeeRepository: AttendeeRepository = {
         attendeeId: id,
         action: checkedIn ? "in" : "out",
         createdAt: now,
+        actorUserId: actor?.userId ?? null,
+        actorName: actor?.name ?? null,
       })
       return attendee
     })
