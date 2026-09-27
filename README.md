@@ -42,10 +42,19 @@ Migrations in `drizzle/` run on server start. The database file is created under
 |---|---|
 | `DB_ENCRYPTION_KEY` | Optional. Encrypts the LibSQL file at rest. The app boots without it (plaintext). |
 | `NEXT_PUBLIC_BASE_PATH` | Mount prefix behind nginx, no trailing slash (e.g. `/checkin`). |
+| `BETTER_AUTH_SECRET` | Required in production. Session signing secret. |
+| `BETTER_AUTH_URL` | Public origin of this app, no trailing slash (e.g. `http://localhost:3000`). |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | When set, a super-admin is seeded on boot (created if missing). |
 
 ### Deploy note
 
-Put basic auth in front of the app. Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` and point nginx at the Next server. API and template URLs respect that prefix.
+Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` and point nginx at the Next server. API and template URLs respect that prefix. Auth is in-app (better-auth: admins + innsjekkstasjoner) — do not put HTTP basic auth in front of the whole app (breaks phones, APK download, and setup deep links). See [docs/auth-stasjoner.md](docs/auth-stasjoner.md).
+
+Optional one-shot seed (same as boot):
+
+```bash
+ADMIN_USERNAME=admin ADMIN_PASSWORD='…' pnpm seed:admin
+```
 
 ## Attendee data
 
@@ -90,6 +99,7 @@ The browser cannot see whether the printer is connected — staff confirm that i
 | Doc | Contents |
 |---|---|
 | [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md) | Export attendees from Checkin and import them |
+| [docs/auth-stasjoner.md](docs/auth-stasjoner.md) | Decided auth: better-auth, admins, innsjekkstasjoner, stickers |
 | [docs/MVP-verification.md](docs/MVP-verification.md) | Hardware QA checklist before calling MVP done |
 | [docs/TODO.md](docs/TODO.md) | Remaining work (MVP polish, Checkin API, pairing, templates) |
 | [RESEARCH.md](RESEARCH.md) | Brother Smooth Print URLs, OS/wireless support, pairing, label media |

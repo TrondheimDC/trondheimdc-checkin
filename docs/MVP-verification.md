@@ -86,9 +86,9 @@ Optional comparison (does not block MVP if current path is solid):
 | 25 | CSV import via admin UI (counts / skipped rows make sense) | ☐ | Same rules as `pnpm import:attendees` |
 | 26 | CLI import still works as fallback | ☐ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
 | 27 | Re-import plan: near-event + morning-of | ☐ | Late signups / cancellations |
-| 28 | Auth gate decided and applied (scanner / search / print / admin upload) | ☐ | `/oppsett` must stay usable on phones |
+| 28 | Auth: admin + innsjekkstasjon (magic link / 6-digit PIN); door + admin gated; `/oppsett` public | ☐ | Design: [auth-stasjoner.md](./auth-stasjoner.md) |
 | 29 | Conference Smooth Print APK uploaded and active | ☑ | Note Brother license/redistribution in README if needed |
-| 30 | Deploy: HTTPS, base path / nginx, basic auth as agreed | ☐ | Camera + custom schemes need secure context |
+| 30 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | Camera + custom schemes need secure context |
 
 ---
 
