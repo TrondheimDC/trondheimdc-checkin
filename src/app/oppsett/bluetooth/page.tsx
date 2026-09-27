@@ -8,36 +8,29 @@ export default function BluetoothPairHelpPage() {
       <p className="shrink-0 font-mono text-sm text-[var(--color-fg-brand)]">Hjelp</p>
       <h1 className="mt-1 shrink-0 text-3xl">Finner du ikke printeren?</h1>
       <p className="mt-2 shrink-0 text-base leading-snug opacity-80">
-        Hvis printeren henger fast i en gammel telefon, må du slå av Automatic Reconnection før du
-        parer på nytt.
+        Printeren prøver kanskje fortsatt å koble seg til en annen telefon. Slå av Automatic
+        Reconnection og koble til på nytt.
       </p>
 
       <div className="mt-8 flex flex-col gap-8">
         <section>
           <h2 className="text-xl font-semibold">Slå av Automatic Reconnection</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-base leading-snug">
-            <li>Trykk på [Menu] på printeren.</li>
-            <li>Bla til Bluetooth med pilene, og trykk [OK].</li>
-            <li>Bla til Automatic Reconnection, velg den, og sett den til OFF.</li>
+            <li>Trykk [Menu] på printeren.</li>
+            <li>Bla til Bluetooth med pilene og trykk [OK].</li>
+            <li>Bla til Automatic Reconnection og sett den til OFF.</li>
             <li>Trykk [OK] for å bekrefte.</li>
           </ol>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold">Par den nye telefonen</h2>
+          <h2 className="text-xl font-semibold">Koble til den nye telefonen</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-base leading-snug">
-            <li>Start printeren på nytt (slå den av og på).</li>
+            <li>Slå printeren av og på igjen.</li>
+            <li>Gå til Innstillinger → Bluetooth på telefonen og velg QL-820NWB(XXXX).</li>
+            <li>Sjekk at koden er lik på begge, og bekreft på printeren og telefonen.</li>
             <li>
-              Åpne Bluetooth-innstillingene på telefonen, og velg QL-820NWB(XXXX) — XXXX er de siste
-              fire sifrene i serienummeret.
-            </li>
-            <li>
-              Sjekk at kodene på telefonen og printeren er like, trykk OK på printeren og godta på
-              telefonen.
-            </li>
-            <li>
-              Når den nye telefonen er paret, kan du slå Automatic Reconnection tilbake til ON hvis
-              denne telefonen skal være den faste.
+              Skal denne telefonen brukes fast, kan du sette Automatic Reconnection til ON igjen etterpå.
             </li>
           </ol>
         </section>

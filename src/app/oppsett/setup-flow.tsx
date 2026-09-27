@@ -70,7 +70,7 @@ const INSTALL_IOS: Step = {
   kind: "install",
   image: "/oppsett/smooth-print.jpg",
   title: "Installer Smooth Print",
-  body: "Last ned appen, og kom tilbake hit.",
+  body: "Last ned appen og kom tilbake hit.",
 }
 
 const INSTALL_ANDROID: Step = {
@@ -78,7 +78,7 @@ const INSTALL_ANDROID: Step = {
   kind: "install",
   image: "/oppsett/smooth-print.jpg",
   title: "Installer Smooth Print",
-  body: "Last ned appen. Når den er installert: lukk den helt, så den ikke ligger i bakgrunnen. Ellers bytter utskrift til appen i stedet for dialogen.",
+  body: "Last ned og installer appen. Lukk den helt etterpå, så den ikke ligger åpen i bakgrunnen.",
 }
 
 const BT_ON: Step = {
@@ -86,7 +86,15 @@ const BT_ON: Step = {
   kind: "guide",
   image: "/oppsett/oppsett-bluetooth.png",
   title: "Slå på Bluetooth",
-  body: "På printeren: gå til Menu → Bluetooth, og slå den på.",
+  body: "Trykk Menu på printeren, velg Bluetooth og slå den på.",
+}
+
+const PAIR: Step = {
+  id: "pair",
+  kind: "guide",
+  image: "/oppsett/oppsett-paring.png",
+  title: "Koble telefonen til printeren",
+  body: "Gå til Innstillinger → Bluetooth og velg QL-820NWB(XXXX). Sjekk at koden er lik på begge, og bekreft på printeren og telefonen.",
 }
 
 const CONNECT_IOS: Step = {
@@ -100,31 +108,15 @@ const CONNECT_ANDROID: Step = {
   id: "connect",
   kind: "connect",
   title: "Legg til i Smooth Print",
-  body: "Ett trykk legger printeren inn i Smooth Print. Når det er gjort: lukk Smooth Print helt (sveip bort fra nylige apper), ellers blir utskrift en app-bytte i stedet for dialogen.",
-}
-
-const PAIR_IOS: Step = {
-  id: "pair",
-  kind: "guide",
-  image: "/oppsett/oppsett-paring.png",
-  title: "Koble til telefonen",
-  body: "Innstillinger → Bluetooth → QL-820NWB(XXXX). Kodene skal matche — OK på printeren og telefonen.",
-}
-
-const PAIR_ANDROID: Step = {
-  id: "pair",
-  kind: "guide",
-  image: "/oppsett/oppsett-paring.png",
-  title: "Par i telefonens Bluetooth",
-  body: "Innstillinger → Bluetooth → QL-820NWB(XXXX). Kodene skal matche — OK på printeren og telefonen.",
+  body: "Ett trykk legger printeren inn i Smooth Print. Lukk appen helt etterpå.",
 }
 
 const CONFIRM_IOS: Step = {
   id: "confirm",
   kind: "confirm",
   image: "/oppsett/oppsett-bekreft.png",
-  title: "Se printeren i appen",
-  body: "Åpne Smooth Print. QL-820NWB(XXXX) skal være valgt i appen.",
+  title: "Velg printeren i Smooth Print",
+  body: "Åpne Smooth Print og sjekk at QL-820NWB(XXXX) er valgt.",
 }
 
 const CONFIRM_ANDROID: Step = {
@@ -132,40 +124,38 @@ const CONFIRM_ANDROID: Step = {
   kind: "confirm",
   image: "/oppsett/oppsett-bekreft.png",
   title: "Velg printeren i Smooth Print",
-  body: "Åpne Smooth Print og velg QL-820NWB(XXXX). Når den er valgt: lukk Smooth Print helt (sveip bort fra nylige apper). Hvis appen ligger i bakgrunnen, bytter utskrift til appen i stedet for dialogen.",
+  body: "Åpne Smooth Print og velg QL-820NWB(XXXX). Lukk appen helt etterpå.",
 }
 
 const TEST_PRINT_IOS: Step = {
   id: "test-print",
   kind: "test-print",
   title: "Skriv ut et testskilt",
-  body: "Én utskrift viser at Smooth Print åpnes og at navneskiltet kommer ut av printeren.",
+  body: "Smooth Print blir liggende åpen etter utskriften. Gå tilbake hit etterpå.",
 }
 
 const TEST_PRINT_ANDROID: Step = {
   id: "test-print",
   kind: "test-print",
   title: "Skriv ut et testskilt",
-  body: "Smooth Print skal vise en dialog over denne siden. Hvis appen åpnes i stedet, lukk den helt (sveip bort) og prøv igjen.",
+  body: "Smooth Print viser et vindu over denne siden. Åpnes appen i stedet, lukk den helt og prøv igjen.",
 }
 
 /**
  * Linear setup on both platforms. Sticker deeplink (`path=qr` + printer fields) uses
  * connect after OS pair; plain /oppsett uses manual confirm in Smooth Print.
- * In-app camera scan is not offered.
  */
 function buildPathSteps(path: SetupPath, platform: PhonePlatform): Step[] {
   const install = platform === "android" ? INSTALL_ANDROID : INSTALL_IOS
-  const pair = platform === "android" ? PAIR_ANDROID : PAIR_IOS
   const test = platform === "android" ? TEST_PRINT_ANDROID : TEST_PRINT_IOS
 
   if (path === "qr") {
     const connect = platform === "android" ? CONNECT_ANDROID : CONNECT_IOS
-    return [install, BT_ON, pair, connect, test]
+    return [install, BT_ON, PAIR, connect, test]
   }
 
   const confirm = platform === "android" ? CONFIRM_ANDROID : CONFIRM_IOS
-  return [install, BT_ON, pair, confirm, test]
+  return [install, BT_ON, PAIR, confirm, test]
 }
 
 function pathStepIndex(path: SetupPath, id: Step["id"], platform: PhonePlatform) {
@@ -288,7 +278,7 @@ export function SetupFlow({
 
   const connectOkHint =
     connectResult != null && connectResult.toUpperCase().includes("SUCCESS")
-      ? "Smooth Print svarte SUCCESS."
+      ? "Smooth Print meldte at tilkoblingen lyktes."
       : null
 
   useEffect(() => {
@@ -307,7 +297,7 @@ export function SetupFlow({
     const next = apiPath(`/oppsett?${setupSearch}`)
     if (`${window.location.pathname}${window.location.search}` === next) return
     // replaceState keeps the wizard from remounting on each step; Next's router does
-    // not track it, so help links must pass this query back explicitly (see bluetooth).
+    // not track it, so help pages link back to a concrete `step` instead of history.back().
     window.history.replaceState(window.history.state, "", next)
   }, [setupSearch])
 
@@ -407,7 +397,7 @@ export function SetupFlow({
           <div className="w-full max-w-sm rounded-2xl bg-[var(--color-black-3)] px-6 py-7">
             <p className="text-4xl leading-tight">{TEST_NAME}</p>
             <p className="mt-3 text-xl opacity-80">{TEST_LINE2}</p>
-            <p className="mt-5 font-mono text-xs tracking-wide opacity-45">Sjekker ingen ekte deltaker</p>
+            <p className="mt-5 font-mono text-xs tracking-wide opacity-45">Sjekker ikke inn noen deltaker</p>
           </div>
         ) : current.kind === "connect" && printer ? (
           <div className="w-full rounded-2xl bg-[var(--color-bg-surface)] px-5 py-6">
@@ -421,13 +411,13 @@ export function SetupFlow({
                 <p className="mt-1 font-mono text-lg break-all">{printer.serial}</p>
               </>
             ) : (
-              <p className="mt-4 text-sm opacity-60">Ingen serienummer — iOS over Bluetooth kan trenge det.</p>
+              <p className="mt-4 text-sm opacity-60">Mangler serienummer. iPhone trenger det for Bluetooth.</p>
             )}
             <p className="mt-4 font-mono text-sm opacity-60">{printer.model}</p>
             {connectOkHint ? <p className="mt-4 text-sm text-[var(--color-fg-brand)]">{connectOkHint}</p> : null}
           </div>
         ) : current.kind === "connect" && !printer ? (
-          <p className="text-base opacity-70">Ingen printerdata. Åpne oppsettet fra klistremerket.</p>
+          <p className="text-base opacity-70">Mangler printeropplysninger. Åpne oppsettet fra QR-koden på printeren.</p>
         ) : current.kind === "install" || current.kind === "guide" || current.kind === "confirm" ? (
           <img
             src={current.image}
@@ -491,7 +481,7 @@ export function SetupFlow({
             />
             {platform === "android"
               ? "Printeren er valgt, og Smooth Print er lukket"
-              : "Jeg ser printeren i Smooth Print"}
+              : "Printeren er valgt i Smooth Print"}
           </label>
         ) : null}
 

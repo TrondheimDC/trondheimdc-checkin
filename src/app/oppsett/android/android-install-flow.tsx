@@ -39,7 +39,7 @@ const steps = [
   {
     image: "/oppsett/android-apne-fil.png",
     title: "Åpne filen på nytt",
-    body: "Gå deretter tilbake, og åpne filen på nytt.",
+    body: "Gå tilbake og åpne filen på nytt.",
   },
 ]
 
