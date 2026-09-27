@@ -25,7 +25,7 @@ const SETUP_KEY = "tdc-checkin-printer-seen"
 const iconButtonClass =
   "scan-icon-btn flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
 
-export function Scanner() {
+export function Scanner({ stasjonName }: { stasjonName?: string }) {
   const stats = useQuery({
     queryKey: ["attendee-stats"],
     queryFn: async () => {
@@ -213,14 +213,24 @@ export function Scanner() {
             )}
           </button>
         </div>
-        <Link
-          href="/oppsett"
-          className={iconButtonClass}
-          style={{ animationDelay: "160ms" }}
-          aria-label="Oppsett"
-        >
-          <Settings className="size-6" />
-        </Link>
+        <div className="flex items-center gap-2">
+          {stasjonName ? (
+            <span
+              className="scan-icon-btn flex h-12 items-center rounded-full bg-black/55 px-4 text-sm font-medium text-white backdrop-blur-md"
+              style={{ animationDelay: "140ms" }}
+            >
+              {stasjonName}
+            </span>
+          ) : null}
+          <Link
+            href="/innstillinger"
+            className={iconButtonClass}
+            style={{ animationDelay: "160ms" }}
+            aria-label="Innstillinger"
+          >
+            <Settings className="size-6" />
+          </Link>
+        </div>
       </div>
 
       <div className="relative z-10 flex flex-1 items-center justify-center px-7">
