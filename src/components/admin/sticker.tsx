@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { LoaderCircle, Printer, QrCode } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { fitStickerQrCellSize } from "@/lib/lbx-patch"
 import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
 import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import {
@@ -35,7 +36,15 @@ export function StickerPreview({ name, url }: { name: string; url: string }) {
   )
 }
 
-export function ShowStickerQrButton({ name, url }: { name: string; url: string }) {
+export function ShowStickerQrButton({
+  name,
+  url,
+  description = "Skann koden for å koble telefonen i Smooth Print.",
+}: {
+  name: string
+  url: string
+  description?: string
+}) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -48,9 +57,7 @@ export function ShowStickerQrButton({ name, url }: { name: string; url: string }
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogTitle>QR for {name}</DialogTitle>
-          <DialogDescription>
-            Skann koden for å koble telefonen i Smooth Print.
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
           <div className="mt-4 flex justify-center">
             <StickerPreview name={name} url={url} />
           </div>
@@ -67,7 +74,26 @@ export function ShowStickerQrButton({ name, url }: { name: string; url: string }
   )
 }
 
-export function PrintStickerButton({ name, url }: { name: string; url: string }) {
+export function PrintStickerButton({
+  name,
+  url,
+  fallbackPath = "/admin/printers",
+  templateFile = "printer.lbx",
+}: {
+  name: string
+  url: string
+  /** Path for Android intent fallback when Smooth Print is missing. */
+  fallbackPath?: string
+  /**
+   * `printer.lbx` prints the /oppsett setup URL as-is (known good). Any
+   * other template gets its QR cellSize fitted to the actual data length
+   * before printing — `printer.lbx`'s QR cell size is a fixed pt value, but
+   * QR version (module count) scales with data length, so the same cell
+   * size renders a much smaller QR for a short stasjon login token than for
+   * the long setup URL. `stasjon.lbx` uses this path.
+   */
+  templateFile?: string
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,7 +101,10 @@ export function PrintStickerButton({ name, url }: { name: string; url: string })
     setError(null)
     setBusy(true)
     try {
-      const fileBase64 = await loadTemplateBase64("printer.lbx")
+      let fileBase64 = await loadTemplateBase64(templateFile)
+      if (templateFile !== "printer.lbx") {
+        fileBase64 = await fitStickerQrCellSize(fileBase64, url)
+      }
       const input = {
         fileBase64,
         paperSizeId: DEFAULT_PAPER_SIZE_ID,
@@ -87,7 +116,7 @@ export function PrintStickerButton({ name, url }: { name: string; url: string })
         platform === "android" && supportsAndroidIntent()
           ? buildAndroidStickerIntent({
               ...input,
-              fallbackUrl: `${window.location.origin}${apiPath("/admin/printers")}`,
+              fallbackUrl: `${window.location.origin}${apiPath(fallbackPath)}`,
             })
           : buildStickerPrintUrl(input)
       window.location.href = href

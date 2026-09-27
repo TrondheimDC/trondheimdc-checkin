@@ -64,3 +64,86 @@ export function StickerIllustration() {
     </svg>
   )
 }
+
+/** Printer linked to a door / stasjon (inventory pick). */
+export function LinkedPrinterIllustration() {
+  return (
+    <svg
+      viewBox="0 0 280 180"
+      className="h-auto w-full"
+      role="img"
+      aria-label="Printer koblet til innsjekkstasjon"
+    >
+      <rect x="70" y="36" width="140" height="88" rx="12" fill="#1a1a1a" />
+      <rect x="86" y="52" width="78" height="40" rx="4" fill="#292929" />
+      <rect x="90" y="56" width="70" height="22" rx="2" fill="#9bf7a9" opacity="0.4" />
+      <rect x="172" y="56" width="26" height="36" rx="4" fill="#0f0f0f" />
+      <circle cx="185" cy="74" r="5" fill="#363636" stroke="#9bf7a9" strokeWidth="1.5" />
+      <text x="140" y="112" textAnchor="middle" fill="#fefefe" fontSize="11" fontFamily="sans-serif">
+        Velg i inventaret
+      </text>
+      <path d="M140 128v18" stroke="#9bf7a9" strokeWidth="3" strokeLinecap="round" />
+      <path d="M132 140l8 10 8-10" fill="none" stroke="#9bf7a9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/** Login QR sticker placed on the underside of the printer. */
+export function LoginQrUnderPrinterIllustration() {
+  return (
+    <svg
+      viewBox="0 0 280 180"
+      className="h-auto w-full"
+      role="img"
+      aria-label="Innloggings-QR limt under printeren"
+    >
+      {/* Desk */}
+      <rect x="28" y="148" width="224" height="12" rx="2" fill="#363636" />
+
+      {/* Printer body */}
+      <rect x="64" y="36" width="152" height="72" rx="10" fill="#1a1a1a" />
+      <rect x="76" y="48" width="88" height="36" rx="4" fill="#292929" />
+      <rect x="80" y="52" width="80" height="20" rx="2" fill="#9bf7a9" opacity="0.35" />
+      <rect x="172" y="54" width="32" height="28" rx="4" fill="#0f0f0f" />
+      <circle cx="188" cy="68" r="6" fill="#363636" stroke="#9bf7a9" strokeWidth="1.5" />
+      <text x="140" y="98" textAnchor="middle" fill="#fefefe" fontSize="10" fontFamily="sans-serif">
+        QL-820
+      </text>
+
+      {/* Gap under printer — sticker on underside */}
+      <g transform="translate(108 112)">
+        <rect x="0" y="0" width="64" height="34" rx="4" fill="#fefefe" />
+        <text
+          x="32"
+          y="11"
+          textAnchor="middle"
+          fill="#0f0f0f"
+          fontSize="7"
+          fontFamily="sans-serif"
+          fontWeight="700"
+        >
+          Inngang A
+        </text>
+        <rect x="16" y="14" width="32" height="16" fill="#0f0f0f" />
+        <rect x="19" y="16" width="7" height="7" fill="#fefefe" />
+        <rect x="38" y="16" width="7" height="7" fill="#fefefe" />
+        <rect x="19" y="26" width="7" height="2" fill="#fefefe" />
+        <rect x="30" y="21" width="4" height="4" fill="#fefefe" />
+      </g>
+
+      <path
+        d="M204 88c14 12 22 28 18 44"
+        fill="none"
+        stroke="#9bf7a9"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path d="M216 126l8 10-14 1" fill="#9bf7a9" />
+      <text x="232" y="152" textAnchor="middle" fill="#fefefe" fontSize="11" fontFamily="sans-serif">
+        Under printeren
+      </text>
+    </svg>
+  )
+}
+
+
