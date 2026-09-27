@@ -29,6 +29,27 @@
   --sidebar-accent-foreground: #fefefe;
   --sidebar-border: rgb(255 255 255 / 12%);
   --sidebar-ring: #9bf7a9;
+
+  /* shadcn / better-auth-ui tokens (mapped onto the app palette) */
+  --background: var(--color-bg-base);
+  --foreground: var(--color-fg-base);
+  --card: var(--color-bg-surface);
+  --card-foreground: var(--color-fg-base);
+  --popover: var(--color-bg-surface);
+  --popover-foreground: var(--color-fg-base);
+  --primary: var(--color-fg-brand);
+  --primary-foreground: var(--color-fg-always-dark);
+  --secondary: var(--color-black-3);
+  --secondary-foreground: var(--color-fg-base);
+  --muted: var(--color-black-3);
+  --muted-foreground: rgb(254 254 254 / 70%);
+  --accent: var(--color-bg-surface);
+  --accent-foreground: var(--color-fg-base);
+  --destructive: var(--color-bg-danger);
+  --border: rgb(255 255 255 / 15%);
+  --input: rgb(255 255 255 / 15%);
+  --ring: var(--color-fg-brand);
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -47,6 +68,27 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
 html,
@@ -557,6 +599,113 @@ button.checkin-btn.checkin-btn--checked:hover {
     opacity: 1;
     transform: none;
   }
+
+  .auth-glow-a,
+  .auth-glow-b {
+    animation: none;
+  }
+
+  .auth-card,
+  .auth-mark {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes auth-glow-drift-a {
+  0%,
+  100% {
+    transform: translate(-8%, -6%) scale(1);
+  }
+  50% {
+    transform: translate(4%, 6%) scale(1.15);
+  }
+}
+
+@keyframes auth-glow-drift-b {
+  0%,
+  100% {
+    transform: translate(6%, 4%) scale(1);
+  }
+  50% {
+    transform: translate(-6%, -8%) scale(1.1);
+  }
+}
+
+@keyframes auth-mark-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-glow-a {
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 60vw;
+  height: 60vw;
+  max-width: 640px;
+  max-height: 640px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-fg-brand) 26%, transparent),
+    transparent 70%
+  );
+  filter: blur(60px);
+  animation: auth-glow-drift-a 14s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.auth-glow-b {
+  position: absolute;
+  bottom: -25%;
+  right: -12%;
+  width: 55vw;
+  height: 55vw;
+  max-width: 560px;
+  max-height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-fg-brand) 16%, transparent),
+    transparent 70%
+  );
+  filter: blur(70px);
+  animation: auth-glow-drift-b 18s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.auth-mark {
+  animation: auth-mark-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-card {
+  position: relative;
+  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--color-bg-surface) 78%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-fg-brand) 20%, transparent),
+    0 24px 60px -20px color-mix(in srgb, black 70%, transparent),
+    0 0 48px -12px color-mix(in srgb, var(--color-fg-brand) 25%, transparent);
+  animation: auth-card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
 }
 
 .dark {
