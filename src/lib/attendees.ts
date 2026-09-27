@@ -48,13 +48,21 @@ export const attendeeRepository: AttendeeRepository = {
 
   async search(query, { includeCheckedIn }) {
     const needle = query.trim()
-    if (!needle) return []
-    const pattern = likePattern(needle)
-    const textMatch = or(like(attendees.name, pattern), like(attendees.company, pattern))
-    const where = includeCheckedIn
-      ? and(active, textMatch)
-      : and(active, textMatch, isNull(attendees.checkedInAt))
-    return db.select().from(attendees).where(where).limit(20)
+    const conditions = [active]
+    if (needle) {
+      const pattern = likePattern(needle)
+      conditions.push(or(like(attendees.name, pattern), like(attendees.company, pattern))!)
+    }
+    if (!includeCheckedIn) conditions.push(isNull(attendees.checkedInAt))
+    // No query yet: browsing the roster, not narrowing a search — allow more rows,
+    // since staff are scanning the whole list rather than picking from a short match.
+    const limit = needle ? 20 : 200
+    return db
+      .select()
+      .from(attendees)
+      .where(and(...conditions))
+      .orderBy(attendees.name)
+      .limit(limit)
   },
 
   async stats() {
