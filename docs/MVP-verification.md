@@ -25,11 +25,11 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
-| 1 | Fresh `/oppsett` shows install → path choice (Skann QR / Manuelt) → ends on test print | ☐ | ☐ | No pop-in / broken empty states |
-| 2 | **Skann QR** path: scan admin sticker (or open `/oppsett?path=qr&…`) → Smooth Print connect opens | ☐ | ☐ | Note callback / success UX limits |
-| 3 | After QR connect, printer is usable for print (or failure is obvious) | ☐ | ☐ | If hardware connect fails, document in RESEARCH.md; keep manual path |
-| 4 | **Manuelt** path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☐ | ☐ | |
-| 5 | Test print produces a valid label on DK-11208 | ☐ | ☐ | |
+| 1 | Fresh `/oppsett`: install → printer BT on → OS pair → Smooth Print select (or sticker connect) → test print | ☐ | ☐ | Linear on both; no in-app Skann QR. Android: force-close Smooth Print |
+| 2 | Sticker deeplink (`/oppsett?path=qr&…`): connect opens Smooth Print after OS pair | ☐ | ☐ | |
+| 3 | After connect, printer is usable for print (or failure is obvious) | ☐ | ☐ | If hardware connect fails, document in RESEARCH.md; keep manual confirm |
+| 4 | Manual confirm path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☐ | ☐ | Matching codes on phone + printer |
+| 5 | Test print produces a valid label on DK-11208 | ☐ | ☐ | Android: no print callbacks; overlay dialog only if Smooth Print was closed |
 | 6 | Returning to `/oppsett` later is still usable (re-pair / re-test) | ☐ | ☐ | |
 
 ### iOS-specific
@@ -49,14 +49,15 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 | 12 | Fallback when no APK is active still reaches a download | ☐ | Brother agreement page |
 | 13 | Missing Smooth Print: intent / fallback to `/oppsett` works | ☐ | |
 | 14 | Connect + print via custom scheme / intent from Chrome | ☐ | |
+| 15 | Print overlay dialog (no callbacks): Smooth Print **closed** → dialog; Smooth Print **in background** → switches into app | ☐ | Staff must force-close after install and after selecting printer |
 
 ### Admin → phone sticker loop
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 15 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
-| 16 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☐ | Confirm `printer.lbx` on real QL |
-| 17 | Scanning that sticker on phone opens the right connect flow | ☐ | Both OS |
+| 16 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
+| 17 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☐ | Confirm `printer.lbx` on real QL |
+| 18 | Scanning that sticker on phone opens the right connect flow | ☐ | Both OS; Android still requires OS Bluetooth pair first |
 
 ---
 
@@ -64,18 +65,18 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
-| 18 | Real ticket QR matches totalrapport `Barcode` → correct attendee | ☑ | ☑ | Confirmed |
-| 19 | Search by name / company finds attendees | ☐ | ☑ | Android happy path done; iOS awaiting hardware |
-| 20 | Confirm → print badge (`NAME` / `LINE2`) on DK-11208 | ☐ | ☑ | Android verified; iOS Safari not yet on hardware |
-| 21 | Reprint / second print for same attendee behaves acceptably | ☐ | ☐ | |
-| 22 | Camera permission denied / missing: usable recovery | ☐ | ☐ | Search still works |
-| 23 | One phone ↔ one printer topology agreed for the door | ☐ | ☐ | Second-phone “steal” Bluetooth not documented by Brother |
+| 19 | Real ticket QR matches totalrapport `Barcode` → correct attendee | ☑ | ☑ | Confirmed |
+| 20 | Search by name / company finds attendees | ☐ | ☑ | Android happy path done; iOS awaiting hardware |
+| 21 | Confirm → print badge (`NAME` / `LINE2`) on DK-11208 | ☐ | ☑ | Android verified; iOS Safari not yet on hardware |
+| 22 | Reprint / second print for same attendee behaves acceptably | ☐ | ☐ | |
+| 23 | Camera permission denied / missing: usable recovery | ☐ | ☐ | Search still works |
+| 24 | One phone ↔ one printer topology agreed for the door | ☐ | ☐ | Second-phone “steal” Bluetooth not documented by Brother |
 
 Optional comparison (does not block MVP if current path is solid):
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 24 | Compare `fileattach` (base64) vs `filename=<https://…/badge.lbx>` | ☐ | Reliability, speed, template updates — see RESEARCH.md |
+| 25 | Compare `fileattach` (base64) vs `filename=<https://…/badge.lbx>` | ☐ | Reliability, speed, template updates — see RESEARCH.md |
 
 ---
 
@@ -83,12 +84,12 @@ Optional comparison (does not block MVP if current path is solid):
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 25 | CSV import via admin UI (counts / skipped rows make sense) | ☐ | Same rules as `pnpm import:attendees` |
-| 26 | CLI import still works as fallback | ☐ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
-| 27 | Re-import plan: near-event + morning-of | ☐ | Late signups / cancellations |
-| 28 | Auth: admin + innsjekkstasjon (magic link / 6-digit PIN); door + admin gated; `/oppsett` public | ☐ | Design: [auth-stasjoner.md](./auth-stasjoner.md) |
-| 29 | Conference Smooth Print APK uploaded and active | ☑ | Note Brother license/redistribution in README if needed |
-| 30 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | Camera + custom schemes need secure context |
+| 26 | CSV import via admin UI (counts / skipped rows make sense) | ☐ | Same rules as `pnpm import:attendees` |
+| 27 | CLI import still works as fallback | ☐ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
+| 28 | Re-import plan: near-event + morning-of | ☐ | Late signups / cancellations |
+| 29 | Auth: admin + innsjekkstasjon (magic link / 6-digit PIN); door + admin gated; `/oppsett` public | ☐ | Design: [auth-stasjoner.md](./auth-stasjoner.md) |
+| 30 | Conference Smooth Print APK uploaded and active | ☑ | Note Brother license/redistribution in README if needed |
+| 31 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | Camera + custom schemes need secure context |
 
 ---
 

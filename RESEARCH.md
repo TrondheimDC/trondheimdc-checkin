@@ -52,17 +52,67 @@ brotherwebprint://print?filename=<url-encoded lbx>&size=<paper size id>&copies=1
 - Margins match a working QL-820NWB sample: left 4.3 pt, right 4.4 pt, top 8.4 pt, bottom 8.5 pt.
 - Android also accepts `http://localhost:8088/print?...` and can return XML.
 - `successCallback` / `failureCallback` (both required together, per [optional parameters](https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/optional_parameters/)) are documented for a native app's own custom scheme (Brother's example: `sendurlscheme://successCallback?result=`), which a website does not own. But they work with a plain **https** URL on iOS — Smooth Print hands the URL to the OS, and Safari always claims http(s), unlike an arbitrary unclaimed custom scheme. `src/lib/print-url.ts` sends the **same** https URL for both; Brother only requires the pair to be present, not distinct.
-- **Observed on hardware (one iPhone, one success print, current Smooth Print version — not repeated, not tried on Android or on a failure) — how the callback is assembled.** Smooth Print takes the callback URL string verbatim, concatenates the result onto the end of it, then appends its own `&errorcode=…` (lowercase). It is plain string concatenation with no separator and no URL parsing, so the URL we hand over **must end in a bare `key=`** for the result to land as a value. `?result=` gave back `?result=SUCCESS&errorcode=SUCCESS`.
+- **Observed on hardware — how the callback is assembled.** Smooth Print takes the callback URL string verbatim and concatenates the result onto the end of it. It is plain string concatenation with no separator and no URL parsing, so the URL we hand over **must end in a bare `key=`** for the result to land as a value. iOS (one iPhone, one success print) then also appends `&errorcode=SUCCESS` (lowercase): `?result=` came back as `?result=SUCCESS&errorcode=SUCCESS`. Android (one success print, 2026-09-27) does **not** append `errorcode`. The callback was only `?result=SUCCESS`, which is also what Brother's docs show for a successful print (`sendurlscheme://successCallback?result=SUCCESS`). The two apps do not build the same success URL.
 - **Same single test: a fragment did not survive the round trip.** Ending the callback in `#utskrift` came back as `/deltaker/<id>%23utskriftSUCCESS&errorcode=SUCCESS` — Smooth Print percent-encoded the `#`, so it landed *in the path* (Next.js then read the whole mess as the `[id]`), and the concatenation glued `SUCCESS` straight onto the hash text. This is consistent with the naive-concatenation theory above (nothing here suggests it would be flaky run-to-run on the same app version), but it is one data point, not a verified guarantee across Android, failure outcomes, or future Smooth Print updates. Doesn't matter for what's shipped today — the fragment approach was dropped in favor of the exact-query-match trick below, so nothing currently depends on this holding. Do not resurrect the fragment approach without retesting it.
-- **Confirmed on hardware:** the callback opens a **new Safari tab** each time, because the returned URL's query differs from the open tab's. Safari only reuses a tab for a URL it treats as *equivalent* — identical, or differing only by fragment ([Apple developer forum](https://developer.apple.com/forums/thread/105641)). Since the append always lands in path or query and `#` is stripped, **there is no way to shape this callback into an equivalent URL**, and therefore no known way to make it reuse the tab.
-  - **Implemented, not yet retested:** since the success shape is always exactly `?result=SUCCESS&errorcode=SUCCESS`, `src/components/print-button.tsx` now (iOS only) rewrites the current tab's address bar to that exact string via `replaceState` — no reload — *before* firing the print. If it succeeds, the callback's URL is now identical to what the tab already shows, which should make Safari switch back to this tab instead of opening a new one. A failure still carries an unpredictable error code, so it still opens a new tab — acceptable, since a failure needs visible attention anyway.
+- **Confirmed on hardware:** without the address-bar pre-set below, the callback opens a **new Safari tab** each time, because the returned URL's query differs from the open tab's. Safari only reuses a tab for a URL it treats as *equivalent* — identical, or differing only by fragment ([Apple developer forum](https://developer.apple.com/forums/thread/105641)). A fragment cannot be the difference (Smooth Print percent-encodes `#`), so the only equivalent URL is an exact match.
+  - **Confirmed on hardware (iOS retest):** `src/components/print-button.tsx` (iOS only) rewrites the current tab's address bar to exactly `?result=SUCCESS&errorcode=SUCCESS` via `replaceState` — no reload — *before* firing the print. A successful print's callback is that same string, Safari reuses the tab, and `replaceState` counts as the tab's URL for that match. A failure still carries an unpredictable error code, so it still opens a new tab — acceptable, since a failure needs visible attention anyway.
     - A `sessionStorage` flag (`tdc-print-pending`) guards against reading that pre-set URL as a real success if the tab is manually reloaded before Smooth Print actually calls back.
-    - Side effect when the trick works: no reload happens, so the app never gets a chance to *verify* the success (it was already assumed optimistically the moment the button was tapped, same as before this callback work existed) — only a failure (new tab) gets a real confirmed signal. Acceptable trade for avoiding a tab per badge.
-    - Genuinely unverified: whether Safari's tab-matching considers a `replaceState`-only change to the address bar (no real navigation) as equivalent to a URL requested by an external app. This is the one piece Apple's forum thread didn't cover — needs the iPhone retest.
+    - The reused tab still **fully reloads** (next bullet). The optimistic "printed" state from the button tap does not survive that reload; the callback's `result` is what marks success after the reload. A failure (new tab) is the only path that shows our error line on a page that was not pre-set.
   - **Confirmed on hardware: the return causes a full page reload**, even into the matched tab (top-level app shell + attendee query both re-fetch, visible as the loading skeletons flashing). This is *not* caused by either of our own `history.replaceState` calls — `replaceState` never triggers a navigation or reload by spec; the reload comes from Smooth Print's `open(callbackURL)` handoff itself, which is a genuine cross-app navigation request regardless of whether the URL matches. There is no known way to avoid this reload while the callback still has to land on an https URL.
   - **Tried and reverted: `visibilitychange`-based early navigation.** The idea was a hook that watches for the tab regaining visibility while a print is in flight, and does an immediate client-side `router.push("/")` instead of waiting on the callback's reload — reasoning that Smooth Print only *backgrounds* the tab (no navigation happens until the callback fires), so our JS is still alive and could react faster. Found a real bug before ever testing it on hardware: the "print in flight" flag was only ever cleared by the `visibilitychange` handler, but the confirmed reload above means `visibilitychange` never fires on a successful print (a fresh page load that's already visible has no hidden→visible transition to detect) — so the flag would stick at "in flight" forever, and the **next unrelated app-switch** (checking a notification, anything) would silently navigate staff away from whatever they were doing. Reverted rather than patched, since the feature's actual benefit was still unconfirmed (unknown whether visibility ever wins the race against the reload in the first place) while the bug was certain. Not present in the current code.
 - The print URL has no printer parameter. Smooth Print uses the printer registered in the app.
 - iOS Safari only opens a custom scheme from a user tap. The app sets `window.location.href` inside the button handler.
+
+### Android: omit print callbacks — decision 2026-09-27
+
+**Shipped:** badge prints on Android do **not** send `successCallback` / `failureCallback`. iOS keeps the pair and the address-bar pre-set. `PrintButton` gates this on `platform === "ios"`. Setup test print and `/admin/testutskrift` also omit the pair on Android (and setup omits it on iOS too — staff confirm the label in the wizard).
+
+Callbacks do fire on Android with an https URL. The success shape is only `?result=SUCCESS` (no `errorcode`, unlike iOS). Every return opened a **new Chrome tab** (full page load). That is worse check-in UX than Smooth Print's own result dialog, which appears when the callback pair is omitted and dismisses back onto the same tab with no reload.
+
+**Confirmed on hardware (2026-09-27): the overlay dialog only appears if Smooth Print is not already running.** If Smooth Print is open in the background (recent apps), a print without callbacks **switches to the Smooth Print app** and stays there — no dialog over Chrome. Staff must force-close Smooth Print (swipe away from recents) after install and after adding/selecting a printer. Documented in the Android `/oppsett` copy.
+
+Chrome decides tab reuse in `IntentHandler.getTabOpenType` ([current source](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/android/java/src/org/chromium/chrome/browser/IntentHandler.java)). Default for a URL from another app is a new tab. Reuse needs intent extras (`REUSE_URL_MATCHING_TAB_ELSE_NEW_TAB`, or `Browser.EXTRA_APPLICATION_ID`) that a callback URL string cannot set, and Smooth Print concatenates the result onto the end of that string. We never confirmed whether Smooth Print sets `REUSE_URL_MATCHING_TAB_ELSE_NEW_TAB`: the first Android pre-set used the iOS query (`…&errorcode=SUCCESS`), so the URLs could not match. Product call is to drop the callback rather than keep chasing tab reuse.
+
+Also:
+
+- Brother: if the callback pair is set, "the printing outcomes will not be displayed in Smooth Print." Without it, the dialog is the success/failure signal — **only when Smooth Print was not already in the background**.
+- Check-in is already committed before the scheme fires. The callback is not what records it.
+- Setup `connectcallback` stays — the wizard needs that return. After connect on Android, staff must still force-close Smooth Print before the test print.
+- iOS cannot drop the print callback: without it, Smooth Print stays in front (2026-09-26 field test).
+
+**Not the next step: `http://localhost:8088/print` (Android only).** Brother documents an HTTP print that returns XML instead of launching a URL. Unverified; CORS, long `fileattach` GETs, and whether the port listens can all kill it. Not needed for the omit decision.
+
+### Setup order — decision 2026-09-27
+
+`/oppsett` is a linear flow on **both** iOS and Android. No in-app “Skann QR” / “Manuelt” fork. Sticker deeplink still supplies printer fields for the connect step.
+
+1. **Install Smooth Print** (Android: force-close it afterward so it is not in the background).
+2. **Turn on Bluetooth** on the printer (Menu → Bluetooth).
+3. **OS-level Bluetooth pairing** (Settings → Bluetooth → select printer). Phone and printer each show a code — they must match; OK on the printer and accept on the phone.
+4. **Select the printer in Smooth Print** (manual confirm) **or** sticker deeplink → `brotherwebprint://connect` (when printer fields are already in the URL). Android: force-close Smooth Print again.
+5. **Test print** (no print callbacks on Android) — on Android expect the overlay dialog over Chrome.
+
+In-app camera scan of the printer sticker is not offered; open `/oppsett` from the sticker link (or enroll fields) instead.
+
+### Connect URL scheme (verified against Brother docs 2026-09-27)
+
+Brother: [Connect printer](https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/connect_printer/)
+
+```
+brotherwebprint://connect?connecttype=BT&connectaddress=<MAC>&serialnum=<SN>&model=<model>&connectcallback=<url ending in key=>
+```
+
+Our `buildConnectQuery` / `buildConnectUrl` / `buildAndroidConnectIntent` match that:
+
+| Parameter | Ours | Notes |
+|---|---|---|
+| `connecttype` | `BT` or `WiFi` | |
+| `connectaddress` | MAC or IP, uppercased | Bluetooth MAC for BT |
+| `serialnum` | if non-empty | Brother: **required on iOS** for QL (and MW/PJ/PT/RJ/TD) over Bluetooth |
+| `model` | e.g. QL-820NWBc | |
+| `connectcallback` | https URL ending in `result=` | Same concatenation pattern as print callbacks |
+
+Find/search (`brotherwebprint://search?…`) is documented separately and not used in the app yet. Android also has `http://localhost:8088/connect` (XML response) — unused.
 
 ### `fileattach` (base64) vs hosted URL
 
@@ -96,7 +146,7 @@ Worth trying as a **poll** before / after print: is the printer connected, ready
 - Find (Bluetooth search): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/find_printer/
 - Connect (Bluetooth MAC / iOS QL serial, or Wi-Fi IP): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/connect_printer/
 
-**Priority spike:** can a **setup QR** (or https page that opens the scheme) run find/connect so scanning pairs the phone to a known printer? Tracked in [docs/TODO.md](docs/TODO.md) under High priority. Not implemented yet; result delivery is via custom schemes.
+**Priority:** can a **setup QR** run find/connect *after* OS Bluetooth pairing so scanning registers the printer in Smooth Print without the manual confirm step? Tracked in [docs/TODO.md](docs/TODO.md). Connect scheme is wired (`buildConnectUrl`); `/oppsett` puts OS pair before connect on both platforms.
 
 ### AirPrint — possible way to skip Smooth Print on iOS entirely (unverified)
 
@@ -120,7 +170,11 @@ Bluetooth steps for the QL-820NWB, from https://support.brother.com/g/b/faqend.a
 4. The pairing is kept across power off.
 5. iOS can drop the link when the phone moves away. Reconnect from Bluetooth settings.
 
-This app does not call connect or search yet. Staff register the printer inside Smooth Print, then confirm they can see it (`/oppsett`).
+**Automatic Reconnection** (printer menu → Bluetooth → Automatic Reconnection): when ON, the printer keeps trying the last paired phone and may not show up for a new one. Staff help at `/oppsett/bluetooth` turns it OFF, power-cycles, pairs the new phone, then optionally turns it back ON.
+
+**Bluetooth icon on the printer display (Brother QL-820NWB manual):** a *flashing* Bluetooth icon means Automatic Reconnection is **On** and the printer is **not currently connected** — not “ready to pair.” Do not tell staff that a flashing icon means pairing mode. The help page omits that claim.
+
+`/oppsett` walks staff through OS Bluetooth pair, then Smooth Print select or sticker `connect`.
 
 ## Label
 
@@ -164,6 +218,6 @@ Tracked under [docs/TODO.md → Desktop printing](docs/TODO.md#desktop-printing-
 - What iOS Safari does when Smooth Print is not installed. Android uses an `intent://` URL with `package=com.brother.ptouch.smoothprint` and `S.browser_fallback_url` to `/oppsett` when the APK is missing. iOS only gets a soft “Skjedde det ingenting?” hint if the page is still visible after 2 s (Safari usually backgrounds when the app opens).
 - Whether a second phone can connect while the first still holds Bluetooth. A third-party note says one Bluetooth device at a time. Brother’s FAQ does not say that.
 - Whether `filename=<https URL>` without `fileattach` is as reliable as base64 attach on both platforms.
-- Whether the `print` scheme has any callback parameter — see iOS field test above; Smooth Print does not return to Safari after printing.
+- Android badge print without the callback pair: overlay dialog over Chrome **only when Smooth Print is not already in the background**. Confirmed; if the app is in recents, print switches into Smooth Print. See the Android omit decision above.
 - A QR code that contains raw Bluetooth pairing data outside Smooth Print’s schemes. Not found in the Smooth Print manual or the QL-820NWBc Bluetooth FAQ.
 - Which cipher `@libsql/client` uses for `encryptionKey` on the installed version. The app follows the same `encryptionKey` option `tdc-sales` uses.

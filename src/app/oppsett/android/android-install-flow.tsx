@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { apiPath } from "@/lib/utils"
 
 const steps = [
   {
@@ -81,7 +82,7 @@ export function AndroidInstallFlow() {
       <div className="mt-auto flex shrink-0 flex-col gap-2 pt-3">
         {last ? (
           <Button asChild className="h-12 w-full text-base">
-            <Link href="/oppsett">Tilbake til oppsett</Link>
+            <Link href={apiPath("/oppsett?step=install&primed=1")}>Tilbake til oppsett</Link>
           </Button>
         ) : (
           <Button className="h-12 w-full text-base" onClick={() => setStep((value) => value + 1)}>
@@ -94,7 +95,7 @@ export function AndroidInstallFlow() {
           </Button>
         ) : (
           <Button asChild variant="ghost" className="h-12 w-full text-base">
-            <Link href="/oppsett">Avbryt</Link>
+            <Link href={apiPath("/oppsett?step=install&primed=1")}>Avbryt</Link>
           </Button>
         )}
       </div>

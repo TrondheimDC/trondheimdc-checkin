@@ -1,12 +1,15 @@
 "use client"
 
-import { LoaderCircle, Printer, QrCode, Wrench } from "lucide-react"
+import { LoaderCircle, Printer } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { SetupQrScan } from "@/components/setup-qr-scan"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { platformFromNavigator, supportsAndroidIntent, type PhonePlatform } from "@/lib/platform"
+import {
+  refinePlatform,
+  supportsAndroidIntent,
+  type PhonePlatform,
+} from "@/lib/platform"
 import {
   buildAndroidConnectIntent,
   buildAndroidPrintIntent,
@@ -32,18 +35,6 @@ type Step =
       id: "install"
       kind: "install"
       image: string
-      title: string
-      body: string
-    }
-  | {
-      id: "choose"
-      kind: "choose"
-      title: string
-      body: string
-    }
-  | {
-      id: "scan"
-      kind: "scan"
       title: string
       body: string
     }
@@ -74,12 +65,20 @@ type Step =
       body: string
     }
 
-const INSTALL: Step = {
+const INSTALL_IOS: Step = {
   id: "install",
   kind: "install",
   image: "/oppsett/smooth-print.jpg",
   title: "Installer Smooth Print",
   body: "Last ned appen, og kom tilbake hit.",
+}
+
+const INSTALL_ANDROID: Step = {
+  id: "install",
+  kind: "install",
+  image: "/oppsett/smooth-print.jpg",
+  title: "Installer Smooth Print",
+  body: "Last ned appen. Når den er installert: lukk den helt, så den ikke ligger i bakgrunnen. Ellers bytter utskrift til appen i stedet for dialogen.",
 }
 
 const BT_ON: Step = {
@@ -90,163 +89,141 @@ const BT_ON: Step = {
   body: "På printeren: gå til Menu → Bluetooth, og slå den på.",
 }
 
-const CHOOSE: Step = {
-  id: "choose",
-  kind: "choose",
-  title: "Hvordan vil du koble til?",
-  body: "Har printeren klistremerke med QR, skann den. Ellers gjør du det manuelt.",
-}
-
-const SCAN: Step = {
-  id: "scan",
-  kind: "scan",
-  title: "Skann QR på printeren",
-  body: "Hold telefonen mot klistremerket.",
-}
-
-const CONNECT: Step = {
+const CONNECT_IOS: Step = {
   id: "connect",
   kind: "connect",
   title: "Koble til i Smooth Print",
-  body: "Ett trykk åpner Smooth Print og velger denne printeren. Første gang kan telefonen fortsatt be om Bluetooth-paring.",
+  body: "Ett trykk åpner Smooth Print og velger denne printeren.",
 }
 
-const PAIR: Step = {
+const CONNECT_ANDROID: Step = {
+  id: "connect",
+  kind: "connect",
+  title: "Legg til i Smooth Print",
+  body: "Ett trykk legger printeren inn i Smooth Print. Når det er gjort: lukk Smooth Print helt (sveip bort fra nylige apper), ellers blir utskrift en app-bytte i stedet for dialogen.",
+}
+
+const PAIR_IOS: Step = {
   id: "pair",
   kind: "guide",
   image: "/oppsett/oppsett-paring.png",
   title: "Koble til telefonen",
-  body: "Åpne Innstillinger → Bluetooth, og velg QL-820NWB. Oppgi paringskoden som vises på telefonen. Den kan også dukke opp på printerens skjerm.",
+  body: "Innstillinger → Bluetooth → QL-820NWB(XXXX). Kodene skal matche — OK på printeren og telefonen.",
 }
 
-const CONFIRM: Step = {
+const PAIR_ANDROID: Step = {
+  id: "pair",
+  kind: "guide",
+  image: "/oppsett/oppsett-paring.png",
+  title: "Par i telefonens Bluetooth",
+  body: "Innstillinger → Bluetooth → QL-820NWB(XXXX). Kodene skal matche — OK på printeren og telefonen.",
+}
+
+const CONFIRM_IOS: Step = {
   id: "confirm",
   kind: "confirm",
   image: "/oppsett/oppsett-bekreft.png",
   title: "Se printeren i appen",
-  body: "Åpne Smooth Print. QL-820NWBc skal være valgt i appen.",
+  body: "Åpne Smooth Print. QL-820NWB(XXXX) skal være valgt i appen.",
 }
 
-const TEST_PRINT: Step = {
+const CONFIRM_ANDROID: Step = {
+  id: "confirm",
+  kind: "confirm",
+  image: "/oppsett/oppsett-bekreft.png",
+  title: "Velg printeren i Smooth Print",
+  body: "Åpne Smooth Print og velg QL-820NWB(XXXX). Når den er valgt: lukk Smooth Print helt (sveip bort fra nylige apper). Hvis appen ligger i bakgrunnen, bytter utskrift til appen i stedet for dialogen.",
+}
+
+const TEST_PRINT_IOS: Step = {
   id: "test-print",
   kind: "test-print",
   title: "Skriv ut et testskilt",
   body: "Én utskrift viser at Smooth Print åpnes og at navneskiltet kommer ut av printeren.",
 }
 
-/** Shared before the fork — not mixed into a progress total that later changes. */
-const PRELUDE: Step[] = [INSTALL, BT_ON, CHOOSE]
+const TEST_PRINT_ANDROID: Step = {
+  id: "test-print",
+  kind: "test-print",
+  title: "Skriv ut et testskilt",
+  body: "Smooth Print skal vise en dialog over denne siden. Hvis appen åpnes i stedet, lukk den helt (sveip bort) og prøv igjen.",
+}
 
-function buildPathSteps(path: SetupPath, omitScan: boolean): Step[] {
+/**
+ * Linear setup on both platforms. Sticker deeplink (`path=qr` + printer fields) uses
+ * connect after OS pair; plain /oppsett uses manual confirm in Smooth Print.
+ * In-app camera scan is not offered.
+ */
+function buildPathSteps(path: SetupPath, platform: PhonePlatform): Step[] {
+  const install = platform === "android" ? INSTALL_ANDROID : INSTALL_IOS
+  const pair = platform === "android" ? PAIR_ANDROID : PAIR_IOS
+  const test = platform === "android" ? TEST_PRINT_ANDROID : TEST_PRINT_IOS
+
   if (path === "qr") {
-    return omitScan
-      ? [INSTALL, BT_ON, CONNECT, TEST_PRINT]
-      : [INSTALL, BT_ON, SCAN, CONNECT, TEST_PRINT]
+    const connect = platform === "android" ? CONNECT_ANDROID : CONNECT_IOS
+    return [install, BT_ON, pair, connect, test]
   }
-  return [INSTALL, BT_ON, PAIR, CONFIRM, TEST_PRINT]
+
+  const confirm = platform === "android" ? CONFIRM_ANDROID : CONFIRM_IOS
+  return [install, BT_ON, pair, confirm, test]
 }
 
-function pathStepIndex(path: SetupPath, id: Step["id"], omitScan: boolean) {
-  return buildPathSteps(path, omitScan).findIndex((item) => item.id === id)
-}
-
-function firstPathStepId(path: SetupPath, omitScan: boolean): Step["id"] {
-  if (path === "qr") return omitScan ? "connect" : "scan"
-  return "pair"
+function pathStepIndex(path: SetupPath, id: Step["id"], platform: PhonePlatform) {
+  return buildPathSteps(path, platform).findIndex((item) => item.id === id)
 }
 
 export type SetupStepId = Step["id"]
 
-function inferPathForStep(stepId: SetupStepId, fallback: SetupPath | null): SetupPath | null {
-  if (fallback) return fallback
-  if (stepId === "scan" || stepId === "connect") return "qr"
-  if (stepId === "pair" || stepId === "confirm") return "manual"
-  return fallback
-}
-
-type PendingResume = { path: SetupPath; stepId: SetupStepId }
-
 function resolveEntry(input: {
+  platform: PhonePlatform
   initialPath: SetupPath | null
   initialStep: SetupStepId | null
   initialPrinter: PrinterSetupParams | null
   afterConnect: boolean
   initialPrimed: boolean
 }): {
-  path: SetupPath | null
-  preludeStep: number
+  path: SetupPath
   step: number
   connected: boolean
-  pendingResume: PendingResume | null
 } {
-  const omitScan = Boolean(input.initialPrinter)
+  // Sticker URL with printer fields → connect after OS pair. Otherwise manual confirm.
+  const path: SetupPath = input.initialPrinter ? "qr" : "manual"
 
   if (input.afterConnect) {
-    const path = input.initialPath ?? "qr"
-    const at = pathStepIndex(path, "test-print", omitScan)
-    return { path, preludeStep: 0, step: at >= 0 ? at : 0, connected: true, pendingResume: null }
+    const at = pathStepIndex(path, "test-print", input.platform)
+    return { path, step: at >= 0 ? at : 0, connected: true }
   }
 
-  const stepId = input.initialStep
-  if (stepId) {
-    if (stepId === "choose" || (!input.initialPath && (stepId === "install" || stepId === "bt-on"))) {
-      const preludeIdx = PRELUDE.findIndex((item) => item.id === stepId)
-      return {
-        path: null,
-        preludeStep: preludeIdx >= 0 ? preludeIdx : 0,
-        step: 0,
-        connected: false,
-        pendingResume: null,
+  if (input.initialStep) {
+    const at = pathStepIndex(path, input.initialStep, input.platform)
+    if (at >= 0) {
+      const pairAt = pathStepIndex(path, "pair", input.platform)
+      // Fresh sticker deeplink (`step=connect`) must still walk install → BT → pair.
+      // Help links and refresh pass step=pair (or later) with primed=1 and should resume.
+      if (!input.initialPrimed && at > pairAt) {
+        return { path, step: 0, connected: false }
       }
-    }
-
-    const path = inferPathForStep(stepId, input.initialPath)
-    if (path) {
-      const at = pathStepIndex(path, stepId, omitScan)
-      if (at >= 0) {
-        // A sticker QR lands here directly (path=qr&step=connect). On a phone that has not
-        // been through this flow yet, still show "install app" / "printer Bluetooth on"
-        // first — a scan alone does not mean Smooth Print is installed. Once primed (this
-        // session already passed the prelude), a refresh/deeplink resumes at the real step.
-        if (input.initialPrinter && !input.initialPrimed) {
-          return {
-            path: null,
-            preludeStep: 0,
-            step: 0,
-            connected: false,
-            pendingResume: { path, stepId },
-          }
-        }
-        return { path, preludeStep: 0, step: at, connected: false, pendingResume: null }
-      }
-    }
-
-    const preludeIdx = PRELUDE.findIndex((item) => item.id === stepId)
-    if (preludeIdx >= 0) {
-      return { path: null, preludeStep: preludeIdx, step: 0, connected: false, pendingResume: null }
+      return { path, step: at, connected: false }
     }
   }
 
-  if (input.initialPath) {
-    return { path: input.initialPath, preludeStep: 0, step: 0, connected: false, pendingResume: null }
-  }
-
-  return { path: null, preludeStep: 0, step: 0, connected: false, pendingResume: null }
+  return { path, step: 0, connected: false }
 }
 
 function buildSetupSearch(input: {
-  path: SetupPath | null
+  path: SetupPath
   stepId: SetupStepId
   printer: PrinterSetupParams | null
   phaseConnected: boolean
   connectResult: string | null
 }): string {
   const params = new URLSearchParams()
-  if (input.path) params.set("path", input.path)
+  params.set("path", input.path)
   params.set("step", input.stepId)
-  // Marks that this browser session already passed the install/Bluetooth-on prelude, so a
-  // refresh or deeplink mid-flow resumes where staff left off instead of re-running it.
-  if (input.path) params.set("primed", "1")
+  // primed=1: staff have already been through the early steps in this session, so a
+  // refresh/deeplink may resume at `step`. Without it, a sticker URL with step=connect
+  // still starts at install (must not skip BT-on / OS pair).
+  params.set("primed", "1")
   if (input.printer) {
     params.set("address", input.printer.address)
     if (input.printer.serial) params.set("serial", input.printer.serial)
@@ -262,6 +239,8 @@ function buildSetupSearch(input: {
 
 export type SetupFlowProps = {
   androidUrl: string
+  /** From the request UA so the first paint matches Android vs iOS copy. */
+  initialPlatform?: PhonePlatform
   initialPath?: SetupPath | null
   initialStep?: SetupStepId | null
   initialPrinter?: PrinterSetupParams | null
@@ -272,6 +251,7 @@ export type SetupFlowProps = {
 
 export function SetupFlow({
   androidUrl,
+  initialPlatform = "other",
   initialPath = null,
   initialStep = null,
   initialPrinter = null,
@@ -280,17 +260,20 @@ export function SetupFlow({
   initialPrimed = false,
 }: SetupFlowProps) {
   const router = useRouter()
-  const omitScan = Boolean(initialPrinter)
+  const [platform, setPlatform] = useState<PhonePlatform>(initialPlatform)
   const [entry] = useState(() =>
-    resolveEntry({ initialPath, initialStep, initialPrinter, afterConnect, initialPrimed }),
+    resolveEntry({
+      platform: initialPlatform,
+      initialPath,
+      initialStep,
+      initialPrinter,
+      afterConnect,
+      initialPrimed,
+    }),
   )
-  const [path, setPath] = useState<SetupPath | null>(entry.path)
-  const [printer, setPrinter] = useState<PrinterSetupParams | null>(initialPrinter)
-  /** Index into PRELUDE while path is null. */
-  const [preludeStep, setPreludeStep] = useState(entry.preludeStep)
+  const [path] = useState<SetupPath>(entry.path)
+  const [printer] = useState<PrinterSetupParams | null>(initialPrinter)
   const [step, setStep] = useState(entry.step)
-  /** Sticker QR reached us before the prelude — resume into this path/step once it's done. */
-  const [pendingResume, setPendingResume] = useState<PendingResume | null>(entry.pendingResume)
   const [seen, setSeen] = useState(false)
   const [connectedOk, setConnectedOk] = useState(entry.connected)
   const [didConnect, setDidConnect] = useState(entry.connected)
@@ -298,22 +281,10 @@ export function SetupFlow({
   const [didPrint, setDidPrint] = useState(false)
   const [busy, setBusy] = useState(false)
   const [printError, setPrintError] = useState<string | null>(null)
-  const [platform, setPlatform] = useState<PhonePlatform>("other")
 
-  const pathSteps = useMemo(
-    () => (path ? buildPathSteps(path, omitScan) : null),
-    [path, omitScan],
-  )
-  const current: Step = pathSteps
-    ? (pathSteps[Math.min(step, pathSteps.length - 1)] ?? INSTALL)
-    : (PRELUDE[Math.min(preludeStep, PRELUDE.length - 1)] ?? INSTALL)
-
-  const progress =
-    pathSteps != null
-      ? { index: step, total: pathSteps.length }
-      : current.kind === "choose"
-        ? null
-        : { index: preludeStep, total: PRELUDE.length - 1 }
+  const pathSteps = useMemo(() => buildPathSteps(path, platform), [path, platform])
+  const current: Step = pathSteps[Math.min(step, pathSteps.length - 1)] ?? INSTALL_IOS
+  const progress = { index: step, total: pathSteps.length }
 
   const connectOkHint =
     connectResult != null && connectResult.toUpperCase().includes("SUCCESS")
@@ -321,39 +292,29 @@ export function SetupFlow({
       : null
 
   useEffect(() => {
-    setPlatform(platformFromNavigator())
-  }, [])
+    setPlatform(refinePlatform(initialPlatform))
+  }, [initialPlatform])
+
+  const setupSearch = buildSetupSearch({
+    path,
+    stepId: current.id,
+    printer,
+    phaseConnected: didConnect && current.id === "test-print",
+    connectResult,
+  })
 
   useEffect(() => {
-    const query = buildSetupSearch({
-      path,
-      stepId: current.id,
-      printer,
-      phaseConnected: didConnect && current.id === "test-print",
-      connectResult,
-    })
-    const next = apiPath(query ? `/oppsett?${query}` : "/oppsett")
+    const next = apiPath(`/oppsett?${setupSearch}`)
     if (`${window.location.pathname}${window.location.search}` === next) return
+    // replaceState keeps the wizard from remounting on each step; Next's router does
+    // not track it, so help links must pass this query back explicitly (see bluetooth).
     window.history.replaceState(window.history.state, "", next)
-  }, [path, current.id, printer, didConnect, connectResult])
+  }, [setupSearch])
 
   function finish() {
     window.localStorage.setItem(SETUP_KEY, "1")
     router.push("/")
   }
-
-  function choosePath(next: SetupPath) {
-    setPath(next)
-    if (next === "manual") setPrinter(null)
-    const nextOmit = next === "qr" ? omitScan : false
-    setStep(pathStepIndex(next, firstPathStepId(next, nextOmit), nextOmit))
-  }
-
-  const onQrFound = useCallback((found: PrinterSetupParams) => {
-    setPrinter(found)
-    setPath("qr")
-    setStep(pathStepIndex("qr", "connect", false))
-  }, [])
 
   function openConnect() {
     if (!printer) return
@@ -397,6 +358,8 @@ export function SetupFlow({
     setBusy(true)
     try {
       const fileBase64 = await loadTemplateBase64()
+      // No successCallback/failureCallback — Android needs Smooth Print's overlay dialog;
+      // setup already asks staff to confirm the label came out.
       const input = {
         fileBase64,
         paperSizeId: DEFAULT_PAPER_SIZE_ID,
@@ -419,40 +382,25 @@ export function SetupFlow({
   }
 
   function goBack() {
-    if (pathSteps && path) {
-      const firstId = firstPathStepId(path, omitScan)
-      if (current.id === firstId) {
-        setPath(null)
-        setPrinter(initialPrinter)
-        setPreludeStep(PRELUDE.length - 1)
-        return
-      }
-      setStep((value) => value - 1)
+    if (step === 0) {
+      router.push("/")
       return
     }
-    if (preludeStep > 0) {
-      setPreludeStep((value) => value - 1)
-      return
-    }
-    router.push("/")
+    setStep((value) => value - 1)
   }
 
-  const atStart = pathSteps ? false : preludeStep === 0
+  const atStart = step === 0
 
   return (
     <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      {progress ? (
-        <div className="mb-3 flex shrink-0 gap-2">
-          {Array.from({ length: progress.total }, (_, index) => (
-            <span
-              key={index}
-              className={`h-1.5 flex-1 rounded-full ${index <= progress.index ? "bg-[var(--color-fg-brand)]" : "bg-[var(--color-bg-surface)]"}`}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="mb-3 h-1.5 shrink-0" />
-      )}
+      <div className="mb-3 flex shrink-0 gap-2">
+        {Array.from({ length: progress.total }, (_, index) => (
+          <span
+            key={index}
+            className={`h-1.5 flex-1 rounded-full ${index <= progress.index ? "bg-[var(--color-fg-brand)]" : "bg-[var(--color-bg-surface)]"}`}
+          />
+        ))}
+      </div>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
         {current.kind === "test-print" ? (
@@ -461,43 +409,6 @@ export function SetupFlow({
             <p className="mt-3 text-xl opacity-80">{TEST_LINE2}</p>
             <p className="mt-5 font-mono text-xs tracking-wide opacity-45">Sjekker ingen ekte deltaker</p>
           </div>
-        ) : current.kind === "choose" ? (
-          <div className="flex w-full flex-col gap-3">
-            <Button
-              type="button"
-              variant="surface"
-              onClick={() => choosePath("qr")}
-              className="h-auto w-full items-start justify-start gap-4 rounded-2xl p-4 text-left whitespace-normal"
-            >
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/35 text-[var(--color-fg-brand)]">
-                <QrCode className="size-6" strokeWidth={1.75} />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-xl font-semibold">Skann QR</span>
-                <span className="mt-1 block text-sm font-normal opacity-70">
-                  Hopper over telefon-paring og valg i appen
-                </span>
-              </span>
-            </Button>
-            <Button
-              type="button"
-              variant="surface"
-              onClick={() => choosePath("manual")}
-              className="h-auto w-full items-start justify-start gap-4 rounded-2xl p-4 text-left whitespace-normal"
-            >
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/35 text-[var(--color-fg-brand)]">
-                <Wrench className="size-6" strokeWidth={1.75} />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-xl font-semibold">Manuelt</span>
-                <span className="mt-1 block text-sm font-normal opacity-70">
-                  Paring i telefonens Bluetooth-innstillinger
-                </span>
-              </span>
-            </Button>
-          </div>
-        ) : current.kind === "scan" ? (
-          <SetupQrScan onFound={onQrFound} />
         ) : current.kind === "connect" && printer ? (
           <div className="w-full rounded-2xl bg-[var(--color-bg-surface)] px-5 py-6">
             <p className="font-mono text-sm opacity-60">
@@ -516,7 +427,7 @@ export function SetupFlow({
             {connectOkHint ? <p className="mt-4 text-sm text-[var(--color-fg-brand)]">{connectOkHint}</p> : null}
           </div>
         ) : current.kind === "connect" && !printer ? (
-          <p className="text-base opacity-70">Ingen printerdata. Gå tilbake og skann QR.</p>
+          <p className="text-base opacity-70">Ingen printerdata. Åpne oppsettet fra klistremerket.</p>
         ) : current.kind === "install" || current.kind === "guide" || current.kind === "confirm" ? (
           <img
             src={current.image}
@@ -528,15 +439,9 @@ export function SetupFlow({
         ) : null}
       </div>
 
-      {pathSteps && progress ? (
-        <p className="mt-2 shrink-0 font-mono text-sm text-[var(--color-fg-brand)]">
-          {progress.index + 1} av {progress.total}
-        </p>
-      ) : current.kind === "choose" ? (
-        <p className="mt-2 shrink-0 font-mono text-sm text-[var(--color-fg-brand)]">Tilkobling</p>
-      ) : (
-        <p className="mt-2 shrink-0 font-mono text-sm text-[var(--color-fg-brand)]">Oppsett</p>
-      )}
+      <p className="mt-2 shrink-0 font-mono text-sm text-[var(--color-fg-brand)]">
+        {progress.index + 1} av {progress.total}
+      </p>
       <h1 className="mt-1 shrink-0 text-3xl">{current.title}</h1>
       <p className="mt-2 shrink-0 text-base leading-snug">{current.body}</p>
 
@@ -556,7 +461,7 @@ export function SetupFlow({
             </a>
           </Button>
           <Button asChild variant="ghost" className="h-12 w-full text-base">
-            <Link href="/oppsett/android">Slik tillater du installasjon</Link>
+            <Link href={apiPath("/oppsett/android")}>Slik tillater du installasjon</Link>
           </Button>
         </div>
       ) : null}
@@ -584,14 +489,20 @@ export function SetupFlow({
               checked={seen}
               onChange={(event) => setSeen(event.target.checked)}
             />
-            Jeg ser printeren i Smooth Print
+            {platform === "android"
+              ? "Printeren er valgt, og Smooth Print er lukket"
+              : "Jeg ser printeren i Smooth Print"}
           </label>
         ) : null}
 
         {current.kind === "connect" ? (
           <>
             <Button className="h-12 w-full text-base" disabled={!printer} onClick={openConnect}>
-              {didConnect ? "Åpne Smooth Print igjen" : "Koble til i Smooth Print"}
+              {didConnect
+                ? "Åpne Smooth Print igjen"
+                : platform === "android"
+                  ? "Legg til i Smooth Print"
+                  : "Koble til i Smooth Print"}
             </Button>
             {didConnect ? (
               <label className="flex items-center gap-3 text-lg">
@@ -601,7 +512,9 @@ export function SetupFlow({
                   checked={connectedOk}
                   onChange={(event) => setConnectedOk(event.target.checked)}
                 />
-                Printeren er valgt i Smooth Print
+                {platform === "android"
+                  ? "Printeren er lagt til, og Smooth Print er lukket"
+                  : "Printeren er valgt i Smooth Print"}
               </label>
             ) : null}
             <Button
@@ -655,50 +568,19 @@ export function SetupFlow({
           </Button>
         ) : null}
 
-        {!path && (current.kind === "install" || current.id === "bt-on") ? (
-          <Button
-            className="h-12 w-full text-base"
-            onClick={() => {
-              if (current.id === "bt-on" && pendingResume) {
-                const { path: resumePath, stepId: resumeStepId } = pendingResume
-                setPendingResume(null)
-                setPath(resumePath)
-                const nextOmit = resumePath === "qr" ? omitScan : false
-                setStep(pathStepIndex(resumePath, resumeStepId, nextOmit))
-                return
-              }
-              setPreludeStep((value) => value + 1)
-            }}
-          >
-            Neste
-          </Button>
-        ) : null}
-
-        {path && (current.kind === "install" || current.kind === "guide") ? (
+        {current.kind === "install" || current.kind === "guide" ? (
           <Button className="h-12 w-full text-base" onClick={() => setStep((value) => value + 1)}>
             Neste
           </Button>
         ) : null}
 
-        {current.kind === "scan" ? (
-          <Button
-            variant="ghost"
-            className="h-12 w-full text-base"
-            onClick={() => {
-              setPath("manual")
-              setPrinter(null)
-              setStep(pathStepIndex("manual", "pair", false))
-            }}
-          >
-            Manuelt i stedet
+        {current.id === "pair" ? (
+          <Button asChild variant="ghost" className="h-12 w-full text-base">
+            <Link href={apiPath("/oppsett/bluetooth")}>Finner du ikke printeren?</Link>
           </Button>
         ) : null}
 
-        {current.kind === "choose" ? (
-          <Button variant="ghost" className="h-12 w-full text-base" onClick={goBack}>
-            Tilbake
-          </Button>
-        ) : atStart ? (
+        {atStart ? (
           <Button asChild variant="ghost" className="h-12 w-full text-base">
             <Link href="/">Avbryt</Link>
           </Button>

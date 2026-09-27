@@ -1,4 +1,7 @@
+import { headers } from "next/headers"
+import { userAgent } from "next/server"
 import { SetupFlow, type SetupStepId } from "./setup-flow"
+import { platformFromOsName } from "@/lib/platform"
 import { DEFAULT_PRINTER_MODEL, type ConnectType } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
 import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
@@ -7,8 +10,6 @@ import { apiPath } from "@/lib/utils"
 const STEP_IDS = new Set<SetupStepId>([
   "install",
   "bt-on",
-  "choose",
-  "scan",
   "connect",
   "pair",
   "confirm",
@@ -50,6 +51,8 @@ export default async function SetupPage({
   const initialPath =
     query.path === "qr" || query.path === "manual" ? query.path : initialPrinter ? "qr" : null
   const androidUrl = await resolveAndroidDownloadUrl(apiPath)
+  const { os } = userAgent({ headers: await headers() })
+  const initialPlatform = platformFromOsName(os.name)
 
   return (
     <>
@@ -59,6 +62,7 @@ export default async function SetupPage({
       <link rel="preload" as="image" href="/oppsett/oppsett-bekreft.png" />
       <SetupFlow
         androidUrl={androidUrl}
+        initialPlatform={initialPlatform}
         initialPath={initialPath}
         initialStep={parseStep(query.step)}
         initialPrinter={initialPrinter}

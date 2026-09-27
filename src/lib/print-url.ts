@@ -18,8 +18,9 @@ export const DEFAULT_SMOOTH_PRINT_ANDROID_URL =
  * Safari always claims http(s) — so Smooth Print returns to the browser after
  * printing instead of staying open.
  *
- * Smooth Print appends its own `errorCode=` to whichever URL it is given; callers
- * decide where that append lands. See buildPrintCallback in print-button.tsx.
+ * iOS appends its own `errorcode=` after the result. Android badge prints omit
+ * the callback pair (new Chrome tab per return). See buildPrintCallback in
+ * print-button.tsx.
  */
 export type PrintCallback = { successCallback: string; failureCallback: string }
 

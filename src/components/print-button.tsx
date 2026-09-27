@@ -15,11 +15,16 @@ import {
 import { apiPath } from "@/lib/utils"
 
 /**
- * Smooth Print concatenates its result onto the end of this string verbatim, then
- * appends "&errorcode=…" — so the URL has to end in a bare "key=" for the append to
- * land as a value. Anything else corrupts the path: a trailing "#utskrift" came back
- * as "%23utskriftSUCCESS&errorcode=SUCCESS" inside the path (it percent-encodes "#",
+ * Smooth Print concatenates its result onto the end of this string verbatim, so the
+ * URL has to end in a bare "key=" for the append to land as a value. Anything else
+ * corrupts the path: a trailing "#utskrift" came back as
+ * "%23utskriftSUCCESS&errorcode=SUCCESS" inside the path (it percent-encodes "#",
  * so a fragment cannot survive this round trip).
+ *
+ * iOS then also appends "&errorcode=SUCCESS". Android's success callback is only
+ * "?result=SUCCESS" — no errorcode — which matches Brother's documented success URL.
+ * Android badge prints omit the callback pair entirely (Smooth Print's dialog is
+ * better UX than a new Chrome tab per print).
  *
  * Same URL for both callbacks — Brother only requires the pair to be present, not
  * distinct, and the appended value says which one fired.
@@ -43,21 +48,18 @@ function readPrintOutcome(): string | null {
 }
 
 const IOS_PENDING_KEY = "tdc-print-pending"
-/** Exactly what a successful print's callback comes back as — see readPrintOutcome. */
+/** Exactly what a successful iOS print's callback comes back as — see readPrintOutcome. */
 const IOS_PREDICTED_SUCCESS_QUERY = "result=SUCCESS&errorcode=SUCCESS"
 
 /**
- * iOS only. Safari reuses the tab that's already open for a callback URL only if it
- * is "equivalent" to what that tab currently shows — otherwise every print opens a
- * new tab. A successful print's callback is always exactly
+ * iOS only. Safari reuses the open tab for a callback URL only when that URL
+ * matches the address bar. A successful print's callback is always exactly
  * "?result=SUCCESS&errorcode=SUCCESS" (see readPrintOutcome), so rewriting the
- * address bar to that shape *before* firing the print — no reload — means a
- * successful return matches what's already showing and Safari switches back to this
- * tab instead of opening a new one. A failure carries an unpredictable error code
- * and still opens a new tab; that's an acceptable trade since a failure needs
- * visible attention anyway. The sessionStorage flag guards against reading this
- * pre-set URL as a real success if the page happens to reload before Smooth Print
- * actually calls back.
+ * address bar to that shape *before* firing the print — no reload — makes a
+ * successful return land on this tab instead of a new one. A failure carries an
+ * unpredictable error code and still opens a new tab. The sessionStorage flag
+ * guards against reading this pre-set URL as a real success if the page reloads
+ * before Smooth Print actually calls back.
  */
 function primeForIosTabReuse() {
   window.sessionStorage.setItem(IOS_PENDING_KEY, "1")
@@ -129,12 +131,15 @@ export function PrintButton({
   }, [])
 
   function openPrint(fileBase64: string) {
+    // Android: no successCallback/failureCallback. With the pair set, Chrome opens
+    // a new tab per print; without it, Smooth Print shows its result dialog over
+    // the same tab. iOS needs the pair or Smooth Print stays in front.
     const input = {
       fileBase64,
       paperSizeId: DEFAULT_PAPER_SIZE_ID,
       name,
       line2,
-      callback: buildPrintCallback(),
+      ...(platform === "ios" ? { callback: buildPrintCallback() } : {}),
     }
 
     if (platform === "ios") primeForIosTabReuse()
