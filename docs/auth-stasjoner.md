@@ -41,10 +41,10 @@ Station accounts are **equipment identities**, not personal volunteer logins. Sh
 | `name` | e.g. «Inngang A» |
 | `printerId` | Linked enrolled printer (strongly encouraged; required before printing the login sticker makes sense) |
 | `validFrom` / `validTo` | Outside this window: deny login and reject existing sessions |
-| PIN | **6 digits**, stored hashed (better-auth password hashing). Fallback if cookie lost |
-| Magic link token | **Long-lived** within the validity window. Format `stn_` (lowercase) + uppercase nanoid body. Primary day-of unlock via QR or Slack paste |
+| PIN | **6 digits**. The station password (better-auth credential hash). Not unique across stations — it only works with that station's token. A reversible copy is stored as ciphertext in the DB (`encryptedText`) so admins can reveal it. |
+| Token | **Long-lived** within the validity window. External / app form is `stn_` + uppercase nanoid body (no `0`/`O`/`1`/`I`). Drizzle `objectId("username", "stn")` stores the body only and re-prefixes on read. |
 
-Synthetic identity for better-auth (username and/or placeholder email such as `inngang-a@innsjekk.local`) — never mailed.
+Email is `{userId}@innsjekk.local` only because better-auth requires one. It is never mailed and is not a login.
 
 ### Day-of topology
 
@@ -58,7 +58,7 @@ Setup QR (`/oppsett?path=qr&…`) remains on the visible printer sticker but req
 
 - Admin creates stasjon → login URL/QR + **6-digit PIN**.
 - **QR** under the printer (possession). **PIN** on **Slack** only — not next to the QR.
-- Tokens are `stn_` + uppercase nanoid body (no `0`/`O`/`1`/`I`). Door input shows `stn_` as a static prefix and uppercases the body; pasted `stn_` / full URL is stripped to the body.
+- Tokens are `stn_` + uppercase nanoid body (no `0`/`O`/`1`/`I`). Drizzle `objectId` stores the body and adds `stn_` on read; door input shows `stn_` as a static prefix and uppercases the body; pasted `stn_` / full URL is stripped to the body.
 - Opening the link alone does not create a session; PIN alone without the token fails.
 - Door `/logg-inn`: skann QR, or lim inn koden / hele lenken manuelt, deretter PIN.
 - Admin UI: PIN hidden by default; **Vis PIN** / rotate regenerates and revokes sessions. Token (`stn_…`) can be copied for Slack; full URL for stickers.

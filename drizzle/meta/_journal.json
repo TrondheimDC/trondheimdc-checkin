@@ -64,6 +64,13 @@
       "when": 1790425471556,
       "tag": "0008_lucky_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790588021734,
+      "tag": "0009_stasjon-username-pin",
+      "breakpoints": true
     }
   ]
 }

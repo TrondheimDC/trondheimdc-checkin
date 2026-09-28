@@ -1,5 +1,7 @@
 import { relations, sql } from "drizzle-orm"
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core"
+import { encryptedText } from "./encrypted-text"
+import { objectId } from "./object-id"
 
 export const user = sqliteTable(
   "user",
@@ -18,27 +20,19 @@ export const user = sqliteTable(
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    username: text("username").unique(),
+    /** App: `stn_BODY` for stasjoner; SQLite: body only. Admin usernames pass through. */
+    username: objectId("username", "stn").unique(),
     displayUsername: text("display_username"),
     role: text("role"),
     banned: integer("banned", { mode: "boolean" }).default(false),
     banReason: text("ban_reason"),
     banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
-  validFrom: text("valid_from"),
-  validTo: text("valid_to"),
-  printerId: text("printer_id"),
-  loginTokenHash: text("login_token_hash"),
-  /** HMAC of 6-digit PIN for username-less door login lookup. */
-  pinLookupHash: text("pin_lookup_hash"),
-  /** Reversible copy of the login token so admins can reprint the sticker later. */
-  loginTokenEncrypted: text("login_token_encrypted"),
-  /** Reversible copy of the PIN so admins can reveal it later. */
-  pinEncrypted: text("pin_encrypted"),
+    validFrom: text("valid_from"),
+    validTo: text("valid_to"),
+    printerId: text("printer_id"),
+    /** Plaintext in the app; ciphertext in SQLite. Admins reveal this later. */
+    pin: encryptedText("pin_encrypted"),
   },
-  (table) => ({
-    loginTokenHashIdx: index("user_loginTokenHash_idx").on(table.loginTokenHash),
-    pinLookupHashIdx: index("user_pinLookupHash_idx").on(table.pinLookupHash),
-  }),
 )
 
 export const session = sqliteTable(

@@ -172,7 +172,6 @@ const isoDateTimeSchema = z
 export const stasjonSchema = z.object({
   id: z.string(),
   name: z.string(),
-  username: z.string(),
   email: z.string(),
   role: z.literal("stasjon"),
   banned: z.boolean().nullable(),

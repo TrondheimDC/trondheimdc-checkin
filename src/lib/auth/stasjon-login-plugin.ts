@@ -1,36 +1,11 @@
+import { verifyPassword } from "better-auth/crypto"
 import { createAuthEndpoint } from "better-auth/api"
 import { setSessionCookie } from "better-auth/cookies"
 import type { BetterAuthPlugin } from "better-auth"
-import { createHash, createHmac, timingSafeEqual } from "crypto"
-import { and, eq, ne } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import * as z from "zod"
 import { isWithinValidityWindow } from "@/lib/auth-validity"
-import { createStasjonToken } from "@/lib/stasjon-token"
-
-export function hashLoginToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex")
-}
-
-export function generateLoginToken(): string {
-  return createStasjonToken()
-}
-
-/** Deterministic lookup key for 6-digit PINs (not the password hash). */
-export function pinLookupHash(pin: string): string {
-  const secret = process.env.BETTER_AUTH_SECRET || "dev-only-change-me-in-production-32chars"
-  return createHmac("sha256", secret).update(`stasjon-pin:${pin}`).digest("hex")
-}
-
-export function timingSafeEqualHex(a: string, b: string): boolean {
-  try {
-    const ba = Buffer.from(a, "hex")
-    const bb = Buffer.from(b, "hex")
-    if (ba.length !== bb.length) return false
-    return timingSafeEqual(ba, bb)
-  } catch {
-    return false
-  }
-}
+import { parseStasjonTokenInput } from "@/lib/stasjon-token"
 
 const signInBodySchema = z.object({
   token: z.string().min(1),
@@ -38,9 +13,9 @@ const signInBodySchema = z.object({
 })
 
 /**
- * Stasjon login requires both:
- * - long-lived QR / Slack magic token (possession)
- * - 6-digit PIN shared out-of-band on Slack (knowledge)
+ * Stasjon login is username + password:
+ * - username is the `stn_` object id (Drizzle stores the body only)
+ * - password is the 6-digit PIN
  *
  * Neither factor alone creates a session.
  */
@@ -55,26 +30,48 @@ export function stasjonLoginPlugin(): BetterAuthPlugin {
           body: signInBodySchema,
         },
         async (ctx) => {
-          const token = ctx.body.token.trim()
-          const tokenHash = hashLoginToken(token)
-          const pinHash = pinLookupHash(ctx.body.pin)
+          const token = parseStasjonTokenInput(ctx.body.token)
           const { db } = await import("@/lib/db")
-          const { user: userTable } = await import("@/lib/db/schema")
+          const { account: accountTable, user: userTable } = await import("@/lib/db/schema")
 
-          const [row] = await db
-            .select()
-            .from(userTable)
-            .where(eq(userTable.loginTokenHash, tokenHash))
-            .limit(1)
+          const [row] = token
+            ? await db
+                .select({
+                  id: userTable.id,
+                  name: userTable.name,
+                  email: userTable.email,
+                  emailVerified: userTable.emailVerified,
+                  createdAt: userTable.createdAt,
+                  updatedAt: userTable.updatedAt,
+                  role: userTable.role,
+                  banned: userTable.banned,
+                  validFrom: userTable.validFrom,
+                  validTo: userTable.validTo,
+                })
+                .from(userTable)
+                .where(eq(userTable.username, token))
+                .limit(1)
+            : []
 
-          // Same generic failure for wrong token, wrong PIN, banned, or mismatch —
+          const [cred] = row
+            ? await db
+                .select({ password: accountTable.password })
+                .from(accountTable)
+                .where(and(eq(accountTable.userId, row.id), eq(accountTable.providerId, "credential")))
+                .limit(1)
+            : []
+
+          const passwordOk =
+            cred?.password != null &&
+            (await verifyPassword({ hash: cred.password, password: ctx.body.pin }))
+
+          // Same generic failure for wrong token, wrong PIN, banned, or expired —
           // avoid leaking which factor failed.
           if (
             !row ||
+            !passwordOk ||
             row.banned ||
             row.role !== "stasjon" ||
-            !row.pinLookupHash ||
-            !timingSafeEqualHex(row.pinLookupHash, pinHash) ||
             !isWithinValidityWindow(row.validFrom, row.validTo)
           ) {
             throw ctx.error("UNAUTHORIZED", { message: "Ugyldig QR eller PIN" })
@@ -98,23 +95,5 @@ export function stasjonLoginPlugin(): BetterAuthPlugin {
         },
       ),
     },
-  }
-}
-
-export async function assertUniqueStasjonPin(pin: string, exceptUserId?: string): Promise<void> {
-  const { db } = await import("@/lib/db")
-  const { user: userTable } = await import("@/lib/db/schema")
-  const hash = pinLookupHash(pin)
-  const conditions = [eq(userTable.role, "stasjon"), eq(userTable.pinLookupHash, hash)]
-  if (exceptUserId) conditions.push(ne(userTable.id, exceptUserId))
-
-  const [existing] = await db
-    .select({ id: userTable.id })
-    .from(userTable)
-    .where(and(...conditions))
-    .limit(1)
-
-  if (existing) {
-    throw new Error("pin_in_use")
   }
 }

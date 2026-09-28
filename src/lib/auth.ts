@@ -44,16 +44,6 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
-      loginTokenHash: {
-        type: "string",
-        required: false,
-        input: false,
-      },
-      pinLookupHash: {
-        type: "string",
-        required: false,
-        input: false,
-      },
     },
   },
   databaseHooks: {

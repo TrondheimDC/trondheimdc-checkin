@@ -1,12 +1,6 @@
 import { hashPassword } from "better-auth/crypto"
 import { and, desc, eq } from "drizzle-orm"
 import { randomInt, randomUUID } from "crypto"
-import {
-  assertUniqueStasjonPin,
-  generateLoginToken,
-  hashLoginToken,
-  pinLookupHash,
-} from "@/lib/auth/stasjon-login-plugin"
 import { db } from "@/lib/db"
 import {
   account,
@@ -17,7 +11,7 @@ import {
   user,
   type Stasjon,
 } from "@/lib/db/schema"
-import { decryptSecret, encryptSecret } from "@/lib/secret-crypto"
+import { createStasjonToken } from "@/lib/stasjon-token"
 import type { z } from "zod"
 
 export type { Stasjon }
@@ -48,7 +42,6 @@ function toIso(value: Date | string | null | undefined): string | null {
 function mapRow(row: {
   id: string
   name: string
-  username: string | null
   email: string
   role: string | null
   banned: boolean | null
@@ -62,7 +55,6 @@ function mapRow(row: {
   return stasjonSchema.parse({
     id: row.id,
     name: row.name,
-    username: row.username ?? "",
     email: row.email,
     role: "stasjon",
     banned: row.banned,
@@ -75,58 +67,13 @@ function mapRow(row: {
   })
 }
 
-/** Username plugin allows [a-zA-Z0-9_.]+ only — use underscore, not hyphen. */
-export function slugifyStasjonUsername(name: string): string {
-  const slug = name
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/æ/g, "ae")
-    .replace(/ø/g, "o")
-    .replace(/å/g, "a")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 32)
-  return slug || "stasjon"
-}
-
 export function generatePin(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0")
-}
-
-async function allocateUniquePin(exceptUserId?: string): Promise<string> {
-  for (let i = 0; i < 40; i++) {
-    const pin = generatePin()
-    try {
-      await assertUniqueStasjonPin(pin, exceptUserId)
-      return pin
-    } catch (error) {
-      if (error instanceof Error && error.message === "pin_in_use") continue
-      throw error
-    }
-  }
-  throw new Error("pin_exhausted")
-}
-
-async function uniqueUsername(base: string): Promise<string> {
-  let candidate = base.slice(0, 40)
-  for (let i = 0; i < 50; i++) {
-    const [existing] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.username, candidate))
-      .limit(1)
-    if (!existing) return candidate
-    const suffix = `_${i + 2}`
-    candidate = `${base.slice(0, Math.max(1, 40 - suffix.length))}${suffix}`
-  }
-  return `${base.slice(0, 24)}_${randomUUID().slice(0, 8)}`
 }
 
 const stasjonSelect = {
   id: user.id,
   name: user.name,
-  username: user.username,
   email: user.email,
   role: user.role,
   banned: user.banned,
@@ -160,19 +107,19 @@ export const stasjonRepository = {
     return row ? mapRow(row) : null
   },
 
-  /** Decrypts the stored PIN/token so admins can reveal or reprint them later. */
+  /** PIN decrypts via the column type. Username is an `stn_` object id (body in SQLite). */
   async getSecrets(id: string): Promise<{ pin: string; token: string } | null> {
     const rows = await db
       .select({
-        pinEncrypted: user.pinEncrypted,
-        loginTokenEncrypted: user.loginTokenEncrypted,
+        pin: user.pin,
+        username: user.username,
       })
       .from(user)
       .where(and(eq(user.id, id), eq(user.role, "stasjon")))
       .limit(1)
     const row = rows[0]
-    if (!row?.pinEncrypted || !row.loginTokenEncrypted) return null
-    return { pin: decryptSecret(row.pinEncrypted), token: decryptSecret(row.loginTokenEncrypted) }
+    if (!row?.pin || !row.username) return null
+    return { pin: row.pin, token: row.username }
   },
 
   async create(input: StasjonCreateBody): Promise<StasjonWithSecrets> {
@@ -183,31 +130,26 @@ export const stasjonRepository = {
       .limit(1)
     if (!printer[0]) throw new Error("printer_not_found")
 
-    const username = await uniqueUsername(slugifyStasjonUsername(input.name))
-    const email = `${username}@innsjekk.local`
-    const pin = await allocateUniquePin()
-    const token = generateLoginToken()
     const id = randomUUID()
+    const token = createStasjonToken()
+    const pin = generatePin()
     const now = new Date()
 
     await db.insert(user).values({
       id,
       name: input.name,
-      email,
+      email: `${id}@innsjekk.local`,
       emailVerified: true,
       createdAt: now,
       updatedAt: now,
-      username,
+      username: token,
       displayUsername: input.name,
       role: "stasjon",
       banned: false,
       validFrom: new Date(input.validFrom).toISOString(),
       validTo: new Date(input.validTo).toISOString(),
       printerId: input.printerId,
-      loginTokenHash: hashLoginToken(token),
-      pinLookupHash: pinLookupHash(pin),
-      loginTokenEncrypted: encryptSecret(token),
-      pinEncrypted: encryptSecret(pin),
+      pin,
     })
 
     await db.insert(account).values({
@@ -261,15 +203,13 @@ export const stasjonRepository = {
     let token: string | undefined
 
     if (input.rotateToken) {
-      token = generateLoginToken()
-      patch.loginTokenHash = hashLoginToken(token)
-      patch.loginTokenEncrypted = encryptSecret(token)
+      token = createStasjonToken()
+      patch.username = token
     }
 
     if (input.rotatePin) {
-      pin = await allocateUniquePin(id)
-      patch.pinLookupHash = pinLookupHash(pin)
-      patch.pinEncrypted = encryptSecret(pin)
+      pin = generatePin()
+      patch.pin = pin
     }
 
     await db.update(user).set(patch).where(eq(user.id, id))
