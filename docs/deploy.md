@@ -49,8 +49,11 @@ Bun as a runtime was evaluated (`bun server.js` on the same standalone tree) but
 On the same box as utlegg (Docker + nginx already available):
 
 ```bash
-sudo mkdir -p /var/www/sites/innsjekk.trondheimdc.no/data
+sudo mkdir -p /var/www/sites/innsjekk.trondheimdc.no/{data,logs}
 sudo chown -R 1000:1000 /var/www/sites/innsjekk.trondheimdc.no/data
+# nginx must be able to create log files (Debian/Ubuntu: www-data)
+sudo chown root:adm /var/www/sites/innsjekk.trondheimdc.no/logs
+sudo chmod 755 /var/www/sites/innsjekk.trondheimdc.no/logs
 
 cd /var/www/sites/innsjekk.trondheimdc.no
 # copy .env.example from the repo, then fill in secrets
