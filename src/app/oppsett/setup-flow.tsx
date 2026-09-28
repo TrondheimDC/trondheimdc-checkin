@@ -22,7 +22,6 @@ import {
 } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
 import { apiPath } from "@/lib/utils"
-
 const SETUP_KEY = "tdc-checkin-printer-seen"
 const IOS_APP = "https://apps.apple.com/us/app/smooth-print/id1629559918"
 
@@ -36,6 +35,12 @@ type Step =
       id: "install"
       kind: "install"
       image: string
+      title: string
+      body: string
+    }
+  | {
+      id: "camera"
+      kind: "camera"
       title: string
       body: string
     }
@@ -88,6 +93,13 @@ const INSTALL_ANDROID: Step = {
   body: "Last ned og installer appen. Trykk Ferdig — ikke åpne den. Kom tilbake hit etterpå.",
 }
 
+const CAMERA_IOS: Step = {
+  id: "camera",
+  kind: "camera",
+  title: "Tillat kamera alltid",
+  body: "I Safari: trykk aA i adressefeltet → Nettstedsinnstillinger → Kamera → Tillat. Da spør ikke Safari hver gang du skanner.",
+}
+
 const BT_ON: Step = {
   id: "bt-on",
   kind: "guide",
@@ -114,8 +126,8 @@ const PAIR: Step = {
 const CONNECT_IOS: Step = {
   id: "connect",
   kind: "connect",
-  title: "Koble til printeren",
-  body: "Ett trykk åpner Smooth Print og kobler telefonen til denne printeren.",
+  title: "Koble til i Smooth Print",
+  body: "Telefonen må være paret først (forrige steg). Trykk Åpne når Safari spør — det spør hver gang Smooth Print åpnes.",
 }
 
 const CONNECT_ANDROID: Step = {
@@ -155,29 +167,32 @@ const TEST_PRINT_ANDROID: Step = {
   body: "Lukk Smooth Print helt først (sveip bort). Da viser appen et vindu over denne siden.",
 }
 
-/** Shared before the fork — install and printer Bluetooth on. */
+/** Shared before the fork — install, (iOS) camera permission, printer Bluetooth on. */
 function buildPrelude(platform: PhonePlatform): Step[] {
-  return [platform === "android" ? INSTALL_ANDROID : INSTALL_IOS, BT_ON]
+  if (platform === "android") return [INSTALL_ANDROID, BT_ON]
+  if (platform === "ios") return [INSTALL_IOS, CAMERA_IOS, BT_ON]
+  return [INSTALL_IOS, BT_ON]
 }
 
 /**
  * Happy path (`qr`): scan sticker → connect in Smooth Print.
+ * iOS also needs OS Bluetooth pair before connect (MFi); Android does not.
  * Sticker deeplink with printer fields omits scan (`omitScan`).
  * Manual fallback: OS Bluetooth pair → select in Smooth Print.
  */
 function buildPathSteps(path: SetupPath, platform: PhonePlatform, omitScan: boolean): Step[] {
-  const install = platform === "android" ? INSTALL_ANDROID : INSTALL_IOS
+  const prelude = buildPrelude(platform)
   const test = platform === "android" ? TEST_PRINT_ANDROID : TEST_PRINT_IOS
 
   if (path === "qr") {
+    const scan = omitScan ? [] : [SCAN]
+    if (platform === "ios") return [...prelude, ...scan, PAIR, CONNECT_IOS, test]
     const connect = platform === "android" ? CONNECT_ANDROID : CONNECT_IOS
-    return omitScan
-      ? [install, BT_ON, connect, test]
-      : [install, BT_ON, SCAN, connect, test]
+    return [...prelude, ...scan, connect, test]
   }
 
   const confirm = platform === "android" ? CONFIRM_ANDROID : CONFIRM_IOS
-  return [install, BT_ON, PAIR, confirm, test]
+  return [...prelude, PAIR, confirm, test]
 }
 
 function pathStepIndex(
@@ -211,6 +226,7 @@ function resolveEntry(input: {
   initialStep: SetupStepId | null
   initialPrinter: PrinterSetupParams | null
   afterConnect: boolean
+  connectResult: string | null
   initialPrimed: boolean
 }): {
   path: SetupPath | null
@@ -220,16 +236,30 @@ function resolveEntry(input: {
   pendingResume: PendingResume | null
 } {
   const omitScan = Boolean(input.initialPrinter)
+  const connectOk =
+    !input.connectResult || input.connectResult.toUpperCase().includes("SUCCESS")
 
-  if (input.afterConnect) {
+  if (input.afterConnect && connectOk) {
     const path = input.initialPath ?? "qr"
     const at = pathStepIndex(path, "test-print", input.platform, omitScan)
     return { path, preludeStep: 0, step: at >= 0 ? at : 0, connected: true, pendingResume: null }
   }
 
+  if (input.afterConnect && !connectOk) {
+    const path = input.initialPath ?? "qr"
+    const at = pathStepIndex(path, "connect", input.platform, omitScan)
+    return {
+      path,
+      preludeStep: 0,
+      step: at >= 0 ? at : 0,
+      connected: false,
+      pendingResume: null,
+    }
+  }
+
   const stepId = input.initialStep
   if (stepId) {
-    if (stepId === "install" || stepId === "bt-on") {
+    if (stepId === "install" || stepId === "camera" || stepId === "bt-on") {
       if (!input.initialPath && !input.initialPrinter) {
         const prelude = buildPrelude(input.platform)
         const preludeIdx = prelude.findIndex((item) => item.id === stepId)
@@ -293,6 +323,7 @@ function buildSetupSearch(input: {
   printer: PrinterSetupParams | null
   phaseConnected: boolean
   connectResult: string | null
+  connectDebug?: boolean
 }): string {
   const params = new URLSearchParams()
   if (input.path) params.set("path", input.path)
@@ -306,6 +337,7 @@ function buildSetupSearch(input: {
     params.set("model", input.printer.model)
     params.set("type", input.printer.connectType)
   }
+  if (input.connectDebug) params.set("connectdebug", "1")
   if (input.phaseConnected) {
     params.set("phase", "connected")
     if (input.connectResult) params.set("result", input.connectResult)
@@ -323,6 +355,8 @@ export type SetupFlowProps = {
   afterConnect?: boolean
   connectResult?: string | null
   initialPrimed?: boolean
+  /** Attach Smooth Print connectcallback while testing (`?connectdebug=1`). */
+  connectDebug?: boolean
 }
 
 export function SetupFlow({
@@ -334,6 +368,7 @@ export function SetupFlow({
   afterConnect = false,
   connectResult = null,
   initialPrimed = false,
+  connectDebug = false,
 }: SetupFlowProps) {
   const router = useRouter()
   const omitScan = Boolean(initialPrinter)
@@ -345,6 +380,7 @@ export function SetupFlow({
       initialStep,
       initialPrinter,
       afterConnect,
+      connectResult,
       initialPrimed,
     }),
   )
@@ -380,6 +416,10 @@ export function SetupFlow({
     connectResult != null && connectResult.toUpperCase().includes("SUCCESS")
       ? "Smooth Print meldte at tilkoblingen lyktes."
       : null
+  const connectFailHint =
+    connectResult != null && !connectResult.toUpperCase().includes("SUCCESS")
+      ? `Smooth Print klarte ikke å koble til (${connectResult}). Sjekk at telefonen er paret under Innstillinger → Bluetooth, og prøv igjen.`
+      : null
 
   useEffect(() => {
     setPlatform(refinePlatform(initialPlatform))
@@ -391,6 +431,7 @@ export function SetupFlow({
     printer,
     phaseConnected: didConnect && current.id === "test-print",
     connectResult,
+    connectDebug,
   })
 
   useEffect(() => {
@@ -444,14 +485,32 @@ export function SetupFlow({
     if (!printer) return
     // Mark before launch — location.href on iOS unloads before a later setState can flush.
     setDidConnect(true)
-    // Plain scheme (no intent://, no connectcallback). Intent + location.href reloads
-    // this tab on Android; iframe keeps the wizard mounted under Smooth Print.
+
+    // No connectcallback in normal use — staff return to the wizard themselves
+    // (callback opens a new Safari tab). Opt in with ?connectdebug=1 while testing
+    // so Brother's result=Failure|Success lands back in the address bar.
+    const callbackUrl = connectDebug
+      ? `${window.location.origin}${apiPath("/oppsett")}?${new URLSearchParams({
+          path: "qr",
+          step: "connect",
+          primed: "1",
+          address: printer.address,
+          serial: printer.serial,
+          model: printer.model || DEFAULT_PRINTER_MODEL,
+          type: printer.connectType,
+          phase: "connected",
+          connectdebug: "1",
+        }).toString()}&result=`
+      : undefined
+
     openSmoothPrintScheme(
       buildConnectUrl({
         connectType: printer.connectType,
         address: printer.address,
         serial: printer.serial,
         model: printer.model || DEFAULT_PRINTER_MODEL,
+        platform,
+        callbackUrl,
       }),
       platform,
     )
@@ -552,6 +611,9 @@ export function SetupFlow({
             )}
             <p className="mt-4 font-mono text-sm opacity-60">{printer.model}</p>
             {connectOkHint ? <p className="mt-4 text-sm text-[var(--color-fg-brand)]">{connectOkHint}</p> : null}
+            {connectFailHint ? (
+              <p className="mt-4 text-sm text-[var(--color-bg-danger)]">{connectFailHint}</p>
+            ) : null}
           </div>
         ) : current.kind === "connect" && !printer ? (
           <p className="text-base opacity-70">Mangler printeropplysninger. Gå tilbake og skann QR.</p>
@@ -563,7 +625,7 @@ export function SetupFlow({
               current.id === "install" ? "h-28 w-28 rounded-[22%] object-cover" : ""
             }`}
           />
-        ) : current.kind === "scan" ? (
+        ) : current.kind === "scan" || current.kind === "camera" ? (
           <div className="flex size-28 items-center justify-center rounded-2xl bg-[var(--color-bg-surface)] text-[var(--color-fg-brand)]">
             <Camera className="size-12" strokeWidth={1.5} aria-hidden />
           </div>
@@ -721,7 +783,7 @@ export function SetupFlow({
           </Button>
         ) : null}
 
-        {current.kind === "install" || current.kind === "guide" ? (
+        {current.kind === "install" || current.kind === "camera" || current.kind === "guide" ? (
           <Button
             className="h-12 w-full text-base"
             onClick={() => {

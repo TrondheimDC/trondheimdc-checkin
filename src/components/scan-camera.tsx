@@ -11,6 +11,7 @@ import {
   videoTrackFrom,
   type TorchTrack,
 } from "@/lib/camera-torch"
+import { cn } from "@/lib/utils"
 
 const torchButtonClass =
   "flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
@@ -28,7 +29,7 @@ export function ScanCamera<T>({
   invalidMessage = "Ugyldig kode. Prøv igjen.",
   cameraError = "Ingen tilgang til kamera.",
   hint,
-  aspectClassName = "aspect-[3/4]",
+  aspectClassName = "aspect-[3/4] w-full max-h-full",
 }: {
   mode?: ScanMode
   parse: (raw: string) => T | null
@@ -36,6 +37,7 @@ export function ScanCamera<T>({
   invalidMessage?: string
   cameraError?: string
   hint?: string
+  /** Size the preview. Dialogs should pass a viewport-capped height so iPad does not overflow. */
   aspectClassName?: string
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -146,7 +148,12 @@ export function ScanCamera<T>({
   }
 
   return (
-    <div className={`relative w-full max-h-full overflow-hidden rounded-2xl bg-black ${aspectClassName}`}>
+    <div
+      className={cn(
+        "relative mx-auto overflow-hidden rounded-2xl bg-black",
+        aspectClassName,
+      )}
+    >
       <video ref={videoRef} className="h-full w-full object-cover" muted playsInline autoPlay />
       <div className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-inset ring-[var(--color-fg-brand)]/50" />
       <button

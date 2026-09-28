@@ -197,6 +197,34 @@ export const printerRenameBodySchema = z.object({
   name: z.string().trim().min(1, "Skriv inn et navn").max(40),
 })
 
+/** Admin form for door-login validity. Empty fields clear the bound (ingen begrensning). */
+export const printerValidityBodySchema = z
+  .object({
+    validFrom: z.string(),
+    validTo: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    const from = data.validFrom.trim()
+    const to = data.validTo.trim()
+    if (from && Number.isNaN(Date.parse(from))) {
+      ctx.addIssue({ code: "custom", path: ["validFrom"], message: "Ugyldig dato" })
+    }
+    if (to && Number.isNaN(Date.parse(to))) {
+      ctx.addIssue({ code: "custom", path: ["validTo"], message: "Ugyldig dato" })
+    }
+    if (from && to && Date.parse(to) <= Date.parse(from)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["validTo"],
+        message: "Sluttdato må være etter startdato",
+      })
+    }
+  })
+  .transform((data) => ({
+    validFrom: data.validFrom.trim() ? new Date(data.validFrom.trim()).toISOString() : null,
+    validTo: data.validTo.trim() ? new Date(data.validTo.trim()).toISOString() : null,
+  }))
+
 export const smoothPrintApks = sqliteTable(
   "smooth_print_apks",
   {

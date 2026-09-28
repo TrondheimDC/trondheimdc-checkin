@@ -8,7 +8,12 @@ import type { ReactNode } from "react"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
-import { SCAN_AUTO_PRINT_KEY, SCAN_INLINE_KEY } from "@/lib/scan-settings"
+import {
+  SCAN_AUTO_PRINT_DEFAULT,
+  SCAN_AUTO_PRINT_KEY,
+  SCAN_INLINE_DEFAULT,
+  SCAN_INLINE_KEY,
+} from "@/lib/scan-settings"
 import { setLocalFlag, useLocalFlag } from "@/lib/use-local-flag"
 
 function SettingToggle({
@@ -47,8 +52,8 @@ function SettingToggle({
 
 export function SettingsScreen({ printerName }: { printerName: string }) {
   const router = useRouter()
-  const scanInline = useLocalFlag(SCAN_INLINE_KEY)
-  const autoPrint = useLocalFlag(SCAN_AUTO_PRINT_KEY)
+  const scanInline = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
+  const autoPrint = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
   const flagsReady = scanInline !== null && autoPrint !== null
 
   const signOut = useMutation({
@@ -95,7 +100,7 @@ export function SettingsScreen({ printerName }: { printerName: string }) {
           disabled={!flagsReady}
           icon={<ScanLine className="size-5" aria-hidden />}
           title="Vis resultat på skann"
-          description="Hold deg på skann-siden og vis deltakeren nederst."
+          description="Hold deg på skann-siden og vis deltakeren over kameraet."
         />
 
         <SettingToggle

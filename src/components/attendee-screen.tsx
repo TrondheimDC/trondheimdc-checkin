@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useSetCheckedIn } from "@/hooks/use-set-checked-in"
 import { labelLine } from "@/lib/label-line"
 import { platformFromNavigator, type PhonePlatform } from "@/lib/platform"
-import { SCAN_AUTO_PRINT_KEY } from "@/lib/scan-settings"
+import { SCAN_AUTO_PRINT_DEFAULT, SCAN_AUTO_PRINT_KEY } from "@/lib/scan-settings"
 import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 import { attendeeResponseSchema } from "@/lib/db/schema"
@@ -19,7 +19,7 @@ import { attendeeResponseSchema } from "@/lib/db/schema"
 export function AttendeeScreen({ id }: { id: string }) {
   const queryClient = useQueryClient()
   const [platform, setPlatform] = useState<PhonePlatform>("other")
-  const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY)
+  const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
 
   useEffect(() => {
     setPlatform(platformFromNavigator())

@@ -11,7 +11,7 @@ import { labelLine } from "@/lib/label-line"
 import { platformFromNavigator, type PhonePlatform } from "@/lib/platform"
 
 /**
- * Non-modal bottom banner over a live camera — next scan replaces the current
+ * Non-modal card centred over a live camera — next scan replaces the current
  * attendee without tearing down the stream.
  */
 export function ScanResultSheet({
@@ -49,30 +49,19 @@ export function ScanResultSheet({
 
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
       role="status"
       aria-live="polite"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onDismiss()
+      }}
     >
-      <div className="pointer-events-auto attendee-reveal rounded-2xl bg-[var(--color-black-3)]/95 p-4 shadow-lg ring-1 ring-white/10 backdrop-blur-md">
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">
-              {checkedIn ? "Allerede innsjekket" : "Ny innsjekk"}
-            </p>
-            <h2 className="font-display mt-0.5 truncate text-2xl leading-tight">{current.name}</h2>
-            {line2 ? <p className="mt-1 truncate text-base opacity-75">{line2}</p> : null}
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-10 shrink-0"
-            aria-label="Lukk"
-            onClick={onDismiss}
-          >
-            <X className="size-5" aria-hidden />
-          </Button>
-        </div>
+      <div className="attendee-reveal max-h-full w-full max-w-sm overflow-y-auto rounded-2xl bg-[var(--color-black-3)]/95 p-5 shadow-lg ring-1 ring-white/10 backdrop-blur-md">
+        <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">
+          {checkedIn ? "Allerede innsjekket" : "Ny innsjekk"}
+        </p>
+        <h2 className="font-display mt-0.5 truncate text-2xl leading-tight">{current.name}</h2>
+        {line2 ? <p className="mt-1 truncate text-base opacity-75">{line2}</p> : null}
 
         <div className="mt-4 flex flex-col gap-2">
           {overrideError ? (
@@ -106,6 +95,10 @@ export function ScanResultSheet({
               }}
             />
           ) : null}
+          <Button type="button" variant="surface" size="lg" onClick={onDismiss}>
+            <X className="size-5" aria-hidden />
+            Lukk
+          </Button>
         </div>
       </div>
     </div>

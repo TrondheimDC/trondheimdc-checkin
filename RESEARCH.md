@@ -109,9 +109,9 @@ Optional `connectcallback=<url ending in key=>` exists in Brother’s docs; we o
 |---|---|---|
 | `connecttype` | `BT` or `WiFi` | |
 | `connectaddress` | MAC or IP, uppercased | Bluetooth MAC for BT |
-| `serialnum` | if non-empty | Brother: **required on iOS** for QL (and MW/PJ/PT/RJ/TD) over Bluetooth |
-| `model` | e.g. QL-820NWBc | |
-| `connectcallback` | optional | Omit in `/oppsett` — callbacks open a new tab; staff return to the wizard themselves |
+| `serialnum` | Android: full barcode SN. iOS: last 9 of a 15-char SN (`buildConnectQuery`) | Brother: **required on iOS** for QL over Bluetooth. Smooth Print’s paired list shows the short form (`C6G972070`) next to `QL-820NWB2070`. Full 15-char `serialnum` failed connect on iOS; Android accepted the full string. |
+| `model` | Android: DB id (`QL-820NWBc`). iOS: strip trailing `c` → `QL-820NWB` | Matches the MFi Bluetooth name Smooth Print shows (`QL-820NWB2070`). |
+| `connectcallback` | omitted (opt-in `?connectdebug=1`) | Staff return to the wizard themselves. Debug flag attaches https `…&result=` so Failure/Success is visible while testing. |
 
 Find/search (`brotherwebprint://search?…`) is documented separately and not used in the app yet. Android also has `http://localhost:8088/connect` (XML response) — unused.
 
@@ -149,7 +149,7 @@ Worth trying as a **poll** before / after print: is the printer connected, ready
 
 **Android (grade-A, 2026-09-27):** sticker / in-app scan → `brotherwebprint://connect` works as the happy path without walking OS pair + manual confirm first. Cold start after install (Ferdig, don’t open) runs permissions/terms/Bluetooth, then returns to the browser.
 
-**iOS:** still needs a hardware retest of the same happy path (earlier notes said OS pair may be required before connect). Manual path remains the fallback.
+**iOS: OS pairing first is required.** The QL-820NWB talks to iOS over Bluetooth Classic as an MFi accessory (External Accessory framework). An iOS app can only open a session with an accessory that is already paired; the only in-app way to pair is Apple's `showBluetoothAccessoryPicker`, which the app itself has to present. Brother's iOS SDK says the printers "need to be paired on the OS setting beforehand" (`BRPtouchBluetoothManager` docs). Smooth Print's `connect` scheme does not present that picker. On hardware, connect returned Failure / "Not connected" before OS pairing, and Success after pairing with the short serial + `QL-820NWB`. Android has no MFi layer, so connect pairs on its own there.
 
 ### AirPrint — possible way to skip Smooth Print on iOS entirely (unverified)
 

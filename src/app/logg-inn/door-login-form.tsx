@@ -57,12 +57,18 @@ export function DoorLoginForm() {
     setToken(parsePrinterTokenInput(urlToken) ?? "")
   }, [urlToken])
 
+  useEffect(() => {
+    if (!token) return
+    const id = window.requestAnimationFrame(() => pinInputRef.current?.focus())
+    return () => window.cancelAnimationFrame(id)
+  }, [token])
+
   function acceptToken(next: string) {
+    setScanOpen(false)
     setToken(next)
     setTokenInUrl(next)
     setAcquireMode("choose")
     setManualDraft("")
-    setScanOpen(false)
     setError(null)
     setPin("")
   }
@@ -120,6 +126,43 @@ export function DoorLoginForm() {
     setError(null)
     if (value.length === 6) void submitPin(value)
   }
+
+  const scanDialog = (
+    <Dialog open={scanOpen} onOpenChange={setScanOpen}>
+      <DialogContent
+        className="flex w-[min(100%-1.5rem,28rem)] max-w-none flex-col gap-0 p-4"
+        onCloseAutoFocus={(event) => {
+          // Keep focus for the PIN field after a successful scan (Radix would
+          // otherwise restore it to the now-unmounted "Skann QR" trigger).
+          event.preventDefault()
+          queueMicrotask(() => pinInputRef.current?.focus())
+        }}
+      >
+        <DialogTitle>Skann innloggings-QR</DialogTitle>
+        <DialogDescription>QR-koden står under printeren.</DialogDescription>
+        <div className="mt-4 flex min-h-0 justify-center">
+          {scanOpen ? (
+            <ScanCamera
+              mode="qr"
+              parse={parsePrinterTokenInput}
+              onFound={acceptToken}
+              // Cap height to the dialog viewport so iPad (esp. landscape) does
+              // not grow a 3:4 preview taller than the screen.
+              aspectClassName="aspect-[3/4] h-[min(55dvh,22rem)] w-auto max-w-full"
+              invalidMessage="Det er ikke en innloggings-QR. Skann koden under printeren."
+              cameraError="Ingen tilgang til kamera. Skriv inn koden manuelt i stedet."
+              hint="Skann QR under printeren"
+            />
+          ) : null}
+        </div>
+        <DialogClose asChild>
+          <Button type="button" variant="surface" size="lg" className="mt-4 w-full">
+            Avbryt
+          </Button>
+        </DialogClose>
+      </DialogContent>
+    </Dialog>
+  )
 
   if (!token) {
     return (
@@ -202,75 +245,56 @@ export function DoorLoginForm() {
           </form>
         )}
 
-        <Dialog open={scanOpen} onOpenChange={setScanOpen}>
-          <DialogContent className="w-[min(100%-1.5rem,28rem)] max-w-none p-4">
-            <DialogTitle>Skann innloggings-QR</DialogTitle>
-            <DialogDescription>QR-koden står under printeren.</DialogDescription>
-            <div className="mt-4">
-              {scanOpen ? (
-                <ScanCamera
-                  mode="qr"
-                  parse={parsePrinterTokenInput}
-                  onFound={acceptToken}
-                  invalidMessage="Det er ikke en innloggings-QR. Skann koden under printeren."
-                  cameraError="Ingen tilgang til kamera. Skriv inn koden manuelt i stedet."
-                  hint="Skann QR under printeren"
-                />
-              ) : null}
-            </div>
-            <DialogClose asChild>
-              <Button type="button" variant="surface" size="lg" className="mt-4 w-full">
-                Avbryt
-              </Button>
-            </DialogClose>
-          </DialogContent>
-        </Dialog>
+        {scanDialog}
       </div>
     )
   }
 
   return (
-    <form onSubmit={onSubmitPin} className="mx-auto flex w-full max-w-sm flex-col gap-6">
-      <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Innsjekk</h1>
-        <p className="text-sm text-[var(--color-fg-base)]/70">
-          Angi PIN fra Slack for å logge inn.
-        </p>
-        <p className="font-mono text-xs opacity-50">
-          <span className="opacity-60">{PRINTER_TOKEN_PREFIX_LABEL}</span>
-          {printerTokenBody(token)}
-        </p>
-      </div>
-      <FieldGroup>
-        <Field>
-          <FieldLabel className="justify-center">PIN</FieldLabel>
-          <InputOTP
-            ref={pinInputRef}
-            maxLength={6}
-            pattern={REGEXP_ONLY_DIGITS}
-            value={pin}
-            onChange={onPinChange}
-            containerClassName="justify-center"
-            autoFocus
-            disabled={pending}
-          >
-            <InputOTPGroup>
-              {Array.from({ length: 6 }, (_, index) => (
-                <InputOTPSlot key={index} index={index} className="size-11 text-lg" />
-              ))}
-            </InputOTPGroup>
-          </InputOTP>
-        </Field>
-        {error ? (
-          <FieldError className="text-center text-[var(--color-bg-danger)]">{error}</FieldError>
-        ) : null}
-        <Button type="submit" size="lg" disabled={pending || pin.length !== 6}>
-          {pending ? "Logger inn…" : "Logg inn"}
-        </Button>
-        <Button type="button" variant="surface" onClick={resetToken}>
-          Bytt printer / skann på nytt
-        </Button>
-      </FieldGroup>
-    </form>
+    <>
+      <form onSubmit={onSubmitPin} className="mx-auto flex w-full max-w-sm flex-col gap-6">
+        <div className="space-y-1 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">Innsjekk</h1>
+          <p className="text-sm text-[var(--color-fg-base)]/70">
+            Angi PIN fra Slack for å logge inn.
+          </p>
+          <p className="font-mono text-xs opacity-50">
+            <span className="opacity-60">{PRINTER_TOKEN_PREFIX_LABEL}</span>
+            {printerTokenBody(token)}
+          </p>
+        </div>
+        <FieldGroup>
+          <Field>
+            <FieldLabel className="justify-center">PIN</FieldLabel>
+            <InputOTP
+              ref={pinInputRef}
+              maxLength={6}
+              pattern={REGEXP_ONLY_DIGITS}
+              value={pin}
+              onChange={onPinChange}
+              containerClassName="justify-center"
+              autoFocus
+              disabled={pending}
+            >
+              <InputOTPGroup>
+                {Array.from({ length: 6 }, (_, index) => (
+                  <InputOTPSlot key={index} index={index} className="size-11 text-lg" />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+          </Field>
+          {error ? (
+            <FieldError className="text-center text-[var(--color-bg-danger)]">{error}</FieldError>
+          ) : null}
+          <Button type="submit" size="lg" disabled={pending || pin.length !== 6}>
+            {pending ? "Logger inn…" : "Logg inn"}
+          </Button>
+          <Button type="button" variant="surface" onClick={resetToken}>
+            Bytt printer / skann på nytt
+          </Button>
+        </FieldGroup>
+      </form>
+      {scanDialog}
+    </>
   )
 }

@@ -25,16 +25,16 @@ export function SerialScanButton({ onScan }: { onScan: (serial: string) => void 
         <ScanBarcode className="size-5" aria-hidden />
       </InputGroupButton>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[min(100%-1.5rem,28rem)] max-w-none p-4">
+        <DialogContent className="flex w-[min(100%-1.5rem,28rem)] max-w-none flex-col p-4">
           <DialogTitle>Skann serienummer</DialogTitle>
           <DialogDescription>
             Strekkoden står vanligvis på etiketten inni lokket, ved DK-rullen.
           </DialogDescription>
-          <div className="mt-4">
+          <div className="mt-4 flex min-h-0 justify-center">
             {open ? (
               <ScanCamera
                 mode="multi"
-                aspectClassName="aspect-[4/3]"
+                aspectClassName="aspect-[4/3] h-[min(55dvh,22rem)] w-auto max-w-full"
                 parse={(raw) => {
                   const serial = normalizePrinterSerial(raw)
                   return serial || null

@@ -1,3 +1,6 @@
+import { DEFAULT_PRINTER_MODEL } from "@/lib/printer-models"
+import type { PhonePlatform } from "@/lib/platform"
+
 /** DK-11208 (38 × 90 mm). Matches Brother QL LabelSize DieCutW38H90. */
 export const DEFAULT_PAPER_SIZE_ID = "DieCutW38H90"
 
@@ -10,6 +13,8 @@ export const IOS_APP_STORE =
 /** Brother’s Android APK agreement / download (not on Play Store). */
 export const DEFAULT_SMOOTH_PRINT_ANDROID_URL =
   "https://support.brother.com/g/b/agreement.aspx?dlid=dlfp101087_000"
+
+export { DEFAULT_PRINTER_MODEL }
 
 /**
  * Brother requires both callbacks or neither ("If only one parameter is specified,
@@ -101,10 +106,6 @@ export function buildAndroidPrintIntent(input: {
   )
 }
 
-import { DEFAULT_PRINTER_MODEL } from "@/lib/printer-models"
-
-export { DEFAULT_PRINTER_MODEL }
-
 export type ConnectType = "BT" | "WiFi"
 
 /** Brother connect scheme. iOS QL over Bluetooth also needs serialnum. */
@@ -113,15 +114,24 @@ export function buildConnectQuery(input: {
   address: string
   serial: string
   model: string
+  platform?: PhonePlatform
   /** Omit so Smooth Print stays in front; staff return to the wizard themselves. */
   callbackUrl?: string
 }): string {
+  const ios = input.platform === "ios"
+  let model = input.model.trim() || DEFAULT_PRINTER_MODEL
+  let serial = input.serial.trim().toUpperCase()
+  // iOS matches the MFi accessory, which reports `QL-820NWB` and the last 9 of a
+  // 15-char serial (`E82696C6G972070` → `C6G972070`). Android wants the full values.
+  if (ios) {
+    model = model.replace(/c$/i, "")
+    if (serial.length === 15) serial = serial.slice(-9)
+  }
   const pairs: [string, string][] = [
     ["connecttype", input.connectType],
     ["connectaddress", input.address.trim().toUpperCase()],
-    ["model", input.model.trim() || DEFAULT_PRINTER_MODEL],
+    ["model", model],
   ]
-  const serial = input.serial.trim().toUpperCase()
   if (serial) pairs.push(["serialnum", serial])
   if (input.callbackUrl) pairs.push(["connectcallback", input.callbackUrl])
   return pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")
@@ -132,6 +142,7 @@ export function buildConnectUrl(input: {
   address: string
   serial: string
   model: string
+  platform?: PhonePlatform
   callbackUrl?: string
 }): string {
   return `brotherwebprint://connect?${buildConnectQuery(input)}`
@@ -142,6 +153,7 @@ export function buildAndroidConnectIntent(input: {
   address: string
   serial: string
   model: string
+  platform?: PhonePlatform
   callbackUrl?: string
   fallbackUrl: string
 }): string {

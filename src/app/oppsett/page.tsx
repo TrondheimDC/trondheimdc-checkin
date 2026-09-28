@@ -9,6 +9,7 @@ import { apiPath } from "@/lib/utils"
 
 const STEP_IDS = new Set<SetupStepId>([
   "install",
+  "camera",
   "bt-on",
   "scan",
   "connect",
@@ -36,6 +37,7 @@ export default async function SetupPage({
     phase?: string
     result?: string
     primed?: string
+    connectdebug?: string
   }>
 }) {
   const query = await searchParams
@@ -70,6 +72,7 @@ export default async function SetupPage({
         afterConnect={query.phase === "connected"}
         connectResult={query.result ?? null}
         initialPrimed={query.primed === "1"}
+        connectDebug={query.connectdebug === "1"}
       />
     </>
   )

@@ -41,7 +41,7 @@ import {
 } from "@/lib/printer-models"
 import { printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath, cn } from "@/lib/utils"
-
+import { defaultWeekendValidity, toDatetimeLocalValue } from "@/lib/weekend-validity"
 type PrinterFormValues = z.input<typeof printerBodySchema>
 type PrinterBody = z.output<typeof printerBodySchema>
 
@@ -98,6 +98,9 @@ export function EnrollPrinter({ origin }: { origin: string }) {
   const nameId = useId()
   const addressId = useId()
   const serialId = useId()
+  const validFromId = useId()
+  const validToId = useId()
+  const weekendDefaults = defaultWeekendValidity()
 
   const {
     register,
@@ -113,6 +116,8 @@ export function EnrollPrinter({ origin }: { origin: string }) {
       serial: "",
       model: DEFAULT_PRINTER_MODEL,
       connectType: "BT",
+      validFrom: toDatetimeLocalValue(weekendDefaults.validFrom),
+      validTo: toDatetimeLocalValue(weekendDefaults.validTo),
     },
   })
 
@@ -346,6 +351,48 @@ export function EnrollPrinter({ origin }: { origin: string }) {
               <FieldError
                 className="text-[var(--color-bg-danger)]"
                 errors={errors.model ? [errors.model] : undefined}
+              />
+            </Field>
+
+            <Field data-invalid={Boolean(errors.validFrom) || undefined}>
+              <FieldLabel htmlFor={validFromId} className="text-base text-[var(--color-fg-base)]">
+                Gyldig fra
+              </FieldLabel>
+              <InputGroup className={enrollInputGroupClass}>
+                <InputGroupInput
+                  id={validFromId}
+                  type="datetime-local"
+                  {...register("validFrom")}
+                  aria-invalid={Boolean(errors.validFrom)}
+                  className={enrollControlClass}
+                />
+              </InputGroup>
+              <FieldError
+                className="text-[var(--color-bg-danger)]"
+                errors={errors.validFrom ? [errors.validFrom] : undefined}
+              />
+            </Field>
+
+            <Field data-invalid={Boolean(errors.validTo) || undefined}>
+              <FieldLabel htmlFor={validToId} className="text-base text-[var(--color-fg-base)]">
+                Gyldig til
+              </FieldLabel>
+              <InputGroup className={enrollInputGroupClass}>
+                <InputGroupInput
+                  id={validToId}
+                  type="datetime-local"
+                  {...register("validTo")}
+                  aria-invalid={Boolean(errors.validTo)}
+                  className={enrollControlClass}
+                />
+              </InputGroup>
+              <FieldDescription className="text-[var(--color-fg-base)]/60">
+                Forhåndsvalgt: nærmeste konferansehelg (fredag–søndag). Dørinnlogging virker bare i
+                perioden.
+              </FieldDescription>
+              <FieldError
+                className="text-[var(--color-bg-danger)]"
+                errors={errors.validTo ? [errors.validTo] : undefined}
               />
             </Field>
 

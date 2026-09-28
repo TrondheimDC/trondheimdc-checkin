@@ -20,7 +20,12 @@ import { attendeeResponseSchema, attendeeStatsSchema, type Attendee } from "@/li
 import { refinePlatform, platformFromNavigator } from "@/lib/platform"
 import { consumePrintOutcome } from "@/lib/print-outcome"
 import { parsePrinterSetupUrl, printerSetupPath } from "@/lib/printer-setup"
-import { SCAN_AUTO_PRINT_KEY, SCAN_INLINE_KEY } from "@/lib/scan-settings"
+import {
+  SCAN_AUTO_PRINT_DEFAULT,
+  SCAN_AUTO_PRINT_KEY,
+  SCAN_INLINE_DEFAULT,
+  SCAN_INLINE_KEY,
+} from "@/lib/scan-settings"
 import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 
@@ -48,8 +53,8 @@ export function Scanner({ printerName }: { printerName?: string }) {
   const busyRef = useRef(false)
   const lastAcceptedRef = useRef<{ text: string; at: number } | null>(null)
   const ready = useLocalFlag(SETUP_KEY)
-  const scanInlineFlag = useLocalFlag(SCAN_INLINE_KEY)
-  const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY)
+  const scanInlineFlag = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
+  const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
   const [error, setError] = useState<string | null>(null)
   const [scanHint, setScanHint] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string | undefined>(undefined)
