@@ -116,18 +116,24 @@ export const printerBodySchema = z
     serial: z.string().trim().toUpperCase().max(40).default(""),
     model: printerModelIdSchema.default(DEFAULT_PRINTER_MODEL),
     connectType: z.enum(["BT", "WiFi"]).default("BT"),
-    validFrom: z
-      .string()
-      .trim()
-      .min(1)
-      .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
-      .optional(),
-    validTo: z
-      .string()
-      .trim()
-      .min(1)
-      .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
-      .optional(),
+    validFrom: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z
+        .string()
+        .trim()
+        .min(1)
+        .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
+        .optional(),
+    ),
+    validTo: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z
+        .string()
+        .trim()
+        .min(1)
+        .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
+        .optional(),
+    ),
   })
   .superRefine((data, ctx) => {
     if (data.connectType === "WiFi") {
@@ -193,13 +199,10 @@ export const printerUpdateBodySchema = z
     }
   })
 
-export const printerRenameBodySchema = z.object({
-  name: z.string().trim().min(1, "Skriv inn et navn").max(40),
-})
-
-/** Admin form for door-login validity. Empty fields clear the bound (ingen begrensning). */
-export const printerValidityBodySchema = z
+/** Admin form: name + door-login validity. Empty date fields clear the bound. */
+export const printerEditBodySchema = z
   .object({
+    name: z.string().trim().min(1, "Skriv inn et navn").max(40),
     validFrom: z.string(),
     validTo: z.string(),
   })
@@ -221,6 +224,7 @@ export const printerValidityBodySchema = z
     }
   })
   .transform((data) => ({
+    name: data.name.trim(),
     validFrom: data.validFrom.trim() ? new Date(data.validFrom.trim()).toISOString() : null,
     validTo: data.validTo.trim() ? new Date(data.validTo.trim()).toISOString() : null,
   }))

@@ -12,7 +12,6 @@ import {
   type Printer,
 } from "@/lib/db/schema"
 import { createPrinterToken } from "@/lib/printer-token"
-import { defaultWeekendValidity } from "@/lib/weekend-validity"
 import type { z } from "zod"
 
 export type { Printer }
@@ -112,11 +111,8 @@ export const printerRepository = {
     const token = createPrinterToken()
     const pin = generatePin()
     const now = new Date()
-    const validity = defaultWeekendValidity()
-    const validFrom = input.validFrom
-      ? new Date(input.validFrom).toISOString()
-      : validity.validFrom
-    const validTo = input.validTo ? new Date(input.validTo).toISOString() : validity.validTo
+    const validFrom = input.validFrom ? new Date(input.validFrom).toISOString() : null
+    const validTo = input.validTo ? new Date(input.validTo).toISOString() : null
 
     await db.insert(printers).values({
       id: printerId,

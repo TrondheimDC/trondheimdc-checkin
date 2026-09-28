@@ -1,6 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
+import { CalendarRange } from "lucide-react"
 import Link from "next/link"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useId, useState } from "react"
@@ -41,7 +42,6 @@ import {
 } from "@/lib/printer-models"
 import { printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath, cn } from "@/lib/utils"
-import { defaultWeekendValidity, toDatetimeLocalValue } from "@/lib/weekend-validity"
 type PrinterFormValues = z.input<typeof printerBodySchema>
 type PrinterBody = z.output<typeof printerBodySchema>
 
@@ -100,7 +100,7 @@ export function EnrollPrinter({ origin }: { origin: string }) {
   const serialId = useId()
   const validFromId = useId()
   const validToId = useId()
-  const weekendDefaults = defaultWeekendValidity()
+  const [showValidity, setShowValidity] = useState(false)
 
   const {
     register,
@@ -116,8 +116,8 @@ export function EnrollPrinter({ origin }: { origin: string }) {
       serial: "",
       model: DEFAULT_PRINTER_MODEL,
       connectType: "BT",
-      validFrom: toDatetimeLocalValue(weekendDefaults.validFrom),
-      validTo: toDatetimeLocalValue(weekendDefaults.validTo),
+      validFrom: "",
+      validTo: "",
     },
   })
 
@@ -354,47 +354,73 @@ export function EnrollPrinter({ origin }: { origin: string }) {
               />
             </Field>
 
-            <Field data-invalid={Boolean(errors.validFrom) || undefined}>
-              <FieldLabel htmlFor={validFromId} className="text-base text-[var(--color-fg-base)]">
-                Gyldig fra
-              </FieldLabel>
-              <InputGroup className={enrollInputGroupClass}>
-                <InputGroupInput
-                  id={validFromId}
-                  type="datetime-local"
-                  {...register("validFrom")}
-                  aria-invalid={Boolean(errors.validFrom)}
-                  className={enrollControlClass}
-                />
-              </InputGroup>
-              <FieldError
-                className="text-[var(--color-bg-danger)]"
-                errors={errors.validFrom ? [errors.validFrom] : undefined}
-              />
-            </Field>
+            {showValidity ? (
+              <div className="flex flex-col gap-4">
+                <Field data-invalid={Boolean(errors.validFrom) || undefined}>
+                  <FieldLabel htmlFor={validFromId} className="text-base text-[var(--color-fg-base)]">
+                    Gyldig fra
+                  </FieldLabel>
+                  <InputGroup className={enrollInputGroupClass}>
+                    <InputGroupInput
+                      id={validFromId}
+                      type="datetime-local"
+                      {...register("validFrom")}
+                      aria-invalid={Boolean(errors.validFrom)}
+                      className={enrollControlClass}
+                    />
+                  </InputGroup>
+                  <FieldError
+                    className="text-[var(--color-bg-danger)]"
+                    errors={errors.validFrom ? [errors.validFrom] : undefined}
+                  />
+                </Field>
 
-            <Field data-invalid={Boolean(errors.validTo) || undefined}>
-              <FieldLabel htmlFor={validToId} className="text-base text-[var(--color-fg-base)]">
-                Gyldig til
-              </FieldLabel>
-              <InputGroup className={enrollInputGroupClass}>
-                <InputGroupInput
-                  id={validToId}
-                  type="datetime-local"
-                  {...register("validTo")}
-                  aria-invalid={Boolean(errors.validTo)}
-                  className={enrollControlClass}
-                />
-              </InputGroup>
-              <FieldDescription className="text-[var(--color-fg-base)]/60">
-                Forhåndsvalgt: nærmeste konferansehelg (fredag–søndag). Dørinnlogging virker bare i
-                perioden.
-              </FieldDescription>
-              <FieldError
-                className="text-[var(--color-bg-danger)]"
-                errors={errors.validTo ? [errors.validTo] : undefined}
-              />
-            </Field>
+                <Field data-invalid={Boolean(errors.validTo) || undefined}>
+                  <FieldLabel htmlFor={validToId} className="text-base text-[var(--color-fg-base)]">
+                    Gyldig til
+                  </FieldLabel>
+                  <InputGroup className={enrollInputGroupClass}>
+                    <InputGroupInput
+                      id={validToId}
+                      type="datetime-local"
+                      {...register("validTo")}
+                      aria-invalid={Boolean(errors.validTo)}
+                      className={enrollControlClass}
+                    />
+                  </InputGroup>
+                  <FieldDescription className="text-[var(--color-fg-base)]/60">
+                    Dørinnlogging virker bare innenfor perioden.
+                  </FieldDescription>
+                  <FieldError
+                    className="text-[var(--color-bg-danger)]"
+                    errors={errors.validTo ? [errors.validTo] : undefined}
+                  />
+                </Field>
+
+                <Button
+                  type="button"
+                  variant="surface"
+                  className="justify-start"
+                  onClick={() => {
+                    setShowValidity(false)
+                    setValue("validFrom", "", { shouldDirty: true, shouldValidate: true })
+                    setValue("validTo", "", { shouldDirty: true, shouldValidate: true })
+                  }}
+                >
+                  Ingen begrensning
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="surface"
+                className="justify-start"
+                onClick={() => setShowValidity(true)}
+              >
+                <CalendarRange className="size-5" aria-hidden />
+                Sett gyldighetsperiode
+              </Button>
+            )}
 
             {save.isError ? (
               <p className="text-[var(--color-bg-danger)]">Klarte ikke å lagre printeren.</p>

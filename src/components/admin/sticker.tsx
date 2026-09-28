@@ -43,12 +43,16 @@ export function ShowStickerQrButton({
   label = "Oppsett-QR",
   description = "Skann koden for å koble telefonen i Smooth Print.",
   className,
+  fallbackPath,
+  templateFile,
 }: {
   name: string
   url: string
   label?: string
   description?: string
   className?: string
+  fallbackPath?: string
+  templateFile?: string
 }) {
   const [open, setOpen] = useState(false)
 
@@ -63,8 +67,14 @@ export function ShowStickerQrButton({
         <DialogContent>
           <DialogTitle>QR for {name}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex flex-col items-center gap-3">
             <StickerPreview name={name} url={url} />
+            <PrintStickerButton
+              name={name}
+              url={url}
+              fallbackPath={fallbackPath}
+              templateFile={templateFile}
+            />
           </div>
           <div className="mt-6">
             <DialogClose asChild>

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useId, useLayoutEffect, useState } from "react"
 import { useForm } from "react-hook-form"
-import { ChevronDown, Copy, Eye, EyeOff, Link2, Pencil, CalendarRange, QrCode, RefreshCw } from "lucide-react"
+import { ChevronDown, Copy, Eye, EyeOff, Link2, Pencil, QrCode, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { StickerIllustration } from "@/components/admin/enroll-illustrations"
@@ -14,10 +14,10 @@ import { RemovePrinterButton } from "@/components/admin/remove-printer"
 import { PrintStickerButton, ShowStickerQrButton, StickerPreview } from "@/components/admin/sticker"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group"
 import { isWithinValidityWindow } from "@/lib/auth-validity"
-import { printerRenameBodySchema, printerValidityBodySchema, type Printer } from "@/lib/db/schema"
+import { printerEditBodySchema, type Printer } from "@/lib/db/schema"
 import {
   fetchPrinterSecrets,
   fetchPrinters,
@@ -27,7 +27,7 @@ import {
 import { printerSetupPath } from "@/lib/printer-setup"
 import { printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath } from "@/lib/utils"
-import { defaultWeekendValidity, toDatetimeLocalValue } from "@/lib/weekend-validity"
+import { toDatetimeLocalValue } from "@/lib/datetime-local"
 function formatValidity(from: string | null, to: string | null) {
   const fmt = (iso: string) =>
     new Intl.DateTimeFormat("nb-NO", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso))
@@ -80,7 +80,7 @@ function CopyTokenButton({ token }: { token: string }) {
       }}
     >
       <Copy className="size-5" aria-hidden />
-      {copied ? "Kode kopiert" : "Kopier kode til Slack"}
+      {copied ? "Kode kopiert" : "Kopier kode"}
     </Button>
   )
 }
@@ -190,8 +190,6 @@ function PrinterCardActions({
 
   return (
     <div className="flex flex-col gap-2">
-      <PrintStickerButton name={printer.name} url={setupUrl} />
-
       <div className="grid grid-cols-2 gap-2">
         <ShowStickerQrButton name={printer.name} url={setupUrl} className={dayOfButtonClass} />
         <LoginSecretsButton
@@ -224,12 +222,7 @@ function PrinterCardActions({
 
       {moreOpen ? (
         <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
-          <EditNameButton id={printer.id} name={printer.name} />
-          <EditValidityButton
-            id={printer.id}
-            validFrom={printer.validFrom}
-            validTo={printer.validTo}
-          />
+          <EditPrinterButton printer={printer} />
           <RotatePinButton
             id={printer.id}
             name={printer.name}
@@ -250,55 +243,70 @@ function PrinterCardActions({
   )
 }
 
-function EditNameButton({
-  id,
-  name,
-}: {
-  id: string
-  name: string
-}) {
+function EditPrinterButton({ printer }: { printer: Printer }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const nameId = useId()
+  const fromId = useId()
+  const toId = useId()
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<
-    z.input<typeof printerRenameBodySchema>,
+    z.input<typeof printerEditBodySchema>,
     unknown,
-    z.output<typeof printerRenameBodySchema>
+    z.output<typeof printerEditBodySchema>
   >({
-    resolver: zodResolver(printerRenameBodySchema),
-    defaultValues: { name },
+    resolver: zodResolver(printerEditBodySchema),
+    defaultValues: {
+      name: printer.name,
+      validFrom: toDatetimeLocalValue(printer.validFrom),
+      validTo: toDatetimeLocalValue(printer.validTo),
+    },
   })
 
-  const rename = useMutation({
-    mutationFn: (body: { name: string }) => patchPrinter(id, body),
+  const save = useMutation({
+    mutationFn: (body: z.output<typeof printerEditBodySchema>) => patchPrinter(printer.id, body),
     onMutate: async (body) => {
       await queryClient.cancelQueries({ queryKey: printersQueryKey })
       const previous = queryClient.getQueryData<Printer[]>(printersQueryKey)
       queryClient.setQueryData<Printer[]>(printersQueryKey, (current) =>
-        current?.map((item) => (item.id === id ? { ...item, name: body.name } : item)),
+        current?.map((item) =>
+          item.id === printer.id
+            ? {
+                ...item,
+                name: body.name,
+                validFrom: body.validFrom,
+                validTo: body.validTo,
+              }
+            : item,
+        ),
       )
       return { previous }
     },
     onSuccess: (result) => {
       queryClient.setQueryData<Printer[]>(printersQueryKey, (current) =>
-        current?.map((item) => (item.id === id ? result.printer : item)),
+        current?.map((item) => (item.id === printer.id ? result.printer : item)),
       )
       setOpen(false)
     },
     onError: (_error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(printersQueryKey, context.previous)
-      toast.error("Klarte ikke å oppdatere navnet.")
+      toast.error("Klarte ikke å lagre endringene.")
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: printersQueryKey })
     },
   })
+
+  function clearBounds() {
+    setValue("validFrom", "", { shouldDirty: true })
+    setValue("validTo", "", { shouldDirty: true })
+  }
 
   return (
     <>
@@ -307,18 +315,25 @@ function EditNameButton({
         variant="surface"
         className="justify-start bg-black/20"
         onClick={() => {
-          reset({ name })
+          reset({
+            name: printer.name,
+            validFrom: toDatetimeLocalValue(printer.validFrom),
+            validTo: toDatetimeLocalValue(printer.validTo),
+          })
           setOpen(true)
         }}
       >
         <Pencil className="size-5" aria-hidden />
-        Endre navn
+        Endre
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogTitle>Endre navn</DialogTitle>
-          <form className="mt-4" onSubmit={handleSubmit((data) => rename.mutate(data))}>
+          <DialogTitle>Endre printer</DialogTitle>
+          <DialogDescription>
+            Dørinnlogging virker bare innenfor perioden. Tomme datofelt = ingen begrensning.
+          </DialogDescription>
+          <form className="mt-4" onSubmit={handleSubmit((data) => save.mutate(data))}>
             <FieldGroup className="gap-4">
               <Field data-invalid={Boolean(errors.name) || undefined}>
                 <FieldLabel htmlFor={nameId}>Navn</FieldLabel>
@@ -335,124 +350,8 @@ function EditNameButton({
                   errors={errors.name ? [errors.name] : undefined}
                 />
               </Field>
-              <div className="flex flex-col gap-3">
-                <Button type="submit" size="lg" disabled={rename.isPending}>
-                  Lagre
-                </Button>
-                <DialogClose asChild>
-                  <Button variant="surface" size="lg">
-                    Avbryt
-                  </Button>
-                </DialogClose>
-              </div>
-            </FieldGroup>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
-}
-
-function EditValidityButton({
-  id,
-  validFrom,
-  validTo,
-}: {
-  id: string
-  validFrom: string | null
-  validTo: string | null
-}) {
-  const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
-  const fromId = useId()
-  const toId = useId()
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm<
-    z.input<typeof printerValidityBodySchema>,
-    unknown,
-    z.output<typeof printerValidityBodySchema>
-  >({
-    resolver: zodResolver(printerValidityBodySchema),
-    defaultValues: {
-      validFrom: toDatetimeLocalValue(validFrom),
-      validTo: toDatetimeLocalValue(validTo),
-    },
-  })
-
-  const save = useMutation({
-    mutationFn: (body: z.output<typeof printerValidityBodySchema>) => patchPrinter(id, body),
-    onMutate: async (body) => {
-      await queryClient.cancelQueries({ queryKey: printersQueryKey })
-      const previous = queryClient.getQueryData<Printer[]>(printersQueryKey)
-      queryClient.setQueryData<Printer[]>(printersQueryKey, (current) =>
-        current?.map((item) =>
-          item.id === id
-            ? { ...item, validFrom: body.validFrom, validTo: body.validTo }
-            : item,
-        ),
-      )
-      return { previous }
-    },
-    onSuccess: (result) => {
-      queryClient.setQueryData<Printer[]>(printersQueryKey, (current) =>
-        current?.map((item) => (item.id === id ? result.printer : item)),
-      )
-      setOpen(false)
-    },
-    onError: (_error, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(printersQueryKey, context.previous)
-      toast.error("Klarte ikke å oppdatere perioden.")
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: printersQueryKey })
-    },
-  })
-
-  function applyWeekend() {
-    const weekend = defaultWeekendValidity()
-    setValue("validFrom", toDatetimeLocalValue(weekend.validFrom), { shouldDirty: true })
-    setValue("validTo", toDatetimeLocalValue(weekend.validTo), { shouldDirty: true })
-  }
-
-  function clearBounds() {
-    setValue("validFrom", "", { shouldDirty: true })
-    setValue("validTo", "", { shouldDirty: true })
-  }
-
-  return (
-    <>
-      <Button
-        type="button"
-        variant="surface"
-        className="justify-start bg-black/20"
-        onClick={() => {
-          reset({
-            validFrom: toDatetimeLocalValue(validFrom),
-            validTo: toDatetimeLocalValue(validTo),
-          })
-          setOpen(true)
-        }}
-      >
-        <CalendarRange className="size-5" aria-hidden />
-        Endre gyldighet
-      </Button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogTitle>Gyldighetsperiode</DialogTitle>
-          <DialogDescription>
-            Dørinnlogging virker bare innenfor perioden. Tomme felt = ingen begrensning.
-          </DialogDescription>
-          <form className="mt-4" onSubmit={handleSubmit((data) => save.mutate(data))}>
-            <FieldGroup className="gap-4">
               <Field data-invalid={Boolean(errors.validFrom) || undefined}>
-                <FieldLabel htmlFor={fromId}>Fra</FieldLabel>
+                <FieldLabel htmlFor={fromId}>Gyldig fra</FieldLabel>
                 <InputGroup>
                   <InputGroupInput
                     id={fromId}
@@ -467,7 +366,7 @@ function EditValidityButton({
                 />
               </Field>
               <Field data-invalid={Boolean(errors.validTo) || undefined}>
-                <FieldLabel htmlFor={toId}>Til</FieldLabel>
+                <FieldLabel htmlFor={toId}>Gyldig til</FieldLabel>
                 <InputGroup>
                   <InputGroupInput
                     id={toId}
@@ -482,16 +381,10 @@ function EditValidityButton({
                 />
               </Field>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="surface" onClick={applyWeekend}>
-                  Denne helgen
-                </Button>
                 <Button type="button" variant="surface" onClick={clearBounds}>
                   Ingen begrensning
                 </Button>
               </div>
-              <FieldDescription>
-                «Denne helgen» er fredag 00:00–søndag 23:59 for nærmeste konferansehelg.
-              </FieldDescription>
               <div className="flex flex-col gap-3">
                 <Button type="submit" size="lg" disabled={save.isPending}>
                   Lagre
