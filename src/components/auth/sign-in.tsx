@@ -157,7 +157,7 @@ export function SignIn({
                   <form.AppField
                     name="email"
                     validators={{
-                      onChange: ({ value }) =>
+                      onSubmit: ({ value }) =>
                         validateEmailAddress(value, {
                           invalidMessage: localization.auth.invalidEmail,
                           requiredMessage: localization.auth.fieldRequired
@@ -199,18 +199,8 @@ export function SignIn({
                   <form.AppField
                     name="password"
                     validators={{
-                      onChange: ({ value }) =>
+                      onSubmit: ({ value }) =>
                         validateStringLength(value, {
-                          maxLength: emailAndPassword?.maxPasswordLength,
-                          maxLengthMessage: localization.auth.tooLong.replace(
-                            "{{max}}",
-                            String(emailAndPassword?.maxPasswordLength)
-                          ),
-                          minLength: emailAndPassword?.minPasswordLength,
-                          minLengthMessage: localization.auth.tooShort.replace(
-                            "{{min}}",
-                            String(emailAndPassword?.minPasswordLength)
-                          ),
                           requiredMessage: localization.auth.fieldRequired
                         })
                     }}
@@ -241,8 +231,6 @@ export function SignIn({
                                 localization.auth.passwordPlaceholder
                               }
                               required
-                              minLength={emailAndPassword?.minPasswordLength}
-                              maxLength={emailAndPassword?.maxPasswordLength}
                               disabled={isPending}
                               aria-invalid={isInvalid}
                             />

@@ -1,0 +1,94 @@
+import {
+  OBJECT_ID_ALPHABET,
+  OBJECT_ID_BODY_LENGTH,
+  createObjectId,
+  formatObjectId,
+  isObjectIdBody,
+  objectIdBody,
+  type ObjectId,
+} from "@/lib/db/object-id"
+
+/** Lowercase prefix — static in the UI, like a serial-number label. */
+export const PRINTER_TOKEN_PREFIX = "prt" as const
+
+export const PRINTER_TOKEN_PREFIX_LABEL = `${PRINTER_TOKEN_PREFIX}_` as const
+
+export const PRINTER_TOKEN_BODY_LENGTH = OBJECT_ID_BODY_LENGTH
+
+export type PrinterToken = ObjectId<"prt">
+
+export function createPrinterToken(): PrinterToken {
+  return createObjectId("prt")
+}
+
+export function formatPrinterToken(body: string): PrinterToken {
+  return formatObjectId("prt", body)
+}
+
+export function printerTokenBody(token: string): string {
+  return objectIdBody(token, "prt")
+}
+
+export function isPrinterTokenBody(value: string): boolean {
+  return isObjectIdBody(value)
+}
+
+export function isPrinterToken(value: string): value is PrinterToken {
+  if (!value.toLowerCase().startsWith(PRINTER_TOKEN_PREFIX_LABEL)) return false
+  return isObjectIdBody(printerTokenBody(value))
+}
+
+/**
+ * Live input for the body field: strip pasted `prt_`, URLs, keep uppercase alphabet only.
+ */
+export function normalizePrinterTokenBodyInput(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return ""
+
+  const fromUrl = extractTokenFromUrlish(trimmed)
+  if (fromUrl) return printerTokenBody(fromUrl)
+
+  let body = trimmed
+  if (body.toLowerCase().startsWith(PRINTER_TOKEN_PREFIX_LABEL)) {
+    body = body.slice(PRINTER_TOKEN_PREFIX_LABEL.length)
+  }
+  body = body.toUpperCase().replace(new RegExp(`[^${OBJECT_ID_ALPHABET}]`, "g"), "")
+  return body.slice(0, PRINTER_TOKEN_BODY_LENGTH)
+}
+
+/**
+ * Normalize pasted Slack text, full login URL, raw `prt_…`, or body-only
+ * into the canonical external token (`prt_` + body). Returns null if invalid.
+ */
+export function parsePrinterTokenInput(raw: string): PrinterToken | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+
+  const fromUrl = extractTokenFromUrlish(trimmed)
+  if (fromUrl) return fromUrl
+
+  let body = trimmed
+  if (body.toLowerCase().startsWith(PRINTER_TOKEN_PREFIX_LABEL)) {
+    body = body.slice(PRINTER_TOKEN_PREFIX_LABEL.length)
+  }
+  body = body.toUpperCase()
+  if (!isObjectIdBody(body)) return null
+  return formatObjectId("prt", body)
+}
+
+function extractTokenFromUrlish(raw: string): PrinterToken | null {
+  try {
+    const url = new URL(raw)
+    const token = url.searchParams.get("token")?.trim()
+    if (token) return parsePrinterTokenInput(token)
+  } catch {
+    // not an absolute URL
+  }
+
+  const queryMatch = raw.match(/[?&]token=([^&\s#]+)/i)
+  if (queryMatch) {
+    return parsePrinterTokenInput(decodeURIComponent(queryMatch[1]).trim())
+  }
+
+  return null
+}

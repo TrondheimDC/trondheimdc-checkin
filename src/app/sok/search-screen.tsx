@@ -19,7 +19,7 @@ import {
 import type { AttendeeStats } from "@/lib/attendees"
 import { attendeesSearchResponseSchema, attendeeStatsSchema } from "@/lib/db/schema"
 import { labelLine } from "@/lib/label-line"
-import { useLocalFlag } from "@/lib/use-local-flag"
+import { setLocalFlag, useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 
 const INCLUDE_CHECKED_IN_KEY = "tdc-sok-include-checked-in"
@@ -78,13 +78,13 @@ export function SearchScreen({ initialStats }: { initialStats: AttendeeStats }) 
   function toggleIncludeCheckedIn() {
     const next = !includeCheckedIn
     setIncludeCheckedIn(next)
-    localStorage.setItem(INCLUDE_CHECKED_IN_KEY, next ? "1" : "0")
+    setLocalFlag(INCLUDE_CHECKED_IN_KEY, next)
   }
 
   function toggleShowAll() {
     const next = !showAll
     setShowAll(next)
-    localStorage.setItem(SHOW_ALL_KEY, next ? "1" : "0")
+    setLocalFlag(SHOW_ALL_KEY, next)
   }
 
   return (

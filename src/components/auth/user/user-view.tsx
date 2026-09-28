@@ -5,6 +5,7 @@ import { useAuth, useSession } from "@better-auth-ui/react"
 import type { User } from "better-auth"
 
 import { Skeleton } from "@/components/ui/skeleton"
+import { adminLabel, isPlaceholderAdminEmail } from "@/lib/admin-identity"
 import { cn } from "@/lib/utils"
 import { UserAvatar } from "./user-avatar"
 
@@ -59,23 +60,31 @@ export function UserView({
     )
   }
 
+  const label = adminLabel({
+    username: resolvedUser?.displayUsername || resolvedUser?.username,
+    name: resolvedUser?.name
+  })
+  const email = resolvedUser?.email
+  const showEmail =
+    !hideSubtitle &&
+    Boolean(email) &&
+    !isPlaceholderAdminEmail(email) &&
+    email !== label
+
   return (
     <div className={cn("flex items-center gap-2 min-w-0", className)}>
       <UserAvatar user={resolvedUser as User | undefined} />
 
       <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
         <span className="truncate font-medium text-foreground">
-          {resolvedUser?.displayUsername ||
-            resolvedUser?.name ||
-            resolvedUser?.email}
+          {label || email}
         </span>
 
-        {!hideSubtitle &&
-          (resolvedUser?.displayUsername || resolvedUser?.name) && (
-            <span className="text-muted-foreground truncate text-xs">
-              {resolvedUser?.email}
-            </span>
-          )}
+        {showEmail ? (
+          <span className="text-muted-foreground truncate text-xs">
+            {email}
+          </span>
+        ) : null}
       </div>
     </div>
   )

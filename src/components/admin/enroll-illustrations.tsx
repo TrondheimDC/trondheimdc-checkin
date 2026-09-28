@@ -65,14 +65,14 @@ export function StickerIllustration() {
   )
 }
 
-/** Printer linked to a door / stasjon (inventory pick). */
+/** Printer linked in inventory / enroll art. */
 export function LinkedPrinterIllustration() {
   return (
     <svg
       viewBox="0 0 280 180"
       className="h-auto w-full"
       role="img"
-      aria-label="Printer koblet til innsjekkstasjon"
+      aria-label="Printer"
     >
       <rect x="70" y="36" width="140" height="88" rx="12" fill="#1a1a1a" />
       <rect x="86" y="52" width="78" height="40" rx="4" fill="#292929" />

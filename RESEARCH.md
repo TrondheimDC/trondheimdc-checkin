@@ -69,7 +69,7 @@ brotherwebprint://print?filename=<url-encoded lbx>&size=<paper size id>&copies=1
 
 Callbacks do fire on Android with an https URL. The success shape is only `?result=SUCCESS` (no `errorcode`, unlike iOS). Every return opened a **new Chrome tab** (full page load). That is worse check-in UX than Smooth Print's own result dialog, which appears when the callback pair is omitted and dismisses back onto the same tab with no reload.
 
-**Confirmed on hardware (2026-09-27): the overlay dialog only appears if Smooth Print is not already running.** If Smooth Print is open in the background (recent apps), a print without callbacks **switches to the Smooth Print app** and stays there — no dialog over Chrome. Staff must force-close Smooth Print (swipe away from recents) **before the test/badge print** — not right after install. Leaving Smooth Print available through `connect` is intentional: Android brings the app to the foreground so staff can see whether connect succeeded.
+**Confirmed on hardware (2026-09-27): the overlay dialog only appears if Smooth Print is not already running.** If Smooth Print is open in the background (recent apps), a print without callbacks **switches to the Smooth Print app** and stays there — no dialog over Chrome. Staff must force-close Smooth Print (swipe away from recents) **before the test/badge print** — not right after install. For connect, a cold start (never opened after install) is best: permissions/terms run, then Smooth Print returns to the browser.
 
 Chrome decides tab reuse in `IntentHandler.getTabOpenType` ([current source](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/android/java/src/org/chromium/chrome/browser/IntentHandler.java)). Default for a URL from another app is a new tab. Reuse needs intent extras (`REUSE_URL_MATCHING_TAB_ELSE_NEW_TAB`, or `Browser.EXTRA_APPLICATION_ID`) that a callback URL string cannot set, and Smooth Print concatenates the result onto the end of that string. We never confirmed whether Smooth Print sets `REUSE_URL_MATCHING_TAB_ELSE_NEW_TAB`: the first Android pre-set used the iOS query (`…&errorcode=SUCCESS`), so the URLs could not match. Product call is to drop the callback rather than keep chasing tab reuse.
 
@@ -147,7 +147,9 @@ Worth trying as a **poll** before / after print: is the printer connected, ready
 - Find (Bluetooth search): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/find_printer/
 - Connect (Bluetooth MAC / iOS QL serial, or Wi-Fi IP): https://support.brother.com/g/s/es/htmldoc/smoothprint/reference/connect_printer/
 
-**Android (2026-09-27):** sticker / in-app scan → `brotherwebprint://connect` works as the happy path without walking OS pair + manual confirm first. iOS still needs a hardware retest (earlier notes said OS pair may be required first). Manual path remains the fallback.
+**Android (grade-A, 2026-09-27):** sticker / in-app scan → `brotherwebprint://connect` works as the happy path without walking OS pair + manual confirm first. Cold start after install (Ferdig, don’t open) runs permissions/terms/Bluetooth, then returns to the browser.
+
+**iOS:** still needs a hardware retest of the same happy path (earlier notes said OS pair may be required before connect). Manual path remains the fallback.
 
 ### AirPrint — possible way to skip Smooth Print on iOS entirely (unverified)
 

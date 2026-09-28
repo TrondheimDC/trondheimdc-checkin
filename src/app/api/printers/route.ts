@@ -1,6 +1,10 @@
 import { isSession, requireAdminApiSession } from "@/lib/auth-api"
+import {
+  printerBodySchema,
+  printerCreateResponseSchema,
+  printersResponseSchema,
+} from "@/lib/db/schema"
 import { printerRepository } from "@/lib/printers"
-import { printerBodySchema, printerResponseSchema, printersResponseSchema } from "@/lib/db/schema"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET() {
@@ -20,6 +24,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 })
   }
-  const printer = await printerRepository.create(parsed.data)
-  return NextResponse.json(printerResponseSchema.parse({ printer }), { status: 201 })
+
+  const created = await printerRepository.create(parsed.data)
+  return NextResponse.json(printerCreateResponseSchema.parse(created), { status: 201 })
 }

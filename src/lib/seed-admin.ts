@@ -10,7 +10,7 @@ import { account, user } from "@/lib/db/schema"
  * Does not overwrite an existing password.
  *
  * better-auth still requires an email column; we store a non-mailed placeholder
- * (`{username}@innsjekk.local`), same pattern as stasjon accounts.
+ * (`{username}@innsjekk.local`), same pattern as printer door accounts.
  */
 export async function ensureSuperAdminFromEnv(): Promise<void> {
   const username = process.env.ADMIN_USERNAME?.trim().toLowerCase()

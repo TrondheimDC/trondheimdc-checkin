@@ -147,7 +147,7 @@ export function SignInUsername({
                   <form.AppField
                     name="identifier"
                     validators={{
-                      onChange: ({ value }) =>
+                      onSubmit: ({ value }) =>
                         validateStringLength(value, {
                           requiredMessage: localization.auth.fieldRequired,
                           trim: true,
@@ -194,18 +194,9 @@ export function SignInUsername({
                   <form.AppField
                     name="password"
                     validators={{
-                      onChange: ({ value }) =>
+                      // Sign-in: required only, on submit. Length rules belong on sign-up.
+                      onSubmit: ({ value }) =>
                         validateStringLength(value, {
-                          maxLength: emailAndPassword?.maxPasswordLength,
-                          maxLengthMessage: localization.auth.tooLong.replace(
-                            "{{max}}",
-                            String(emailAndPassword?.maxPasswordLength),
-                          ),
-                          minLength: emailAndPassword?.minPasswordLength,
-                          minLengthMessage: localization.auth.tooShort.replace(
-                            "{{min}}",
-                            String(emailAndPassword?.minPasswordLength),
-                          ),
                           requiredMessage: localization.auth.fieldRequired,
                         }),
                     }}
@@ -236,8 +227,6 @@ export function SignInUsername({
                                 localization.auth.passwordPlaceholder
                               }
                               required
-                              minLength={emailAndPassword?.minPasswordLength}
-                              maxLength={emailAndPassword?.maxPasswordLength}
                               disabled={isPending}
                               aria-invalid={isInvalid}
                             />

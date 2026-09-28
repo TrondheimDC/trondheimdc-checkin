@@ -17,12 +17,12 @@ import {
 } from "@/components/ui/input-group"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import {
-  normalizeStasjonTokenBodyInput,
-  parseStasjonTokenInput,
-  STASJON_TOKEN_BODY_LENGTH,
-  STASJON_TOKEN_PREFIX_LABEL,
-  stasjonTokenBody,
-} from "@/lib/stasjon-token"
+  normalizePrinterTokenBodyInput,
+  parsePrinterTokenInput,
+  PRINTER_TOKEN_BODY_LENGTH,
+  PRINTER_TOKEN_PREFIX_LABEL,
+  printerTokenBody,
+} from "@/lib/printer-token"
 import { apiPath } from "@/lib/utils"
 
 type AcquireMode = "choose" | "manual"
@@ -43,7 +43,7 @@ export function DoorLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const urlToken = searchParams.get("token")?.trim() || ""
-  const [token, setToken] = useState(() => parseStasjonTokenInput(urlToken) ?? "")
+  const [token, setToken] = useState(() => parsePrinterTokenInput(urlToken) ?? "")
   const [acquireMode, setAcquireMode] = useState<AcquireMode>("choose")
   const [manualDraft, setManualDraft] = useState("")
   const [scanOpen, setScanOpen] = useState(false)
@@ -54,7 +54,7 @@ export function DoorLoginForm() {
   const pinInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setToken(parseStasjonTokenInput(urlToken) ?? "")
+    setToken(parsePrinterTokenInput(urlToken) ?? "")
   }, [urlToken])
 
   function acceptToken(next: string) {
@@ -78,9 +78,9 @@ export function DoorLoginForm() {
 
   function submitManual(event: React.FormEvent) {
     event.preventDefault()
-    const parsed = parseStasjonTokenInput(manualDraft)
+    const parsed = parsePrinterTokenInput(manualDraft)
     if (!parsed) {
-      setError(`Ugyldig kode. Skriv ${STASJON_TOKEN_BODY_LENGTH} tegn, eller lim inn hele lenken.`)
+      setError(`Ugyldig kode. Skriv ${PRINTER_TOKEN_BODY_LENGTH} tegn, eller lim inn hele lenken.`)
       return
     }
     acceptToken(parsed)
@@ -91,7 +91,7 @@ export function DoorLoginForm() {
     pendingRef.current = true
     setPending(true)
     setError(null)
-    const response = await fetch(apiPath("/api/auth/stasjon/sign-in"), {
+    const response = await fetch(apiPath("/api/auth/printer/sign-in"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token, pin: nextPin }),
@@ -125,7 +125,7 @@ export function DoorLoginForm() {
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col gap-5">
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Innsjekkstasjon</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Innsjekk</h1>
           <p className="text-sm text-[var(--color-fg-base)]/70">
             Skann QR under printeren, eller lim inn kode/lenke fra Slack. Deretter PIN fra Slack.
           </p>
@@ -149,25 +149,25 @@ export function DoorLoginForm() {
         ) : (
           <form onSubmit={submitManual} className="flex flex-col gap-4">
             <Field>
-              <FieldLabel htmlFor="stasjon-token">Kode</FieldLabel>
+              <FieldLabel htmlFor="printer-token">Kode</FieldLabel>
               <InputGroup className="h-14 rounded-xl border-0 bg-[var(--color-bg-surface)] shadow-none has-[[data-slot=input-group-control]:focus-visible]:border-transparent has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-[var(--color-fg-brand)]/40">
                 <InputGroupAddon align="inline-start">
                   <InputGroupText className="font-mono text-base text-[var(--color-fg-base)]/50">
-                    {STASJON_TOKEN_PREFIX_LABEL}
+                    {PRINTER_TOKEN_PREFIX_LABEL}
                   </InputGroupText>
                 </InputGroupAddon>
                 <InputGroupInput
-                  id="stasjon-token"
+                  id="printer-token"
                   value={manualDraft}
                   onChange={(e) => {
-                    setManualDraft(normalizeStasjonTokenBodyInput(e.target.value))
+                    setManualDraft(normalizePrinterTokenBodyInput(e.target.value))
                     setError(null)
                   }}
                   onPaste={(e) => {
                     const text = e.clipboardData.getData("text")
                     if (!text.trim()) return
                     e.preventDefault()
-                    setManualDraft(normalizeStasjonTokenBodyInput(text))
+                    setManualDraft(normalizePrinterTokenBodyInput(text))
                     setError(null)
                   }}
                   placeholder="ABCD…"
@@ -180,13 +180,13 @@ export function DoorLoginForm() {
               </InputGroup>
               <FieldDescription>
                 Lim inn hele koden eller lenken —{" "}
-                <span className="font-mono">{STASJON_TOKEN_PREFIX_LABEL}</span> strippes automatisk.
+                <span className="font-mono">{PRINTER_TOKEN_PREFIX_LABEL}</span> strippes automatisk.
               </FieldDescription>
             </Field>
             {error ? (
               <FieldError className="text-[var(--color-bg-danger)]">{error}</FieldError>
             ) : null}
-            <Button type="submit" size="lg" disabled={manualDraft.length < STASJON_TOKEN_BODY_LENGTH}>
+            <Button type="submit" size="lg" disabled={manualDraft.length < PRINTER_TOKEN_BODY_LENGTH}>
               Fortsett
             </Button>
             <Button
@@ -210,9 +210,9 @@ export function DoorLoginForm() {
               {scanOpen ? (
                 <ScanCamera
                   mode="qr"
-                  parse={parseStasjonTokenInput}
+                  parse={parsePrinterTokenInput}
                   onFound={acceptToken}
-                  invalidMessage="Det er ikke en stasjons-QR. Skann koden under printeren."
+                  invalidMessage="Det er ikke en innloggings-QR. Skann koden under printeren."
                   cameraError="Ingen tilgang til kamera. Skriv inn koden manuelt i stedet."
                   hint="Skann QR under printeren"
                 />
@@ -232,13 +232,13 @@ export function DoorLoginForm() {
   return (
     <form onSubmit={onSubmitPin} className="mx-auto flex w-full max-w-sm flex-col gap-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Innsjekkstasjon</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Innsjekk</h1>
         <p className="text-sm text-[var(--color-fg-base)]/70">
           Angi PIN fra Slack for å logge inn.
         </p>
         <p className="font-mono text-xs opacity-50">
-          <span className="opacity-60">{STASJON_TOKEN_PREFIX_LABEL}</span>
-          {stasjonTokenBody(token)}
+          <span className="opacity-60">{PRINTER_TOKEN_PREFIX_LABEL}</span>
+          {printerTokenBody(token)}
         </p>
       </div>
       <FieldGroup>
@@ -268,7 +268,7 @@ export function DoorLoginForm() {
           {pending ? "Logger inn…" : "Logg inn"}
         </Button>
         <Button type="button" variant="surface" onClick={resetToken}>
-          Bytt stasjon / skann på nytt
+          Bytt printer / skann på nytt
         </Button>
       </FieldGroup>
     </form>

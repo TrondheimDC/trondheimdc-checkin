@@ -1,15 +1,55 @@
 "use client"
 
 import { useMutation } from "@tanstack/react-query"
-import { LogOut, MapPin, Printer } from "lucide-react"
+import { LogOut, MapPin, Printer, ScanLine, Zap } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import type { ReactNode } from "react"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
+import { SCAN_AUTO_PRINT_KEY, SCAN_INLINE_KEY } from "@/lib/scan-settings"
+import { setLocalFlag, useLocalFlag } from "@/lib/use-local-flag"
 
-export function SettingsScreen({ stasjonName }: { stasjonName: string }) {
+function SettingToggle({
+  pressed,
+  onToggle,
+  disabled,
+  icon,
+  title,
+  description,
+}: {
+  pressed: boolean
+  onToggle: () => void
+  disabled?: boolean
+  icon: ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <Button
+      type="button"
+      variant={pressed ? "default" : "surface"}
+      size="lg"
+      aria-pressed={pressed}
+      disabled={disabled}
+      onClick={onToggle}
+      className="h-auto items-start justify-start gap-3 py-4 text-left whitespace-normal"
+    >
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">{title}</span>
+        <span className="mt-1 block text-sm font-normal opacity-70">{description}</span>
+      </span>
+    </Button>
+  )
+}
+
+export function SettingsScreen({ printerName }: { printerName: string }) {
   const router = useRouter()
+  const scanInline = useLocalFlag(SCAN_INLINE_KEY)
+  const autoPrint = useLocalFlag(SCAN_AUTO_PRINT_KEY)
+  const flagsReady = scanInline !== null && autoPrint !== null
 
   const signOut = useMutation({
     mutationFn: async () => {
@@ -20,6 +60,14 @@ export function SettingsScreen({ stasjonName }: { stasjonName: string }) {
       router.push("/logg-inn")
     },
   })
+
+  function toggleScanInline() {
+    setLocalFlag(SCAN_INLINE_KEY, scanInline !== true)
+  }
+
+  function toggleAutoPrint() {
+    setLocalFlag(SCAN_AUTO_PRINT_KEY, autoPrint !== true)
+  }
 
   return (
     <main className="attendee-reveal flex h-dvh flex-col gap-6 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -34,11 +82,31 @@ export function SettingsScreen({ stasjonName }: { stasjonName: string }) {
         </span>
         <div className="min-w-0">
           <p className="text-sm opacity-60">Innlogget som</p>
-          <p className="font-display truncate text-xl">{stasjonName}</p>
+          <p className="font-display truncate text-xl">{printerName}</p>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3">
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
+        <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">Innsjekk</p>
+
+        <SettingToggle
+          pressed={flagsReady ? scanInline === true : false}
+          onToggle={toggleScanInline}
+          disabled={!flagsReady}
+          icon={<ScanLine className="size-5" aria-hidden />}
+          title="Vis resultat på skann"
+          description="Hold deg på skann-siden og vis deltakeren nederst."
+        />
+
+        <SettingToggle
+          pressed={flagsReady ? autoPrint === true : false}
+          onToggle={toggleAutoPrint}
+          disabled={!flagsReady}
+          icon={<Zap className="size-5" aria-hidden />}
+          title="Skriv ut med en gang"
+          description="Skriv ut automatisk når deltakeren ikke er innsjekket. Allerede innsjekkede krever trykk."
+        />
+
         <Button
           asChild
           variant="surface"

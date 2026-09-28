@@ -15,7 +15,7 @@ export const OBJECT_ID_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 export const OBJECT_ID_BODY_LENGTH = 16
 
 const objectIdPrefixes = {
-  stn: "stn",
+  prt: "prt",
 } as const
 
 export type ObjectIdPrefix = keyof typeof objectIdPrefixes

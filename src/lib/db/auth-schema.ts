@@ -20,8 +20,8 @@ export const user = sqliteTable(
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    /** App: `stn_BODY` for stasjoner; SQLite: body only. Admin usernames pass through. */
-    username: objectId("username", "stn").unique(),
+    /** App: `prt_BODY` for door printers; SQLite: body only. Admin usernames pass through. */
+    username: objectId("username", "prt").unique(),
     displayUsername: text("display_username"),
     role: text("role"),
     banned: integer("banned", { mode: "boolean" }).default(false),

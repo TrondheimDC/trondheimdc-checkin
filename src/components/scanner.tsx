@@ -1,11 +1,12 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
 import { Camera, Flashlight, FlashlightOff, MapPin, Search, Settings } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useEffectEvent, useRef, useState } from "react"
+import { ScanResultSheet } from "@/components/scan-result-sheet"
 import { Button } from "@/components/ui/button"
 import {
   applyTorch,
@@ -15,17 +16,22 @@ import {
   videoTrackFrom,
   type TorchTrack,
 } from "@/lib/camera-torch"
-import { attendeeStatsSchema } from "@/lib/db/schema"
+import { attendeeResponseSchema, attendeeStatsSchema, type Attendee } from "@/lib/db/schema"
+import { refinePlatform, platformFromNavigator } from "@/lib/platform"
+import { consumePrintOutcome } from "@/lib/print-outcome"
 import { parsePrinterSetupUrl, printerSetupPath } from "@/lib/printer-setup"
+import { SCAN_AUTO_PRINT_KEY, SCAN_INLINE_KEY } from "@/lib/scan-settings"
 import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 
 const SETUP_KEY = "tdc-checkin-printer-seen"
+/** Ignore the same barcode for a moment so one hold does not re-fire. */
+const SAME_CODE_COOLDOWN_MS = 2500
 
 const iconButtonClass =
   "scan-icon-btn flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
 
-export function Scanner({ stasjonName }: { stasjonName?: string }) {
+export function Scanner({ printerName }: { printerName?: string }) {
   const stats = useQuery({
     queryKey: ["attendee-stats"],
     queryFn: async () => {
@@ -34,18 +40,25 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
       return attendeeStatsSchema.parse(await response.json())
     },
   })
+  const queryClient = useQueryClient()
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
   const trackRef = useRef<TorchTrack | null>(null)
+  const busyRef = useRef(false)
+  const lastAcceptedRef = useRef<{ text: string; at: number } | null>(null)
   const ready = useLocalFlag(SETUP_KEY)
+  const scanInlineFlag = useLocalFlag(SCAN_INLINE_KEY)
+  const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY)
   const [error, setError] = useState<string | null>(null)
+  const [scanHint, setScanHint] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string | undefined>(undefined)
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [pickingCamera, setPickingCamera] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
   const [tabVisible, setTabVisible] = useState(true)
+  const [sheetAttendee, setSheetAttendee] = useState<Attendee | null>(null)
 
   useEffect(() => {
     const sync = () => setTabVisible(document.visibilityState === "visible")
@@ -55,10 +68,53 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
   }, [])
 
   useEffect(() => {
+    const platform = refinePlatform(platformFromNavigator())
+    consumePrintOutcome(platform)
+  }, [])
+
+  const handleDecoded = useEffectEvent(async (text: string) => {
+    const printer = parsePrinterSetupUrl(text)
+    if (printer) {
+      router.push(printerSetupPath(printer))
+      return
+    }
+
+    setScanHint(null)
+    try {
+      const response = await fetch(apiPath(`/api/attendees/${encodeURIComponent(text)}`))
+      if (response.status === 404) {
+        lastAcceptedRef.current = { text, at: Date.now() }
+        setScanHint("Ukjent QR — skann på nytt")
+        window.setTimeout(() => setScanHint((current) => (current?.startsWith("Ukjent") ? null : current)), 2000)
+        return
+      }
+      if (!response.ok) throw new Error("lookup failed")
+      const body = attendeeResponseSchema.parse(await response.json())
+      queryClient.setQueryData(["attendee", body.attendee.id], body.attendee)
+      lastAcceptedRef.current = { text, at: Date.now() }
+
+      if (scanInlineFlag === true) {
+        setSheetAttendee(body.attendee)
+        return
+      }
+
+      if (scanInlineFlag === null) return
+
+      router.push(`/deltaker/${encodeURIComponent(body.attendee.id)}`)
+    } catch {
+      setScanHint("Kunne ikke hente deltaker. Prøv igjen.")
+      window.setTimeout(() => setScanHint((current) => (current?.startsWith("Kunne") ? null : current)), 2000)
+    } finally {
+      busyRef.current = false
+    }
+  })
+
+  useEffect(() => {
     if (!ready || !tabVisible || !videoRef.current) return
     const reader = new BrowserQRCodeReader()
     const video = videoRef.current
     let stopped = false
+    busyRef.current = false
     const torchPolls: number[] = []
     setTorchOn(false)
     setTorchSupported(false)
@@ -81,16 +137,14 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
         throw new Error("stopped")
       }
       return reader.decodeFromStream(stream, video, (result) => {
-        if (!result || stopped) return
-        stopped = true
+        if (!result || stopped || busyRef.current) return
         const text = result.getText().trim()
         if (!text) return
-        const printer = parsePrinterSetupUrl(text)
-        if (printer) {
-          router.push(printerSetupPath(printer))
-          return
-        }
-        router.push(`/deltaker/${encodeURIComponent(text)}`)
+        const last = lastAcceptedRef.current
+        if (last && last.text === text && Date.now() - last.at < SAME_CODE_COOLDOWN_MS) return
+        // Only gate while a lookup is in flight — camera stays up for continuous scan.
+        busyRef.current = true
+        void handleDecoded(text)
       })
     })
 
@@ -127,7 +181,7 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
       trackRef.current = null
       void controlsPromise.then((controls) => controls.stop()).catch(() => undefined)
     }
-  }, [ready, router, deviceId, tabVisible])
+  }, [ready, deviceId, tabVisible])
 
   async function toggleTorch() {
     if (!torchSupported) return
@@ -164,6 +218,9 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
       </main>
     )
   }
+
+  const hudMessage = error ?? scanHint
+  const hudLabel = error ? "Kamera" : scanHint ? "Skann" : "Skanner"
 
   return (
     <main className="relative flex min-h-dvh flex-col overflow-hidden bg-black">
@@ -223,14 +280,14 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
         </Link>
       </div>
 
-      {stasjonName ? (
+      {printerName ? (
         <div className="pointer-events-none absolute inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-10 flex justify-center">
           <span
             className="scan-icon-btn flex h-12 items-center gap-2 rounded-full bg-black/55 px-4 text-sm font-medium text-white backdrop-blur-md"
             style={{ animationDelay: "140ms" }}
           >
             <MapPin className="size-4 text-[var(--color-fg-brand)]" aria-hidden />
-            {stasjonName}
+            {printerName}
           </span>
         </div>
       ) : null}
@@ -247,15 +304,21 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
 
       <div className="scan-hud relative z-10 flex shrink-0 flex-col gap-3 bg-gradient-to-t from-black via-black/85 to-transparent p-4 pt-16 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
-          {!error ? (
+          {!hudMessage ? (
             <span className="scan-live-dot size-2.5 rounded-full bg-[var(--color-fg-brand)]" aria-hidden />
           ) : null}
-          <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">
-            {error ? "Kamera" : "Skanner"}
+          <p
+            className={`text-sm tracking-wide ${
+              scanHint && !error ? "text-[var(--color-bg-danger)]" : "text-[var(--color-fg-brand)]"
+            }`}
+          >
+            {hudLabel}
           </p>
         </div>
         {error ? (
           <p className="text-lg leading-snug">{error}</p>
+        ) : scanHint ? (
+          <p className="text-xl leading-snug">{scanHint}</p>
         ) : (
           <p className="text-xl leading-snug">Hold QR-koden innenfor rammen</p>
         )}
@@ -286,33 +349,44 @@ export function Scanner({ stasjonName }: { stasjonName?: string }) {
           </div>
         ) : null}
 
-        <Button asChild variant="surface" size="lg">
-          <Link href="/sok">
-            <Search className="size-5" aria-hidden />
-            Søk
-          </Link>
-        </Button>
-        <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-          {(
-            [
-              { label: "Totalt", value: stats.data?.total },
-              { label: "Innsjekket", value: stats.data?.checkedIn },
-              {
-                label: "Igjen",
-                value:
-                  stats.data != null ? stats.data.total - stats.data.checkedIn : undefined,
-              },
-            ] as const
-          ).map((item) => (
-            <div key={item.label} className="rounded-xl bg-black/35 px-2 py-2.5 backdrop-blur-sm">
-              <p className="font-display text-2xl tabular-nums leading-none">
-                {item.value != null ? item.value : "–"}
-              </p>
-              <p className="mt-1 text-xs tracking-wide opacity-60">{item.label}</p>
+        {!sheetAttendee ? (
+          <>
+            <Button asChild variant="surface" size="lg">
+              <Link href="/sok">
+                <Search className="size-5" aria-hidden />
+                Søk
+              </Link>
+            </Button>
+            <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+              {(
+                [
+                  { label: "Totalt", value: stats.data?.total },
+                  { label: "Innsjekket", value: stats.data?.checkedIn },
+                  {
+                    label: "Igjen",
+                    value:
+                      stats.data != null ? stats.data.total - stats.data.checkedIn : undefined,
+                  },
+                ] as const
+              ).map((item) => (
+                <div key={item.label} className="rounded-xl bg-black/35 px-2 py-2.5 backdrop-blur-sm">
+                  <p className="font-display text-2xl tabular-nums leading-none">
+                    {item.value != null ? item.value : "–"}
+                  </p>
+                  <p className="mt-1 text-xs tracking-wide opacity-60">{item.label}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        ) : null}
       </div>
+
+      <ScanResultSheet
+        attendee={sheetAttendee}
+        autoPrint={autoPrintFlag === true}
+        onDismiss={() => setSheetAttendee(null)}
+        onPrinted={() => setSheetAttendee(null)}
+      />
     </main>
   )
 }

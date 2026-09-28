@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Search, ScanLine } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -8,33 +8,18 @@ import { CheckInButton } from "@/components/check-in-button"
 import { PrintButton } from "@/components/print-button"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
+import { useSetCheckedIn } from "@/hooks/use-set-checked-in"
 import { labelLine } from "@/lib/label-line"
 import { platformFromNavigator, type PhonePlatform } from "@/lib/platform"
+import { SCAN_AUTO_PRINT_KEY } from "@/lib/scan-settings"
+import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
-import { attendeeResponseSchema, type Attendee } from "@/lib/db/schema"
-
-type AttendeeStats = { total: number; checkedIn: number }
-
-function applyCheckedInToSearchCaches(
-  queryClient: QueryClient,
-  attendeeId: string,
-  checkedInAt: string | null,
-) {
-  for (const [queryKey, data] of queryClient.getQueriesData<Attendee[]>({ queryKey: ["search"] })) {
-    if (!data) continue
-    const includeCheckedIn = queryKey[2] === true
-    queryClient.setQueryData(
-      queryKey,
-      data
-        .map((attendee) => (attendee.id === attendeeId ? { ...attendee, checkedInAt } : attendee))
-        .filter((attendee) => includeCheckedIn || attendee.checkedInAt == null),
-    )
-  }
-}
+import { attendeeResponseSchema } from "@/lib/db/schema"
 
 export function AttendeeScreen({ id }: { id: string }) {
   const queryClient = useQueryClient()
   const [platform, setPlatform] = useState<PhonePlatform>("other")
+  const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY)
 
   useEffect(() => {
     setPlatform(platformFromNavigator())
@@ -51,69 +36,7 @@ export function AttendeeScreen({ id }: { id: string }) {
     },
   })
 
-  const setCheckedIn = useMutation({
-    mutationFn: async (checkedIn: boolean) => {
-      const response = await fetch(apiPath(`/api/attendees/${encodeURIComponent(id)}`), {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ checkedIn }),
-      })
-      if (!response.ok) throw new Error("check-in failed")
-      const body = attendeeResponseSchema.parse(await response.json())
-      return body.attendee
-    },
-    onMutate: async (checkedIn) => {
-      await queryClient.cancelQueries({ queryKey: ["attendee", id] })
-      await queryClient.cancelQueries({ queryKey: ["search"] })
-      await queryClient.cancelQueries({ queryKey: ["attendee-stats"] })
-
-      const previousAttendee = queryClient.getQueryData<Attendee | null>(["attendee", id])
-      const previousSearches = queryClient.getQueriesData<Attendee[]>({ queryKey: ["search"] })
-      const previousStats = queryClient.getQueryData<AttendeeStats>(["attendee-stats"])
-      const checkedInAt = checkedIn ? new Date().toISOString() : null
-
-      if (previousAttendee) {
-        queryClient.setQueryData<Attendee>(["attendee", id], {
-          ...previousAttendee,
-          checkedInAt,
-        })
-      }
-
-      applyCheckedInToSearchCaches(queryClient, id, checkedInAt)
-
-      if (previousAttendee && previousStats) {
-        const wasCheckedIn = previousAttendee.checkedInAt != null
-        if (wasCheckedIn !== checkedIn) {
-          queryClient.setQueryData<AttendeeStats>(["attendee-stats"], {
-            ...previousStats,
-            checkedIn: previousStats.checkedIn + (checkedIn ? 1 : -1),
-          })
-        }
-      }
-
-      return { previousAttendee, previousSearches, previousStats }
-    },
-    onError: (_error, _checkedIn, context) => {
-      if (!context) return
-      if (context.previousAttendee !== undefined) {
-        queryClient.setQueryData(["attendee", id], context.previousAttendee)
-      }
-      for (const [queryKey, data] of context.previousSearches) {
-        queryClient.setQueryData(queryKey, data)
-      }
-      if (context.previousStats !== undefined) {
-        queryClient.setQueryData(["attendee-stats"], context.previousStats)
-      }
-    },
-    onSuccess: (attendee) => {
-      queryClient.setQueryData(["attendee", id], attendee)
-      applyCheckedInToSearchCaches(queryClient, id, attendee.checkedInAt)
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["attendee-stats"] })
-      void queryClient.invalidateQueries({ queryKey: ["search"] })
-    },
-  })
+  const setCheckedIn = useSetCheckedIn(id)
 
   if (query.isPending) {
     return (
@@ -178,6 +101,8 @@ export function AttendeeScreen({ id }: { id: string }) {
   const attendee = query.data
   const line2 = labelLine(attendee.company, attendee.role)
   const checkedIn = attendee.checkedInAt != null
+  const autoPrintReady = autoPrintFlag !== null
+  const shouldAutoPrint = autoPrintReady && autoPrintFlag === true && !checkedIn
 
   return (
     <main className="relative flex min-h-dvh flex-col justify-between overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -202,7 +127,11 @@ export function AttendeeScreen({ id }: { id: string }) {
           line2={line2}
           platform={platform}
           checkedIn={checkedIn}
-          onCheckIn={() => setCheckedIn.mutateAsync(true)}
+          autoPrint={shouldAutoPrint}
+          onCheckIn={async () => {
+            const next = await setCheckedIn.mutateAsync(true)
+            queryClient.setQueryData(["attendee", id], next)
+          }}
         />
         <CheckInButton
           checkedIn={checkedIn}

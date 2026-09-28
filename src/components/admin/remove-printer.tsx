@@ -49,7 +49,8 @@ export function RemovePrinterButton({ id, name }: { id: string; name: string }) 
         <DialogContent>
           <DialogTitle>Fjerne printeren?</DialogTitle>
           <DialogDescription>
-            {name} blir borte fra inventaret. Klistremerket fungerer fortsatt hvis du har limt det på.
+            {name} blir borte fra inventaret, og innlogging med QR/PIN for denne printeren slutter å
+            virke. Oppsett-klistremerket fungerer fortsatt hvis du har limt det på.
           </DialogDescription>
           <div className="mt-6 flex flex-col gap-3">
             <Button

@@ -4,7 +4,7 @@ import QRCode from "qrcode"
  * Brother's QR barcode object (`barcode:qrcodeStyle`) has a `cellSize` in pt
  * — a fixed module size. QR `version` (module count) auto-scales with data
  * length, so a fixed cellSize renders a visibly different physical size for
- * a short URL (e.g. a stasjon login token) than a long one (e.g. a printer
+ * a short URL (e.g. a printer login token) than a long one (e.g. a printer
  * setup URL) from the same template. `cellSize="auto"` looked like the
  * obvious fix, but Smooth Print doesn't honor it as "fill the frame" —
  * tested on device, it rendered the QR smaller, not larger. So we compute

@@ -1,10 +1,11 @@
 "use client"
 
 import { LoaderCircle, Printer } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { refinePlatform, supportsAndroidIntent, type PhonePlatform } from "@/lib/platform"
+import { consumePrintOutcome, primeForIosTabReuse } from "@/lib/print-outcome"
 import {
   buildAndroidPrintIntent,
   buildPrintUrl,
@@ -36,40 +37,6 @@ function buildPrintCallback(): PrintCallback {
   return { successCallback: callbackUrl, failureCallback: callbackUrl }
 }
 
-const RESULT_KEYS = new Set(["result", "errorcode"])
-
-/** Smooth Print reports the outcome in "result" and its own "errorcode" — casing is its own. */
-function readPrintOutcome(): string | null {
-  let outcome: string | null = null
-  for (const [key, value] of new URLSearchParams(window.location.search)) {
-    if (RESULT_KEYS.has(key.toLowerCase())) outcome = value
-  }
-  return outcome
-}
-
-const IOS_PENDING_KEY = "tdc-print-pending"
-/** Exactly what a successful iOS print's callback comes back as — see readPrintOutcome. */
-const IOS_PREDICTED_SUCCESS_QUERY = "result=SUCCESS&errorcode=SUCCESS"
-
-/**
- * iOS only. Safari reuses the open tab for a callback URL only when that URL
- * matches the address bar. A successful print's callback is always exactly
- * "?result=SUCCESS&errorcode=SUCCESS" (see readPrintOutcome), so rewriting the
- * address bar to that shape *before* firing the print — no reload — makes a
- * successful return land on this tab instead of a new one. A failure carries an
- * unpredictable error code and still opens a new tab. The sessionStorage flag
- * guards against reading this pre-set URL as a real success if the page reloads
- * before Smooth Print actually calls back.
- */
-function primeForIosTabReuse() {
-  window.sessionStorage.setItem(IOS_PENDING_KEY, "1")
-  window.history.replaceState(
-    window.history.state,
-    "",
-    `${window.location.pathname}?${IOS_PREDICTED_SUCCESS_QUERY}`,
-  )
-}
-
 export function PrintButton({
   name,
   line2,
@@ -79,6 +46,7 @@ export function PrintButton({
   idleLabel = "Skriv ut navneskilt",
   doneLabel = "Skriv ut igjen",
   onPrinted,
+  autoPrint = false,
 }: {
   name: string
   line2: string
@@ -88,6 +56,8 @@ export function PrintButton({
   idleLabel?: string
   doneLabel?: string
   onPrinted?: () => void
+  /** Fire print once on mount when the attendee is not already checked in. */
+  autoPrint?: boolean
 }) {
   const [busy, setBusy] = useState(false)
   const [printed, setPrinted] = useState(false)
@@ -95,37 +65,16 @@ export function PrintButton({
   const [error, setError] = useState<string | null>(null)
   const platform = refinePlatform(platformProp)
   const alreadyPrinted = checkedIn || printed
+  const autoPrintStarted = useRef(false)
 
   useEffect(() => {
-    const outcome = readPrintOutcome()
-    if (outcome == null) return
-    const isSuccess = outcome === "" || outcome.toUpperCase().includes("SUCCESS")
-
-    if (platform === "ios" && isSuccess) {
-      const wasPending = window.sessionStorage.getItem(IOS_PENDING_KEY) === "1"
-      window.sessionStorage.removeItem(IOS_PENDING_KEY)
-      // Address bar was pre-set to this exact shape before a print even fired — if
-      // Smooth Print never actually called back (e.g. a reload in the meantime),
-      // don't read our own placeholder as a real result.
-      if (!wasPending) return
-    }
-
-    if (isSuccess) {
-      setPrinted(true)
-    } else {
+    const result = consumePrintOutcome(platform)
+    if (!result) return
+    if (result.success) setPrinted(true)
+    else {
       setPrinted(false)
       setError("Smooth Print meldte at utskriften feilet. Prøv igjen.")
     }
-    const params = new URLSearchParams(window.location.search)
-    for (const key of [...params.keys()]) {
-      if (RESULT_KEYS.has(key.toLowerCase())) params.delete(key)
-    }
-    const query = params.toString()
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}${query ? `?${query}` : ""}`,
-    )
     // Only ever meant to consume the callback this page load arrived with.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -171,6 +120,14 @@ export function PrintButton({
       setBusy(false)
     }
   }
+
+  useEffect(() => {
+    if (autoPrint !== true || checkedIn || alreadyPrinted || autoPrintStarted.current) return
+    autoPrintStarted.current = true
+    void print({ checkIn: Boolean(onCheckIn) })
+    // Intentionally once per mount when autoPrint is explicitly true.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPrint, checkedIn])
 
   return (
     <div className="flex flex-col gap-3">

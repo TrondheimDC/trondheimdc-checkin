@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useId, useState } from "react"
+import { useId, useState } from "react"
 import type { ChangeEvent } from "react"
 import { useForm } from "react-hook-form"
 import type { z } from "zod"
@@ -23,8 +23,8 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group"
-import { printerBodySchema, printerResponseSchema, type Printer } from "@/lib/db/schema"
-import { printersQueryKey } from "@/lib/printer-queries"
+import { printerBodySchema, type Printer } from "@/lib/db/schema"
+import { createPrinter, printersQueryKey } from "@/lib/printer-queries"
 import { printerSetupPath } from "@/lib/printer-setup"
 import {
   formatBluetoothMac,
@@ -39,6 +39,7 @@ import {
   PRINTER_MODELS,
   type PrinterModelId,
 } from "@/lib/printer-models"
+import { printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath, cn } from "@/lib/utils"
 
 type PrinterFormValues = z.input<typeof printerBodySchema>
@@ -87,10 +88,13 @@ function commitMac(input: HTMLInputElement, next: { value: string; caret: number
   })
 }
 
-export function EnrollPrinter() {
+export function EnrollPrinter({ origin }: { origin: string }) {
   const queryClient = useQueryClient()
-  const [saved, setSaved] = useState<Printer | null>(null)
-  const [origin, setOrigin] = useState("")
+  const [saved, setSaved] = useState<{
+    printer: Printer
+    pin: string
+    token: string
+  } | null>(null)
   const nameId = useId()
   const addressId = useId()
   const serialId = useId()
@@ -120,26 +124,14 @@ export function EnrollPrinter() {
   const addressField = register("address")
   const serialField = register("serial")
 
-  useEffect(() => {
-    setOrigin(window.location.origin)
-  }, [])
-
   const save = useMutation({
-    mutationFn: async (body: PrinterBody) => {
-      const response = await fetch(apiPath("/api/printers"), {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!response.ok) throw new Error("save failed")
-      return printerResponseSchema.parse(await response.json()).printer
-    },
-    onSuccess: (printer) => {
-      setSaved(printer)
+    mutationFn: createPrinter,
+    onSuccess: (result) => {
+      setSaved(result)
       queryClient.setQueryData<Printer[]>(printersQueryKey, (current) => {
         const list = current ?? []
-        if (list.some((item) => item.id === printer.id)) return list
-        return [...list, printer]
+        if (list.some((item) => item.id === result.printer.id)) return list
+        return [result.printer, ...list]
       })
     },
   })
@@ -152,14 +144,16 @@ export function EnrollPrinter() {
     connectType: "BT",
   })
   const previewUrl = origin ? `${origin}${apiPath(previewPath)}` : previewPath
-  const savedUrl = saved && origin ? `${origin}${apiPath(printerSetupPath(saved))}` : ""
+  const setupUrl =
+    saved && origin ? `${origin}${apiPath(printerSetupPath(saved.printer))}` : ""
+  const loginUrl = saved && origin ? printerLoginUrl(origin, saved.token) : ""
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="pt-2">
         <h1 className="text-4xl">Ny printer</h1>
         <p className="mt-2 max-w-xl text-base opacity-70">
-          Tre steg: les av printeren, lagre den, skriv ut klistremerket.
+          Les av printeren, lagre, skriv ut oppsett-QR og innloggings-QR. Del PIN på Slack.
         </p>
       </header>
 
@@ -174,12 +168,27 @@ export function EnrollPrinter() {
         ))}
       </ol>
 
-      {saved && savedUrl ? (
-        <section className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-6">
-          <h2 className="text-2xl">{saved.name} er lagret</h2>
-          <StickerPreview name={saved.name} url={savedUrl} />
-          <div className="w-full max-w-sm">
-            <PrintStickerButton name={saved.name} url={savedUrl} />
+      {saved && setupUrl && loginUrl ? (
+        <section className="flex flex-col items-center gap-6 rounded-2xl bg-[var(--color-bg-surface)] p-6">
+          <h2 className="text-2xl">{saved.printer.name} er klar</h2>
+          <div className="flex w-full max-w-sm flex-col items-center gap-3">
+            <p className="text-sm opacity-70">Oppsett-QR (synlig på printeren)</p>
+            <StickerPreview name={saved.printer.name} url={setupUrl} />
+            <PrintStickerButton name={saved.printer.name} url={setupUrl} />
+          </div>
+          <div className="flex w-full max-w-sm flex-col items-center gap-3">
+            <p className="text-sm opacity-70">Innloggings-QR (under printeren)</p>
+            <StickerPreview name={saved.printer.name} url={loginUrl} />
+            <PrintStickerButton
+              name={saved.printer.name}
+              url={loginUrl}
+              fallbackPath="/admin/printers"
+              templateFile="stasjon.lbx"
+            />
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm opacity-70">PIN (Slack)</p>
+            <p className="font-mono text-3xl tracking-[0.35em] tabular-nums">{saved.pin}</p>
           </div>
           <Button asChild variant="surface">
             <Link href="/admin/printers">Til inventaret</Link>

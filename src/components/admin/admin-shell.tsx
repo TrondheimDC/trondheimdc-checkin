@@ -1,6 +1,6 @@
 "use client"
 
-import { FileUp, FlaskConical, MapPin, Package, Printer, Shapes, Users } from "lucide-react"
+import { FileUp, FlaskConical, Package, Printer, Shapes, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserButton } from "@/components/auth/user/user-button"
@@ -50,14 +50,6 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                     <Link href="/admin/printers" onClick={closeMobile}>
                       <Printer />
                       Printere
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/stasjoner")} size="lg">
-                    <Link href="/admin/stasjoner" onClick={closeMobile}>
-                      <MapPin />
-                      Innsjekkstasjoner
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

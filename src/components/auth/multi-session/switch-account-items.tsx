@@ -10,6 +10,7 @@ import { UserRoundCheck } from "lucide-react"
 
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
+import { adminLabel } from "@/lib/admin-identity"
 
 export type SwitchAccountItemsProps = {
   className?: string
@@ -49,7 +50,13 @@ export function SwitchAccountItems({ className }: SwitchAccountItemsProps) {
           ) : (
             <UserRoundCheck className="text-muted-foreground" />
           )}
-          Bytt til {device.user.name || device.user.email}
+          Bytt til{" "}
+          {adminLabel({
+            username:
+              (device.user as { username?: string | null }).username ??
+              (device.user as { displayUsername?: string | null }).displayUsername,
+            name: device.user.name
+          }) || device.user.email}
         </DropdownMenuItem>
       ))}
     </>

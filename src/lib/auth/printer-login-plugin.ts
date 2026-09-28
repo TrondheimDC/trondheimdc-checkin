@@ -5,7 +5,7 @@ import type { BetterAuthPlugin } from "better-auth"
 import { and, eq } from "drizzle-orm"
 import * as z from "zod"
 import { isWithinValidityWindow } from "@/lib/auth-validity"
-import { parseStasjonTokenInput } from "@/lib/stasjon-token"
+import { parsePrinterTokenInput } from "@/lib/printer-token"
 
 const signInBodySchema = z.object({
   token: z.string().min(1),
@@ -13,24 +13,24 @@ const signInBodySchema = z.object({
 })
 
 /**
- * Stasjon login is username + password:
- * - username is the `stn_` object id (Drizzle stores the body only)
+ * Door login is username + password:
+ * - username is the `prt_` object id (Drizzle stores the body only)
  * - password is the 6-digit PIN
  *
  * Neither factor alone creates a session.
  */
-export function stasjonLoginPlugin(): BetterAuthPlugin {
+export function printerLoginPlugin(): BetterAuthPlugin {
   return {
-    id: "stasjon-login",
+    id: "printer-login",
     endpoints: {
-      signInStasjon: createAuthEndpoint(
-        "/stasjon/sign-in",
+      signInPrinter: createAuthEndpoint(
+        "/printer/sign-in",
         {
           method: "POST",
           body: signInBodySchema,
         },
         async (ctx) => {
-          const token = parseStasjonTokenInput(ctx.body.token)
+          const token = parsePrinterTokenInput(ctx.body.token)
           const { db } = await import("@/lib/db")
           const { account: accountTable, user: userTable } = await import("@/lib/db/schema")
 
@@ -71,7 +71,7 @@ export function stasjonLoginPlugin(): BetterAuthPlugin {
             !row ||
             !passwordOk ||
             row.banned ||
-            row.role !== "stasjon" ||
+            row.role !== "printer" ||
             !isWithinValidityWindow(row.validFrom, row.validTo)
           ) {
             throw ctx.error("UNAUTHORIZED", { message: "Ugyldig QR eller PIN" })

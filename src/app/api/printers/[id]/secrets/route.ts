@@ -1,6 +1,6 @@
 import { isSession, requireAdminApiSession } from "@/lib/auth-api"
-import { stasjonSecretsSchema } from "@/lib/db/schema"
-import { stasjonRepository } from "@/lib/stasjoner"
+import { printerSecretsSchema } from "@/lib/db/schema"
+import { printerRepository } from "@/lib/printers"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(
@@ -11,7 +11,7 @@ export async function GET(
   if (!isSession(session)) return session
 
   const { id } = await context.params
-  const secrets = await stasjonRepository.getSecrets(id)
+  const secrets = await printerRepository.getSecrets(id)
   if (!secrets) return NextResponse.json({ error: "not_found" }, { status: 404 })
-  return NextResponse.json(stasjonSecretsSchema.parse(secrets))
+  return NextResponse.json(printerSecretsSchema.parse(secrets))
 }

@@ -1,5 +1,7 @@
 import { EnrollPrinter } from "./enroll"
+import { requestStickerOrigin } from "@/lib/request-sticker-origin"
 
-export default function NewPrinterPage() {
-  return <EnrollPrinter />
+export default async function NewPrinterPage() {
+  const origin = await requestStickerOrigin()
+  return <EnrollPrinter origin={origin} />
 }

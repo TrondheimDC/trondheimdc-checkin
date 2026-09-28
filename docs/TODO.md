@@ -48,25 +48,25 @@ Tasks:
 - [x] Conference APK uploaded and active (staff setup day)
 - [ ] Note license/redistribution constraints from Brother in the README if needed
 
-### Auth & innsjekkstasjoner
+### Auth & printere
 
-**Decided.** Full design: [auth-stasjoner.md](./auth-stasjoner.md).
+**Decided.** Full design: [auth-printers.md](./auth-printers.md).
 
-better-auth + better-auth-ui. Roles: `admin` | `stasjon` (UI: Innsjekkstasjon). Long-lived magic-link QR (Slack / under-printer sticker) + 6-digit PIN fallback. Stasjon linked to a printer; enroll mirrors printers. `/oppsett` / `/koble` / APK require door session. No nginx basic auth; Checkin is not the staff IdP.
+better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer also creates door login (`prt_` token + PIN). Stickers use `PUBLIC_URL` (default production). `/oppsett` / `/koble` / APK require door session. No nginx basic auth; Checkin is not the staff IdP.
 
-- [x] Add better-auth (Drizzle/LibSQL), admin plugin, roles `admin` / `stasjon`
+- [x] Add better-auth (Drizzle/LibSQL), admin plugin, roles `admin` / `printer`
 - [x] User fields: `validFrom`, `validTo`, optional `printerId`; long `session.expiresIn` + enforce validity window
 - [x] Middleware / route gates: door + admin APIs require session; `/oppsett`, `/koble`, active APK gated as door
 - [x] Install better-auth-ui (shadcn): `@better-auth-ui/auth`, `admin`, `user-button` + Sonner; Norwegian localization
 - [x] Admin sign-in (`/auth/sign-in`) + door `/logg-inn` (PIN + magic token); better-auth-ui SignIn + username for admin
 - [x] Admin `/admin/brukere` via better-auth-ui; `UserButton` in admin shell
-- [ ] Add shadcn: `select`, `calendar`+`popover`, `dropdown-menu`, `badge` as needed for stasjon enroll polish
-- [x] `/admin/stasjoner` inventory + `/admin/stasjoner/ny` enroll (custom; mirror printers)
-- [x] Login sticker uses same `printer.lbx` template as pairing (name + QR)
-- [x] Door `/logg-inn`: magic-link token + **PIN-only** (no username); Vis PIN in admin
-- [x] Stamp `check_events` with acting stasjon/user for audit
+- [x] `/admin/printers` inventory + `/admin/printers/ny` enroll (hardware + door login)
+- [x] Setup sticker + login sticker; Rotér PIN / Ny innloggings-QR
+- [x] Door `/logg-inn`: token + PIN; Vis PIN in admin
+- [x] Stamp `check_events` with acting printer/user for audit
 - [x] Super-admin seeded from `ADMIN_USERNAME` / `ADMIN_PASSWORD` on boot; env in `.env.example` / README
 - [x] Protect CSV import and other admin mutations behind admin role
+- [x] `PUBLIC_URL` for sticker origins (defaults to production, including localhost)
 
 ### Admin CSV upload
 

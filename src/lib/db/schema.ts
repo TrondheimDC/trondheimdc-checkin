@@ -26,7 +26,7 @@ export const checkEvents = sqliteTable(
       .references(() => attendees.id),
     action: text("action", { enum: ["in", "out"] }).notNull(),
     createdAt: text("created_at").notNull(),
-    /** better-auth user id (innsjekkstasjon or admin) that performed the action. */
+    /** better-auth user id (printer door account or admin) that performed the action. */
     actorUserId: text("actor_user_id"),
     /** Denormalized actor name for readable history. */
     actorName: text("actor_name"),
@@ -81,6 +81,11 @@ export const printerSchema = z.object({
   model: printerModelIdSchema.or(z.string()),
   connectType: z.enum(["BT", "WiFi"]),
   createdAt: z.string(),
+  /** Door login shadow user (better-auth). Null only for legacy rows. */
+  userId: z.string().nullable(),
+  banned: z.boolean().nullable(),
+  validFrom: z.string().nullable(),
+  validTo: z.string().nullable(),
 })
 export type Printer = z.infer<typeof printerSchema>
 
@@ -92,6 +97,18 @@ export const printerResponseSchema = z.object({
   printer: printerSchema,
 })
 
+export const printerSecretsSchema = z.object({
+  pin: z.string().regex(/^\d{6}$/),
+  token: z.string().min(1),
+})
+
+export const printerCreateResponseSchema = printerResponseSchema.merge(printerSecretsSchema)
+
+export const printerPatchResponseSchema = printerResponseSchema.extend({
+  pin: z.string().regex(/^\d{6}$/).optional(),
+  token: z.string().min(1).optional(),
+})
+
 export const printerBodySchema = z
   .object({
     name: z.string().trim().min(1).max(40),
@@ -99,19 +116,40 @@ export const printerBodySchema = z
     serial: z.string().trim().toUpperCase().max(40).default(""),
     model: printerModelIdSchema.default(DEFAULT_PRINTER_MODEL),
     connectType: z.enum(["BT", "WiFi"]).default("BT"),
+    validFrom: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
+      .optional(),
+    validTo: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.connectType === "WiFi") {
       if (!data.address) {
         ctx.addIssue({ code: "custom", path: ["address"], message: "Skriv inn adressen" })
       }
-      return
-    }
-    if (!isCompleteBluetoothMac(formatBluetoothMac(data.address))) {
+    } else if (!isCompleteBluetoothMac(formatBluetoothMac(data.address))) {
       ctx.addIssue({
         code: "custom",
         path: ["address"],
         message: "Skriv en full MAC, som 00:1B:A9:00:00:00",
+      })
+    }
+    if (
+      data.validFrom != null &&
+      data.validTo != null &&
+      Date.parse(data.validTo) <= Date.parse(data.validFrom)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["validTo"],
+        message: "Sluttdato må være etter startdato",
       })
     }
   })
@@ -119,6 +157,45 @@ export const printerBodySchema = z
     ...data,
     address: data.connectType === "BT" ? formatBluetoothMac(data.address) : data.address,
   }))
+
+export const printerUpdateBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(40).optional(),
+    validFrom: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
+      .nullable()
+      .optional(),
+    validTo: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
+      .nullable()
+      .optional(),
+    banned: z.boolean().optional(),
+    rotatePin: z.boolean().optional(),
+    rotateToken: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.validFrom != null &&
+      data.validTo != null &&
+      Date.parse(data.validTo) <= Date.parse(data.validFrom)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["validTo"],
+        message: "Sluttdato må være etter startdato",
+      })
+    }
+  })
+
+export const printerRenameBodySchema = z.object({
+  name: z.string().trim().min(1, "Skriv inn et navn").max(40),
+})
 
 export const smoothPrintApks = sqliteTable(
   "smooth_print_apks",
@@ -162,89 +239,3 @@ export const smoothPrintApkUploadSchema = z.object({
 export const smoothPrintApkPatchSchema = z.object({
   active: z.boolean(),
 })
-
-const isoDateTimeSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Ugyldig dato" })
-
-export const stasjonSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string(),
-  role: z.literal("stasjon"),
-  banned: z.boolean().nullable(),
-  validFrom: z.string().nullable(),
-  validTo: z.string().nullable(),
-  printerId: z.string().nullable(),
-  printerName: z.string().nullable(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-})
-export type Stasjon = z.infer<typeof stasjonSchema>
-
-export const stasjonerResponseSchema = z.object({
-  stasjoner: z.array(stasjonSchema),
-})
-
-export const stasjonResponseSchema = z.object({
-  stasjon: stasjonSchema,
-})
-
-export const stasjonSecretsSchema = z.object({
-  pin: z.string().regex(/^\d{6}$/),
-  token: z.string().min(1),
-})
-
-export const stasjonCreateResponseSchema = stasjonResponseSchema.merge(stasjonSecretsSchema)
-
-export const stasjonPatchResponseSchema = stasjonResponseSchema.extend({
-  pin: z.string().regex(/^\d{6}$/).optional(),
-  token: z.string().min(1).optional(),
-})
-
-export const stasjonCreateBodySchema = z
-  .object({
-    name: z.string().trim().min(1, "Skriv inn et navn").max(40),
-    printerId: z.string().trim().min(1, "Velg en printer"),
-    validFrom: isoDateTimeSchema,
-    validTo: isoDateTimeSchema,
-  })
-  .superRefine((data, ctx) => {
-    if (Date.parse(data.validTo) <= Date.parse(data.validFrom)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["validTo"],
-        message: "Sluttdato må være etter startdato",
-      })
-    }
-  })
-
-export const stasjonRenameBodySchema = z.object({
-  name: z.string().trim().min(1, "Skriv inn et navn").max(40),
-})
-
-export const stasjonUpdateBodySchema = z
-  .object({
-    name: z.string().trim().min(1).max(40).optional(),
-    printerId: z.string().trim().min(1).nullable().optional(),
-    validFrom: isoDateTimeSchema.nullable().optional(),
-    validTo: isoDateTimeSchema.nullable().optional(),
-    banned: z.boolean().optional(),
-    rotatePin: z.boolean().optional(),
-    rotateToken: z.boolean().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (
-      data.validFrom != null &&
-      data.validTo != null &&
-      Date.parse(data.validTo) <= Date.parse(data.validFrom)
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["validTo"],
-        message: "Sluttdato må være etter startdato",
-      })
-    }
-  })

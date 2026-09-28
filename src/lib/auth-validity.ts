@@ -22,14 +22,14 @@ export function isAdminRole(role: string | string[] | null | undefined): boolean
   return roles.map((r) => r.trim()).includes("admin")
 }
 
-export function isStasjonRole(role: string | string[] | null | undefined): boolean {
+export function isPrinterRole(role: string | string[] | null | undefined): boolean {
   if (!role) return false
   const roles = Array.isArray(role) ? role : role.split(",")
-  return roles.map((r) => r.trim()).includes("stasjon")
+  return roles.map((r) => r.trim()).includes("printer")
 }
 
 export function canAccessDoor(role: string | string[] | null | undefined): boolean {
-  return isAdminRole(role) || isStasjonRole(role)
+  return isAdminRole(role) || isPrinterRole(role)
 }
 
 export function canAccessAdmin(role: string | string[] | null | undefined): boolean {

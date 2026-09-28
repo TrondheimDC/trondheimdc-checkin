@@ -89,7 +89,7 @@ export function PrintStickerButton({
    * other template gets its QR cellSize fitted to the actual data length
    * before printing — `printer.lbx`'s QR cell size is a fixed pt value, but
    * QR version (module count) scales with data length, so the same cell
-   * size renders a much smaller QR for a short stasjon login token than for
+   * size renders a much smaller QR for a short printer login token than for
    * the long setup URL. `stasjon.lbx` uses this path.
    */
   templateFile?: string
