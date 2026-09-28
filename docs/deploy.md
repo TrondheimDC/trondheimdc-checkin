@@ -1,143 +1,275 @@
 # Deploy — innsjekk.trondheimdc.no
 
-How production gets from `master` onto the VPS. No container registry: CI builds a Docker image, ships it as a gzipped tar over SSH, and the server loads it into Docker Compose.
+Complete guide: what CI does today, how to prepare the VPS (including Docker), nginx, and how to turn automatic deploy back on.
 
-## Overview
+## Status
+
+| Piece | Ready? |
+|---|---|
+| Dockerfile + Compose + standalone Next | Yes |
+| PR CI: Biome lint | Yes |
+| Master CI: build Docker image (+ artifact) | Yes |
+| Automatic SSH deploy on push to `master` | **No** — disabled until the VPS has Docker |
+| Manual deploy via Actions (`workflow_dispatch` + “Deploy to VPS”) | Wired, but needs server bootstrap first |
+| Nginx sample + site `logs/` layout | Yes (docs in this folder) |
+| Docker on the VPS | **Not yet** |
+| DNS `innsjekk.trondheimdc.no` | Confirm on your side |
+| GitHub secrets `SSH_*` | Same shape as utlegg; only needed when deploying |
+
+**Today:** merge this branch → every push to `master` **builds** the image in Actions. Nothing is copied to the server until you opt in.
+
+## Overview (when deploy is enabled)
 
 ```text
 push to master
-    → GitHub Actions (cd.yml)
+    → GitHub Actions
         → docker build (Node 24 alpine, Next standalone)
         → docker save | gzip  →  image.tar.gz (~85 MB)
-        → rsync compose + tar to the VPS
+        → [optional] rsync compose + tar to the VPS
         → gunzip | docker load
         → docker compose up -d
 ```
 
-PR checks (`.github/workflows/pr.yml`) run Biome lint only. They do not build or deploy the image.
-
 | Piece | Value |
 |---|---|
 | Public URL | https://innsjekk.trondheimdc.no |
-| Deploy path on VPS | `/var/www/sites/innsjekk.trondheimdc.no` |
-| Container listen | `127.0.0.1:3010` → container `:3000` |
-| Image tags | `innsjekk:latest` and `innsjekk:<git-sha>` |
-| Persistent data | `./data` on the host → `/app/data` in the container |
+| Deploy path | `/var/www/sites/innsjekk.trondheimdc.no` |
+| Container | `127.0.0.1:3010` → container `:3000` |
+| Image tags | `innsjekk:latest`, `innsjekk:<git-sha>` |
+| Persistent data | `./data` → `/app/data` (DB + APKs) |
+| Nginx logs | `./logs/access.log`, `./logs/error.log` |
 
-## Why save/load (not GHCR)
-
-Same idea as utlegg’s “build elsewhere, rsync the result,” but the artifact is a Docker image instead of static HTML:
-
-- No registry login or public package to manage
-- Build happens on GitHub runners (enough RAM for `next build`)
-- The VPS only loads a tar and restarts Compose
+No registry: CI builds the image, ships a gzipped `docker save` over SSH (same idea as utlegg’s rsync, but the artifact is an image).
 
 ## Image shape
 
-[`Dockerfile`](../Dockerfile) is multi-stage:
+[`Dockerfile`](../Dockerfile):
 
 1. **deps** — `pnpm install --frozen-lockfile`
-2. **builder** — `pnpm build` with `output: "standalone"` in `next.config.ts`
-3. **runner** — `node:24-alpine` + only standalone server, `.next/static`, `public/`, and `drizzle/`
+2. **builder** — `pnpm build` with `output: "standalone"`
+3. **runner** — `node:24-alpine` + standalone + `.next/static` + `public/` + `drizzle/`
 
-The app process is `node server.js` as user `node` (uid **1000**). LibSQL lives at `/app/data/checkin.db`; Smooth Print APKs under `/app/data/apks/`. Migrations in `drizzle/` run on boot via instrumentation.
+Runs as uid **1000** (`node`). Migrations run on boot.
 
-Bun as a runtime was evaluated (`bun server.js` on the same standalone tree) but fails resolving `@libsql` under pnpm’s traced layout. Stay on Node until that is solved separately.
+---
 
-## One-time server bootstrap
+## Server bootstrap (one-time)
 
-On the same box as utlegg (Docker + nginx already available):
+Same box as utlegg. Nginx and certbot are already there; **install Docker**, then site dirs, `.env`, nginx vhost, cert, then enable deploy.
+
+### 1. Install Docker Engine + Compose plugin
+
+Debian/Ubuntu (adjust if the host differs):
+
+```bash
+# Remove old packages if any
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl
+
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# If the host is Debian, use download.docker.com/linux/debian and $(. /etc/os-release && echo "$VERSION_CODENAME")
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${VERSION_CODENAME}") stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+
+sudo usermod -aG docker "$USER"
+# log out and back in (or newgrp docker) so `docker` works without sudo
+docker version
+docker compose version
+```
+
+Official docs: [Install Docker Engine](https://docs.docker.com/engine/install/).
+
+### 2. Site directories
 
 ```bash
 sudo mkdir -p /var/www/sites/innsjekk.trondheimdc.no/{data,logs}
 sudo chown -R 1000:1000 /var/www/sites/innsjekk.trondheimdc.no/data
-# nginx must be able to create log files (Debian/Ubuntu: www-data)
 sudo chown root:adm /var/www/sites/innsjekk.trondheimdc.no/logs
 sudo chmod 755 /var/www/sites/innsjekk.trondheimdc.no/logs
-
-cd /var/www/sites/innsjekk.trondheimdc.no
-# copy .env.example from the repo, then fill in secrets
-nano .env
 ```
 
-Minimum `.env` (see [`.env.example`](../.env.example)):
+`data/` is the Compose volume (LibSQL + APKs). `logs/` is nginx only (not the container).
+
+### 3. `.env`
+
+CD will refuse to start the container if this file is missing.
+
+```bash
+cd /var/www/sites/innsjekk.trondheimdc.no
+
+cat > .env <<'EOF'
+DB_ENCRYPTION_KEY=
+NEXT_PUBLIC_BASE_PATH=
+PUBLIC_URL=https://innsjekk.trondheimdc.no
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=https://innsjekk.trondheimdc.no
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+EOF
+
+sed -i "s|^BETTER_AUTH_SECRET=$|BETTER_AUTH_SECRET=$(openssl rand -base64 32)|" .env
+nano .env   # set ADMIN_* if you want a seeded super-admin
+chmod 600 .env
+```
 
 | Variable | Notes |
 |---|---|
-| `BETTER_AUTH_SECRET` | Required in production. |
-| `BETTER_AUTH_URL` | Public origin: `https://innsjekk.trondheimdc.no` (no trailing slash). |
-| `DB_ENCRYPTION_KEY` | Optional. Encrypts the LibSQL file at rest. |
-| `NEXT_PUBLIC_BASE_PATH` | Leave empty for the domain root. Must be set at **build** time if used. |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Optional. Seeds a super-admin on boot. |
+| `BETTER_AUTH_SECRET` | Required in production |
+| `BETTER_AUTH_URL` | `https://innsjekk.trondheimdc.no` (no trailing slash) |
+| `PUBLIC_URL` | Same public origin (stickers / QR) |
+| `DB_ENCRYPTION_KEY` | Optional at-rest encryption for LibSQL |
+| `NEXT_PUBLIC_BASE_PATH` | Leave empty for domain root (bake at **build** time if set) |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Optional boot seed for super-admin |
 
-[`docker-compose.yml`](../docker-compose.yml) is rsynced on every deploy. It does not build; it only runs `innsjekk:latest` with `./data` mounted and `env_file: .env`.
+### 4. DNS
 
-## Nginx (TLS + reverse proxy)
+`innsjekk.trondheimdc.no` → this VPS (A/AAAA).
 
-Compose binds the app to **loopback only** (`127.0.0.1:3010`). Nginx on the host terminates HTTPS and proxies to that port. Do **not** put HTTP basic auth in front of the whole app — in-app sessions (better-auth) handle access; basic auth breaks phones, APK download, and setup deep links.
+### 5. Nginx + TLS
 
-### One-time
-
-1. Start Compose so something listens on `3010` (or bring nginx up after the first CD).
-2. Install the site config from the repo:
+Match utlegg’s certbot style; proxy to Compose instead of static files.
 
 ```bash
-sudo cp /path/to/repo/docs/nginx-innsjekk.trondheimdc.no.conf \
-  /etc/nginx/sites-available/innsjekk.trondheimdc.no
+sudo tee /etc/nginx/sites-available/innsjekk.trondheimdc.no >/dev/null <<'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name innsjekk.trondheimdc.no;
+
+    access_log /var/www/sites/innsjekk.trondheimdc.no/logs/access.log combined;
+    error_log  /var/www/sites/innsjekk.trondheimdc.no/logs/error.log;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+EOF
+
 sudo ln -sf /etc/nginx/sites-available/innsjekk.trondheimdc.no \
   /etc/nginx/sites-enabled/innsjekk.trondheimdc.no
-```
 
-3. Ensure DNS `innsjekk.trondheimdc.no` → this VPS.
-4. Issue a cert (if you use certbot the same way as other `*.trondheimdc.no` sites):
-
-```bash
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d innsjekk.trondheimdc.no
 ```
 
-5. Confirm `BETTER_AUTH_URL=https://innsjekk.trondheimdc.no` in `/var/www/sites/innsjekk.trondheimdc.no/.env`, then `docker compose up -d` if the container was already running with a wrong URL.
+After certbot edits the file, in the **`listen 443`** server block set (keep certbot’s `ssl_certificate*` lines):
 
-Full sample with proxy headers, body size, and timeouts: [`docs/nginx-innsjekk.trondheimdc.no.conf`](./nginx-innsjekk.trondheimdc.no.conf).
+```nginx
+    client_max_body_size 100m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3010;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+
+        proxy_redirect off;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+```
+
+Remove any `root` / `try_files` / `index` from that HTTPS server. Reload:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Canonical sample (also with `upstream` block): [`nginx-innsjekk.trondheimdc.no.conf`](./nginx-innsjekk.trondheimdc.no.conf).
+
+**Do not** put HTTP basic auth in front of the app — better-auth handles access; basic auth breaks phones, APK download, and setup deep links.
+
+### 6. GitHub secrets (for deploy)
+
+Same as [trondheimdc-utlegg](https://github.com/TrondheimDC/trondheimdc-utlegg):
+
+| Secret | Purpose |
+|---|---|
+| `SSH_HOST` | VPS hostname or IP |
+| `SSH_USER` | Deploy user (`docker` group + write to deploy path) |
+| `SSH_PRIVATE_KEY` | Key for that user |
+
+### 7. First deploy
+
+Until you opt in, pushes only build. After Docker + steps above:
+
+1. Actions → **CD - Build image** → *Run workflow*
+2. Enable **Deploy to VPS**
+3. Or merge/push and later flip the workflow so push deploys again (see below)
+
+Manual check on the server after a successful deploy:
+
+```bash
+cd /var/www/sites/innsjekk.trondheimdc.no
+docker compose ps
+curl -sI http://127.0.0.1:3010 | head
+curl -sI https://innsjekk.trondheimdc.no | head
+```
 
 ### Checklist
 
 | Check | Why |
 |---|---|
-| `curl -sI https://innsjekk.trondheimdc.no` → 200/302 | TLS + proxy work |
-| `curl -sI http://127.0.0.1:3010` → 200/302 | Compose is up (from the VPS) |
-| Camera / Smooth Print on a phone | Needs real HTTPS (secure context) |
-| Admin APK upload | `client_max_body_size` ≥ APK/zip size |
-| Login redirects stay on `innsjekk.…` | `Host` + `X-Forwarded-Proto` + `BETTER_AUTH_URL` |
+| `docker version` works for the deploy user | CD load/compose |
+| `curl -sI http://127.0.0.1:3010` | Container up |
+| `curl -sI https://innsjekk.trondheimdc.no` | TLS + proxy |
+| Phone camera / Smooth Print | Real HTTPS |
+| Admin APK upload | `client_max_body_size` |
+| Login stays on `innsjekk.…` | Forwarded headers + `BETTER_AUTH_URL` |
 
-If you already terminate TLS with a wildcard cert for `*.trondheimdc.no`, skip certbot and point `ssl_certificate*` at that cert; keep the `location /` proxy block as in the sample.
+---
 
-## GitHub secrets
+## CI behaviour
 
-Same shape as [trondheimdc-utlegg](https://github.com/TrondheimDC/trondheimdc-utlegg):
+| Event | Lint | Build image | Deploy |
+|---|---|---|---|
+| Pull request → `master` | Yes | No | No |
+| Push to `master` | — | Yes | **No** (for now) |
+| `workflow_dispatch` + Deploy unchecked | — | Yes | No |
+| `workflow_dispatch` + Deploy checked | — | Yes | Yes |
 
-| Secret | Purpose |
-|---|---|
-| `SSH_HOST` | VPS hostname or IP |
-| `SSH_USER` | Deploy user (needs Docker + write to deploy path) |
-| `SSH_PRIVATE_KEY` | Key for that user |
+### Re-enable deploy on every push to `master`
 
-The deploy user must be able to run `docker` / `docker compose` (typically membership in the `docker` group) and write under `/var/www/sites/innsjekk.trondheimdc.no`.
+In [`.github/workflows/cd.yml`](../.github/workflows/cd.yml), change the deploy job `if:` from:
 
-## What each deploy does
+```yaml
+if: github.event_name == 'workflow_dispatch' && inputs.deploy
+```
 
-1. Build and tag `innsjekk:latest` + `innsjekk:<sha>`
-2. `docker save … \| gzip -1 > image.tar.gz`
-3. Ensure `$DEPLOY_PATH/data` exists
-4. Rsync `docker-compose.yml` and `image.tar.gz` (does **not** touch `.env` or `data/`)
-5. On the server: refuse to proceed if `.env` is missing; `docker load`; `docker compose up -d --remove-orphans`; prune dangling images
+to:
 
-Concurrency group `deploy` with `cancel-in-progress: false` so overlapping pushes finish in order.
+```yaml
+if: github.ref == 'refs/heads/master'
+```
+
+(or remove the `if` and always deploy after a successful build on that workflow).
+
+---
 
 ## Local check
 
 ```bash
-cp .env.example .env   # optional keys
+cp .env.example .env
 docker build -t innsjekk:latest .
 docker compose up -d
 # http://127.0.0.1:3010
@@ -145,18 +277,17 @@ docker compose up -d
 
 ## Ops notes
 
-- **Rollback:** on the server, `docker tag innsjekk:<old-sha> innsjekk:latest && docker compose up -d` if that sha is still loaded. Otherwise redeploy an older commit from Actions (`workflow_dispatch` on that SHA after merge, or re-run a previous successful CD).
-- **DB / APKs:** only under `data/`. Replacing the image never wipes them. Back up `data/` before risky ops.
-- **Permissions:** host `data/` must be writable by uid 1000 (`chown -R 1000:1000 data`).
-- **Disk:** each deploy leaves the new image; `docker image prune -f` removes dangling layers only. Periodically prune unused `innsjekk:<old-sha>` tags if disk is tight.
-- **Manual deploy:** Actions → **CD - Build & Deploy** → *Run workflow*.
+- **Rollback:** `docker tag innsjekk:<old-sha> innsjekk:latest && docker compose up -d` if that tag is still loaded.
+- **Backup:** `data/` only for DB/APKs; `logs/` is nginx.
+- **Permissions:** `data/` → uid 1000; nginx must write `logs/`.
+- **Disk:** `docker image prune -f` after deploy; prune old `innsjekk:<sha>` tags if needed.
 
 ## Related
 
 | Doc / file | Contents |
 |---|---|
-| [`docs/nginx-innsjekk.trondheimdc.no.conf`](./nginx-innsjekk.trondheimdc.no.conf) | Sample nginx reverse proxy |
-| [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Build, save, rsync, load, compose up |
+| [`nginx-innsjekk.trondheimdc.no.conf`](./nginx-innsjekk.trondheimdc.no.conf) | Sample nginx reverse proxy |
+| [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Build image; optional manual deploy |
 | [`.github/workflows/pr.yml`](../.github/workflows/pr.yml) | PR lint (Biome) |
 | [`Dockerfile`](../Dockerfile) | Multi-stage standalone image |
 | [`docker-compose.yml`](../docker-compose.yml) | Runtime on the VPS |
