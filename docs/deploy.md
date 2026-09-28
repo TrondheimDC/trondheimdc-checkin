@@ -61,12 +61,53 @@ Minimum `.env` (see [`.env.example`](../.env.example)):
 
 | Variable | Notes |
 |---|---|
+| `BETTER_AUTH_SECRET` | Required in production. |
+| `BETTER_AUTH_URL` | Public origin: `https://innsjekk.trondheimdc.no` (no trailing slash). |
 | `DB_ENCRYPTION_KEY` | Optional. Encrypts the LibSQL file at rest. |
 | `NEXT_PUBLIC_BASE_PATH` | Leave empty for the domain root. Must be set at **build** time if used. |
-
-Point nginx at `https://innsjekk.trondheimdc.no` → `http://127.0.0.1:3010` (TLS termination on nginx). Do **not** put HTTP basic auth in front of the whole app if you use in-app auth — it breaks phones, APK download, and setup deep links.
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Optional. Seeds a super-admin on boot. |
 
 [`docker-compose.yml`](../docker-compose.yml) is rsynced on every deploy. It does not build; it only runs `innsjekk:latest` with `./data` mounted and `env_file: .env`.
+
+## Nginx (TLS + reverse proxy)
+
+Compose binds the app to **loopback only** (`127.0.0.1:3010`). Nginx on the host terminates HTTPS and proxies to that port. Do **not** put HTTP basic auth in front of the whole app — in-app sessions (better-auth) handle access; basic auth breaks phones, APK download, and setup deep links.
+
+### One-time
+
+1. Start Compose so something listens on `3010` (or bring nginx up after the first CD).
+2. Install the site config from the repo:
+
+```bash
+sudo cp /path/to/repo/docs/nginx-innsjekk.trondheimdc.no.conf \
+  /etc/nginx/sites-available/innsjekk.trondheimdc.no
+sudo ln -sf /etc/nginx/sites-available/innsjekk.trondheimdc.no \
+  /etc/nginx/sites-enabled/innsjekk.trondheimdc.no
+```
+
+3. Ensure DNS `innsjekk.trondheimdc.no` → this VPS.
+4. Issue a cert (if you use certbot the same way as other `*.trondheimdc.no` sites):
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d innsjekk.trondheimdc.no
+```
+
+5. Confirm `BETTER_AUTH_URL=https://innsjekk.trondheimdc.no` in `/var/www/sites/innsjekk.trondheimdc.no/.env`, then `docker compose up -d` if the container was already running with a wrong URL.
+
+Full sample with proxy headers, body size, and timeouts: [`docs/nginx-innsjekk.trondheimdc.no.conf`](./nginx-innsjekk.trondheimdc.no.conf).
+
+### Checklist
+
+| Check | Why |
+|---|---|
+| `curl -sI https://innsjekk.trondheimdc.no` → 200/302 | TLS + proxy work |
+| `curl -sI http://127.0.0.1:3010` → 200/302 | Compose is up (from the VPS) |
+| Camera / Smooth Print on a phone | Needs real HTTPS (secure context) |
+| Admin APK upload | `client_max_body_size` ≥ APK/zip size |
+| Login redirects stay on `innsjekk.…` | `Host` + `X-Forwarded-Proto` + `BETTER_AUTH_URL` |
+
+If you already terminate TLS with a wildcard cert for `*.trondheimdc.no`, skip certbot and point `ssl_certificate*` at that cert; keep the `location /` proxy block as in the sample.
 
 ## GitHub secrets
 
@@ -111,6 +152,7 @@ docker compose up -d
 
 | Doc / file | Contents |
 |---|---|
+| [`docs/nginx-innsjekk.trondheimdc.no.conf`](./nginx-innsjekk.trondheimdc.no.conf) | Sample nginx reverse proxy |
 | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Build, save, rsync, load, compose up |
 | [`.github/workflows/pr.yml`](../.github/workflows/pr.yml) | PR lint (Biome) |
 | [`Dockerfile`](../Dockerfile) | Multi-stage standalone image |
