@@ -73,6 +73,10 @@ export function Scanner({ printerName }: { printerName?: string }) {
   }, [])
 
   useEffect(() => {
+    if (ready === false) router.replace("/oppsett")
+  }, [ready, router])
+
+  useEffect(() => {
     const platform = refinePlatform(platformFromNavigator())
     consumePrintOutcome(platform)
   }, [])
@@ -208,26 +212,8 @@ export function Scanner({ printerName }: { printerName?: string }) {
     }
   }
 
-  if (ready === null) {
-    return <main className="min-h-dvh bg-black" />
-  }
-
   if (!ready) {
-    return (
-      <main className="attendee-reveal relative flex min-h-dvh flex-col justify-end overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="attendee-badge-glow" aria-hidden />
-        <div className="relative flex flex-col gap-4">
-          <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">Førstegangsoppsett</p>
-          <h1 className="text-4xl">Koble til printeren først</h1>
-          <p className="text-lg leading-relaxed opacity-75">
-            Åpne Smooth Print og sjekk at QL-820NWBc er valgt.
-          </p>
-          <Button asChild size="lg">
-            <Link href="/oppsett">Sett opp</Link>
-          </Button>
-        </div>
-      </main>
-    )
+    return <main className="min-h-dvh bg-black" />
   }
 
   const hudMessage = error ?? scanHint
