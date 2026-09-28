@@ -1,11 +1,15 @@
 import { createReadStream, existsSync } from "fs"
 import { Readable } from "stream"
 import { NextResponse } from "next/server"
+import { isSession, requireDoorApiSession } from "@/lib/auth-api"
 import { apkFilePath, smoothPrintApkRepository } from "@/lib/smooth-print-apks"
 
 export const runtime = "nodejs"
 
 export async function GET() {
+  const session = await requireDoorApiSession()
+  if (!isSession(session)) return session
+
   const active = await smoothPrintApkRepository.getActive()
   if (!active) {
     return NextResponse.json({ error: "no_active_apk" }, { status: 404 })

@@ -7,17 +7,12 @@ function withBase(path: string) {
   return `${basePath}${path}`
 }
 
-/** Paths that stay public (setup stickers, APK download, auth itself). */
+/** Paths that stay public (auth itself). Static .lbx/.apk/.jpg bypass the matcher. */
 function isPublicPath(pathname: string): boolean {
   const p = basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
   if (p.startsWith("/api/auth")) return true
-  if (p.startsWith("/oppsett")) return true
-  if (p.startsWith("/koble")) return true
-  if (p === "/api/smooth-print/apk") return true
   if (p.startsWith("/auth")) return true
   if (p.startsWith("/logg-inn")) return true
-  if (p.startsWith("/templates/")) return true
-  if (p.startsWith("/printers/")) return true
   return false
 }
 
@@ -32,8 +27,14 @@ function isAdminPath(pathname: string): boolean {
 
 function isDoorPath(pathname: string): boolean {
   const p = basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
-  if (p === "/" || p.startsWith("/sok") || p.startsWith("/deltaker")) return true
+  if (p === "/") return true
+  if (p.startsWith("/sok")) return true
+  if (p.startsWith("/deltaker")) return true
+  if (p.startsWith("/innstillinger")) return true
+  if (p.startsWith("/oppsett")) return true
+  if (p.startsWith("/koble")) return true
   if (p.startsWith("/api/attendees")) return true
+  if (p === "/api/smooth-print/apk") return true
   return false
 }
 

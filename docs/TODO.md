@@ -27,8 +27,8 @@ Tasks:
 - [x] Android: install with Ferdig (do not open the app); force-close Smooth Print only before print (overlay dialog). Connect opens the app when needed.
 - [x] Connect URL scheme checked against Brother docs — `buildConnectQuery` matches (`connecttype`, `connectaddress`, `serialnum`, `model`); `connectcallback` omitted (new-tab problem)
 - [x] Android: sticker / in-app `brotherwebprint://connect` verified on hardware (happy path without OS-pair-first).
-- [ ] Verify sticker / in-app `brotherwebprint://connect` on **iOS** (earlier notes: may still need OS Bluetooth pair first).
-- [ ] QA onboarding on **iOS** and **Android** (full matrix in [MVP-verification.md](./MVP-verification.md)); note callback / success UX limits — first iOS pass done; Android connect happy path 2026-09-27
+- [x] **Android onboarding grade-A** (2026-09-27): install → Ferdig (don’t open) → verify BT icon → Skann QR → connect (permissions/terms/BT on cold start) → returns to browser → force-close → test print overlay. Manual fallback also works.
+- [ ] **Verify iOS onboarding** on hardware (full matrix in [MVP-verification.md](./MVP-verification.md)): App Store install → verify BT → Skann QR / sticker connect → does Safari need OS Bluetooth pair before connect? Test print + tab-reuse callback already partially verified.
 - [ ] If iOS connect fails without prior OS pair: document in [RESEARCH.md](../RESEARCH.md) and keep / emphasize manual path
 - [x] `brotherwebprint://print` had no return-to-webapp callback — wired up `successCallback`/`failureCallback` (https URLs back to `/deltaker/[id]`) in `src/lib/print-url.ts` + `src/components/print-button.tsx`; confirmed on iOS that it does return to Safari and appends its own `errorCode=SUCCESS`
 - [x] Callback opened a **new Safari tab per print** on iOS (confirmed on hardware; a fragment-based callback is not an option — Smooth Print percent-encodes `#` into the path and concatenates without a separator). Mitigated: `print-button.tsx` now pre-sets the tab's address bar to the exact success-callback shape before firing the print (iOS only), so a successful print should match and reuse the tab; failure still opens a new tab
@@ -52,11 +52,11 @@ Tasks:
 
 **Decided.** Full design: [auth-stasjoner.md](./auth-stasjoner.md).
 
-better-auth + better-auth-ui. Roles: `admin` | `stasjon` (UI: Innsjekkstasjon). Long-lived magic-link QR (Slack / under-printer sticker) + 6-digit PIN fallback. Stasjon linked to a printer; enroll mirrors printers. `/oppsett` stays public. No nginx basic auth; Checkin is not the staff IdP.
+better-auth + better-auth-ui. Roles: `admin` | `stasjon` (UI: Innsjekkstasjon). Long-lived magic-link QR (Slack / under-printer sticker) + 6-digit PIN fallback. Stasjon linked to a printer; enroll mirrors printers. `/oppsett` / `/koble` / APK require door session. No nginx basic auth; Checkin is not the staff IdP.
 
 - [x] Add better-auth (Drizzle/LibSQL), admin plugin, roles `admin` / `stasjon`
 - [x] User fields: `validFrom`, `validTo`, optional `printerId`; long `session.expiresIn` + enforce validity window
-- [x] Middleware / route gates: door + admin APIs require session; `/oppsett`, `/koble`, active APK public
+- [x] Middleware / route gates: door + admin APIs require session; `/oppsett`, `/koble`, active APK gated as door
 - [x] Install better-auth-ui (shadcn): `@better-auth-ui/auth`, `admin`, `user-button` + Sonner; Norwegian localization
 - [x] Admin sign-in (`/auth/sign-in`) + door `/logg-inn` (PIN + magic token); better-auth-ui SignIn + username for admin
 - [x] Admin `/admin/brukere` via better-auth-ui; `UserButton` in admin shell

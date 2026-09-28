@@ -25,13 +25,13 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
-| 1 | Fresh `/oppsett`: install → verify BT → Skann QR → connect → test print | ☐ | ☐ | Android: Ferdig after install (don’t open SP); cold-start connect returns to browser |
-| 2 | Scan step: Start kamera + Manuelt oppsett fallback (OS pair → confirm) | ☐ | ☐ | |
-| 3 | Sticker deeplink (`/oppsett?path=qr&…`): prelude then connect (skips camera) | ☐ | ☑ | iOS still to verify |
+| 1 | Fresh `/oppsett`: install → verify BT → Skann QR → connect → test print | ☐ | ☑ | Android grade-A 2026-09-27; iOS still to verify |
+| 2 | Scan step: Start kamera + Manuelt oppsett fallback (OS pair → confirm) | ☐ | ☑ | |
+| 3 | Sticker deeplink (`/oppsett?path=qr&…`): prelude then connect (skips camera) | ☐ | ☑ | |
 | 4 | After connect, printer is usable for print (or failure is obvious) | ☐ | ☑ | Keep manual fallback |
-| 5 | Manual confirm path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☐ | ☐ | Matching codes on phone + printer |
-| 6 | Test print produces a valid label on DK-11208 | ☐ | ☐ | Android: no print callbacks; overlay dialog only if Smooth Print was closed |
-| 7 | Returning to `/oppsett` later is still usable (re-pair / re-test) | ☐ | ☐ | |
+| 5 | Manual confirm path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☐ | ☑ | Matching codes on phone + printer |
+| 6 | Test print produces a valid label on DK-11208 | ☐ | ☑ | Android: no print callbacks; overlay if SP was closed |
+| 7 | Returning to `/oppsett` later is still usable (re-pair / re-test) | ☐ | ☑ | |
 
 ### iOS-specific
 
@@ -46,11 +46,11 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 12 | Hosted APK from Admin → Smooth Print installs (active APK) | ☐ | Upload/activate conference APK before setup day |
+| 12 | Hosted APK from Admin → Smooth Print installs (active APK) | ☑ | Upload/activate conference APK before setup day |
 | 13 | Fallback when no APK is active still reaches a download | ☐ | Brother agreement page |
-| 14 | Missing Smooth Print: intent / fallback to `/oppsett` works | ☐ | |
-| 15 | Connect + print via custom scheme / intent from Chrome | ☐ | |
-| 16 | Print overlay dialog (no callbacks): Smooth Print **closed** → dialog; Smooth Print **in background** → switches into app | ☐ | Force-close before print, not after install |
+| 14 | Missing Smooth Print: intent / fallback to `/oppsett` works | ☑ | |
+| 15 | Connect + print via custom scheme / intent from Chrome | ☑ | Grade-A onboarding 2026-09-27 |
+| 16 | Print overlay dialog (no callbacks): Smooth Print **closed** → dialog; Smooth Print **in background** → switches into app | ☑ | Force-close before print, not after install |
 
 ### Admin → phone sticker loop
 
@@ -58,7 +58,7 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 |---|---|---|---|
 | 17 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
 | 18 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☐ | Confirm `printer.lbx` on real QL |
-| 19 | Scanning that sticker on phone opens the right connect flow | ☐ | Both OS; Android connect happy path verified without OS-pair-first |
+| 19 | Scanning that sticker on phone opens the right connect flow | ☐ | Android ☑; iOS to verify |
 
 ---
 
@@ -88,7 +88,7 @@ Optional comparison (does not block MVP if current path is solid):
 | 26 | CSV import via admin UI (counts / skipped rows make sense) | ☐ | Same rules as `pnpm import:attendees` |
 | 27 | CLI import still works as fallback | ☐ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
 | 28 | Re-import plan: near-event + morning-of | ☐ | Late signups / cancellations |
-| 29 | Auth: admin + innsjekkstasjon (magic link / 6-digit PIN); door + admin gated; `/oppsett` public | ☐ | Design: [auth-stasjoner.md](./auth-stasjoner.md) |
+| 29 | Auth: admin + innsjekkstasjon (magic link / 6-digit PIN); door + admin + `/oppsett` gated | ☐ | Design: [auth-stasjoner.md](./auth-stasjoner.md) |
 | 30 | Conference Smooth Print APK uploaded and active | ☑ | Note Brother license/redistribution in README if needed |
 | 31 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | Camera + custom schemes need secure context |
 
@@ -116,8 +116,8 @@ Before building live integration, decide **data mode**:
 
 | Role | Name | Date | Platforms verified |
 |---|---|---|---|
-| Onboarding QA | | | iOS / Android |
-| Day-of print QA | | | iOS / Android |
+| Onboarding QA | | 2026-09-27 | Android ☑ — iOS pending |
+| Day-of print QA | | | iOS pending / Android ☑ (scan→print) |
 | Admin / deploy | | | |
 
 MVP signed off when the Definition of done above is true and open rows in this doc are either checked or explicitly deferred with a note.

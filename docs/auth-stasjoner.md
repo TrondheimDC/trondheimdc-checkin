@@ -9,7 +9,7 @@ Related: [TODO.md](./TODO.md) (implementation backlog), [MVP-verification.md](./
 - **Admin** users manage printers, APK, CSV import, and innsjekkstasjoner.
 - **Innsjekkstasjon** accounts run day-of door work (scan / søk / confirm / print / check-in) only.
 - Audit trail on `check_events` names the **stasjon** (and thus the linked printer), not a shared PIN with no identity.
-- `/oppsett`, `/koble`, and the active Smooth Print APK download stay **public** so setup stickers work without login.
+- `/oppsett`, `/koble`, and the active Smooth Print APK download require a **door session** (sign in at the station first, then set up the printer).
 - Do **not** use nginx basic auth in front of the app (fights phones, APK, and deep links). Checkin is **not** the staff IdP — only attendee data (CSV / later API).
 
 ## Stack
@@ -27,8 +27,8 @@ No public self-registration. Only admins create users/stasjoner.
 | Role | Norwegian | Access |
 |---|---|---|
 | `admin` | Administrator | `/admin/*`, all admin APIs, stasjon CRUD |
-| `stasjon` | Innsjekkstasjon | `/`, `/sok`, `/deltaker/*`, attendee check-in APIs |
-| (none) | — | `/oppsett`, `/koble`, `GET /api/smooth-print/apk` |
+| `stasjon` | Innsjekkstasjon | `/`, `/sok`, `/deltaker/*`, `/oppsett`, `/koble`, attendee APIs, `GET /api/smooth-print/apk` |
+| (none) | — | `/logg-inn`, `/auth/*`, `/api/auth/*` |
 
 An admin session also satisfies door routes (organizers need not use a stasjon PIN).
 
@@ -50,7 +50,7 @@ Synthetic identity for better-auth (username and/or placeholder email such as `i
 
 One phone ↔ one printer ↔ one innsjekkstasjon. Login QR sticker goes on the **underside** (or similarly hidden place) of the printer — visible when interacting with the equipment, not to passing attendees.
 
-Setup QR (`/oppsett?path=qr&…`) remains on the visible printer sticker and stays **unauthenticated**. Login QR is a **separate** code; do not overload one QR for both jobs.
+Setup QR (`/oppsett?path=qr&…`) remains on the visible printer sticker but requires a door session — staff sign in first (login QR under the printer), then scan the setup sticker or open Sett opp. Login QR is a **separate** code; do not overload one QR for both jobs.
 
 ## Sign-in
 
