@@ -70,18 +70,18 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/testutskrift")} size="lg">
-                    <Link href="/admin/testutskrift" onClick={closeMobile}>
-                      <FlaskConical />
-                      Testutskrift
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/brukere")} size="lg">
                     <Link href="/admin/brukere" onClick={closeMobile}>
                       <Users />
                       Brukere
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/testutskrift")} size="lg">
+                    <Link href="/admin/testutskrift" onClick={closeMobile}>
+                      <FlaskConical />
+                      Testutskrift
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

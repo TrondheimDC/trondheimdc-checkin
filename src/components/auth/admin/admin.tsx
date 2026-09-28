@@ -69,11 +69,13 @@ export function Admin({ className, hideNav, path, view }: AdminProps) {
       ) : contributedView ? (
         <contributedView.component />
       ) : (
-        <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center">
-          <ShieldAlertIcon className="size-8 text-muted-foreground" />
+        <div className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-2xl bg-[var(--color-bg-surface)] px-6 py-10 text-center">
+          <span className="flex size-16 items-center justify-center rounded-2xl bg-black/30 text-[var(--color-fg-brand)]">
+            <ShieldAlertIcon className="size-8" />
+          </span>
           <div className="flex flex-col gap-1">
-            <h2 className="font-medium">{localization.unknownView}</h2>
-            <p className="max-w-md text-sm text-muted-foreground">
+            <h2 className="text-2xl">{localization.unknownView}</h2>
+            <p className="max-w-md text-base opacity-70">
               {localization.unknownViewDescription} &quot;{path ?? view}&quot;
             </p>
           </div>

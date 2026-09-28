@@ -63,7 +63,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -88,36 +87,43 @@ import {
 } from "@/components/ui/field"
 import {
   InputGroup,
-  InputGroupAddon,
   InputGroupInput
 } from "@/components/ui/input-group"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { adminPlugin } from "@/lib/auth/admin-plugin"
 import {
   adminEmailFromUsername,
   adminLabel
 } from "@/lib/admin-identity"
+import { cn } from "@/lib/utils"
 import { getAuthAdditionalFieldValidators, useAuthForm } from "../auth-form"
 import { useServerTableState } from "../server-table-state"
 
 import { createAdminColumnHelper, useAdminTable } from "./admin-table"
+
+function StatusPill({
+  banned,
+  activeLabel = "Aktiv",
+  bannedLabel = "Utestengt"
+}: {
+  banned?: boolean | null
+  activeLabel?: string
+  bannedLabel?: string
+}) {
+  return (
+    <span
+      className={
+        banned
+          ? "rounded-lg bg-[color-mix(in_srgb,var(--color-bg-danger)_22%,transparent)] px-2 py-0.5 text-sm"
+          : "rounded-lg bg-[color-mix(in_srgb,var(--color-fg-brand)_22%,transparent)] px-2 py-0.5 text-sm"
+      }
+    >
+      {banned ? bannedLabel : activeLabel}
+    </span>
+  )
+}
 
 type StatusFilter = "all" | "active" | "banned"
 type DangerousAction = "ban" | "delete" | "impersonate" | "revokeAll"
@@ -285,194 +291,153 @@ export function AdminUsers({
   const from = total ? pagination.pageIndex * pagination.pageSize + 1 : 0
   const to = Math.min(total, (pagination.pageIndex + 1) * pagination.pageSize)
 
+  const statusFilters: { value: StatusFilter; label: string }[] = [
+    { value: "all", label: localization.filterAllStatuses },
+    { value: "active", label: localization.active },
+    { value: "banned", label: localization.banned }
+  ]
+  const rows = table.getRowModel().rows
+  const showPagination = total > pagination.pageSize
+
   return (
-    <section className={className}>
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-            <InputGroup className="max-w-sm">
-              <InputGroupAddon>
-                <SearchIcon />
-              </InputGroupAddon>
-              <InputGroupInput
-                aria-label="Søk etter brukernavn"
-                onChange={(event) => {
-                  table.setGlobalFilter(event.target.value)
-                  table.setPageIndex(0)
-                }}
-                placeholder="Søk etter brukernavn"
-                value={globalFilter}
-              />
-            </InputGroup>
-            <Select
-              value={status}
-              onValueChange={(value) => {
-                table
-                  .getColumn("status")
-                  ?.setFilterValue(value === "all" ? undefined : value)
-              }}
-            >
-              <SelectTrigger
-                aria-label={localization.status}
-                className="w-full sm:w-40"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  {localization.filterAllStatuses}
-                </SelectItem>
-                <SelectItem value="active">{localization.active}</SelectItem>
-                <SelectItem value="banned">{localization.banned}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {canCreate.isPending ? (
-            <Skeleton className="h-8 w-28" />
-          ) : canCreate.data?.success ? (
-            <Button onClick={() => setCreateOpen(true)}>
-              <UserPlusIcon />
-              {localization.createUser}
+    <section className={cn("flex flex-col gap-4", className)}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label className="relative min-w-0 flex-1">
+          <span className="sr-only">Søk etter brukernavn</span>
+          <SearchIcon
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 opacity-50"
+          />
+          <input
+            aria-label="Søk etter brukernavn"
+            className="h-14 w-full rounded-xl bg-[var(--color-bg-surface)] pr-4 pl-12 text-lg outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-fg-brand)]"
+            onChange={(event) => {
+              table.setGlobalFilter(event.target.value)
+              table.setPageIndex(0)
+            }}
+            placeholder="Søk etter brukernavn"
+            value={globalFilter}
+          />
+        </label>
+        {canCreate.isPending ? (
+          <Skeleton className="h-14 w-36 rounded-xl" />
+        ) : canCreate.data?.success ? (
+          <Button onClick={() => setCreateOpen(true)}>
+            <UserPlusIcon className="size-5" aria-hidden />
+            {localization.createUser}
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label={localization.status}>
+        {statusFilters.map((filter) => (
+          <Button
+            key={filter.value}
+            type="button"
+            size="sm"
+            variant={status === filter.value ? "default" : "surface"}
+            onClick={() => {
+              table
+                .getColumn("status")
+                ?.setFilterValue(filter.value === "all" ? undefined : filter.value)
+              table.setPageIndex(0)
+            }}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
+      {permission.isPending ? (
+        <UserListSkeleton />
+      ) : !permission.data?.success ? (
+        <AdminState
+          icon={<ShieldAlertIcon />}
+          title={localization.accessDenied}
+          description={localization.accessDeniedDescription}
+        />
+      ) : users.isError ? (
+        <AdminState
+          icon={<ShieldAlertIcon />}
+          title={localization.loadUsersError}
+          description={localization.loadUsersErrorDescription}
+          action={
+            <Button variant="surface" onClick={() => users.refetch()}>
+              {localization.retry}
             </Button>
-          ) : null}
-        </div>
-
-        {permission.isPending ? (
-          <UserTableSkeleton />
-        ) : !permission.data?.success ? (
-          <AdminState
-            icon={<ShieldAlertIcon />}
-            title={localization.accessDenied}
-            description={localization.accessDeniedDescription}
-          />
-        ) : users.isError ? (
-          <AdminState
-            icon={<ShieldAlertIcon />}
-            title={localization.loadUsersError}
-            description={localization.loadUsersErrorDescription}
-            action={
-              <Button variant="outline" onClick={() => users.refetch()}>
-                {localization.retry}
+          }
+        />
+      ) : users.isPending ? (
+        <UserListSkeleton />
+      ) : rows.length === 0 ? (
+        <AdminState
+          icon={<UserRound />}
+          title={localization.noUsers}
+          description={localization.noUsersDescription}
+          action={
+            canCreate.data?.success ? (
+              <Button onClick={() => setCreateOpen(true)}>
+                <UserPlusIcon className="size-5" aria-hidden />
+                {localization.createUser}
               </Button>
-            }
-          />
-        ) : (
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <SortButton
-                      onClick={table
-                        .getColumn("name")
-                        ?.getToggleSortingHandler()}
-                      sorted={table.getColumn("name")?.getIsSorted() ?? false}
-                    >
-                      Brukernavn
-                    </SortButton>
-                  </TableHead>
-                  <TableHead>{localization.status}</TableHead>
-                  <TableHead className="hidden sm:table-cell">
-                    <SortButton
-                      onClick={table
-                        .getColumn("createdAt")
-                        ?.getToggleSortingHandler()}
-                      sorted={
-                        table.getColumn("createdAt")?.getIsSorted() ?? false
-                      }
-                    >
-                      {localization.created}
-                    </SortButton>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.isPending ? (
-                  <UserRowsSkeleton />
-                ) : table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row) => {
-                    const user = row.original as AdminUserWithUsername
-                    const label = adminLabel(user)
-                    return (
-                      <TableRow
-                        key={row.id}
-                        aria-selected={selectedUserId === user.id}
-                        className={
-                          canGet.data?.success ? "cursor-pointer" : undefined
-                        }
-                        onClick={
-                          canGet.data?.success
-                            ? () => setSelectedUserId(user.id)
-                            : undefined
-                        }
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <UserAvatar className="size-8" user={user} />
-                            <div className="min-w-0">
-                              {canGet.data?.success ? (
-                                <Button
-                                  className="h-auto min-w-0 justify-start p-0 font-medium"
-                                  onClick={(event) => {
-                                    event.stopPropagation()
-                                    setSelectedUserId(user.id)
-                                  }}
-                                  variant="link"
-                                >
-                                  <span className="truncate">{label}</span>
-                                </Button>
-                              ) : (
-                                <span className="truncate">{label}</span>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={user.banned ? "destructive" : "secondary"}
-                          >
-                            {user.banned
-                              ? localization.banned
-                              : localization.active}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden text-muted-foreground sm:table-cell">
-                          {formatDate(user.createdAt)}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-40 text-center">
-                      <strong className="block font-medium">
-                        {localization.noUsers}
-                      </strong>
-                      <span className="text-muted-foreground">
-                        {localization.noUsersDescription}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+            ) : undefined
+          }
+        />
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {rows.map((row) => {
+            const user = row.original as AdminUserWithUsername
+            const label = adminLabel(user)
+            const canOpen = canGet.data?.success === true
+            return (
+              <li key={row.id}>
+                <Button
+                  type="button"
+                  variant="surface"
+                  disabled={!canOpen}
+                  aria-selected={selectedUserId === user.id}
+                  className="h-auto w-full items-center justify-start gap-4 px-4 py-4 text-left whitespace-normal"
+                  onClick={() => canOpen && setSelectedUserId(user.id)}
+                >
+                  <UserAvatar
+                    className="size-12 shrink-0 bg-black/30 text-base"
+                    user={user}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-xl font-semibold">{label}</span>
+                      <StatusPill
+                        banned={user.banned}
+                        activeLabel={localization.active}
+                        bannedLabel={localization.banned}
+                      />
+                    </div>
+                    <p className="mt-1 text-sm opacity-60">
+                      {localization.created} {formatDate(user.createdAt)}
+                    </p>
+                  </div>
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
 
-        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+      {showPagination ? (
+        <div className="flex items-center justify-between gap-3 text-sm opacity-70">
           <span>
             {localization.usersPaginationRange
               .replace("{{from}}", String(from))
               .replace("{{to}}", String(to))
               .replace("{{total}}", String(total))}
           </span>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <Button
               aria-label={localization.previousPage}
               disabled={!table.getCanPreviousPage() || users.isFetching}
               onClick={() => table.previousPage()}
               size="icon-sm"
-              variant="outline"
+              variant="surface"
             >
               <ChevronLeftIcon />
             </Button>
@@ -481,13 +446,13 @@ export function AdminUsers({
               disabled={!table.getCanNextPage() || users.isFetching}
               onClick={() => table.nextPage()}
               size="icon-sm"
-              variant="outline"
+              variant="surface"
             >
               <ChevronRightIcon />
             </Button>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
       <UserInspector
@@ -497,27 +462,6 @@ export function AdminUsers({
         userId={selectedUserId}
       />
     </section>
-  )
-}
-
-function SortButton({
-  children,
-  onClick,
-  sorted
-}: {
-  children: React.ReactNode
-  onClick?: (event: unknown) => void
-  sorted: false | "asc" | "desc"
-}) {
-  return (
-    <button
-      className="inline-flex items-center gap-1 hover:text-foreground"
-      onClick={onClick}
-      type="button"
-    >
-      {children}
-      {sorted ? (sorted === "asc" ? "↑" : "↓") : null}
-    </button>
   )
 }
 
@@ -533,14 +477,16 @@ function AdminState({
   title: string
 }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center">
-      <span className="text-muted-foreground [&>svg]:size-8">{icon}</span>
+    <section className="flex flex-col items-center gap-4 rounded-2xl bg-[var(--color-bg-surface)] px-6 py-10 text-center">
+      <span className="flex size-16 items-center justify-center rounded-2xl bg-black/30 text-[var(--color-fg-brand)] [&>svg]:size-8">
+        {icon}
+      </span>
       <div className="flex flex-col gap-1">
-        <h2 className="font-medium">{title}</h2>
-        <p className="max-w-md text-sm text-muted-foreground">{description}</p>
+        <h2 className="text-2xl">{title}</h2>
+        <p className="max-w-sm text-base opacity-70">{description}</p>
       </div>
       {action}
-    </div>
+    </section>
   )
 }
 
@@ -548,38 +494,25 @@ const skeletonRowIds = [
   "admin-row-1",
   "admin-row-2",
   "admin-row-3",
-  "admin-row-4",
-  "admin-row-5"
+  "admin-row-4"
 ]
 
-function UserRowsSkeleton() {
-  return skeletonRowIds.map((id) => (
-    <TableRow key={id}>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-8 rounded-full" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-5 w-16" />
-      </TableCell>
-      <TableCell className="hidden sm:table-cell">
-        <Skeleton className="h-4 w-24" />
-      </TableCell>
-    </TableRow>
-  ))
-}
-
-function UserTableSkeleton() {
+function UserListSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <Table>
-        <TableBody>
-          <UserRowsSkeleton />
-        </TableBody>
-      </Table>
-    </div>
+    <ul className="flex flex-col gap-3" aria-hidden>
+      {skeletonRowIds.map((id) => (
+        <li
+          key={id}
+          className="flex items-center gap-4 rounded-2xl bg-[var(--color-bg-surface)] px-4 py-4"
+        >
+          <Skeleton className="size-12 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -692,14 +625,16 @@ function CreateUserDialog({
                 )}
               </form.Field>
             </FieldGroup>
-            <FieldError>{getAdminErrorMessage(createUser.error)}</FieldError>
-            <DialogFooter>
-              <Button onClick={close} type="button" variant="outline">
-                {config.localization.cancel}
-              </Button>
-              <form.AuthFormSubmitButton disabled={createUser.isPending}>
+            <FieldError className="text-[var(--color-bg-danger)]">
+              {getAdminErrorMessage(createUser.error)}
+            </FieldError>
+            <DialogFooter className="mt-2 flex-col gap-3 sm:flex-col">
+              <form.AuthFormSubmitButton disabled={createUser.isPending} size="lg">
                 {config.localization.createUser}
               </form.AuthFormSubmitButton>
+              <Button onClick={close} type="button" variant="surface" size="lg">
+                {config.localization.cancel}
+              </Button>
             </DialogFooter>
           </form.AuthFormRoot>
         </form.AppForm>
@@ -956,59 +891,57 @@ function UserInspector({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="h-[min(52rem,calc(100dvh-2rem))] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-4xl">
-          <DialogHeader className="border-b px-6 py-5 pr-14">
+        <DialogContent className="h-[min(52rem,calc(100dvh-2rem))] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b border-white/10 px-6 py-5 pr-14">
             {user ? (
               <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <UserAvatar className="size-12" user={user} />
+                  <UserAvatar
+                    className="size-12 bg-black/30 text-base"
+                    user={user}
+                  />
                   <div className="min-w-0">
                     <DialogTitle className="truncate">
                       {adminLabel(user as AdminUserWithUsername)}
                     </DialogTitle>
-                    <DialogDescription>
-                      {user.banned
-                        ? config.localization.banned
-                        : config.localization.active}
+                    <DialogDescription className="mt-1">
+                      <StatusPill
+                        banned={user.banned}
+                        activeLabel={config.localization.active}
+                        bannedLabel={config.localization.banned}
+                      />
                     </DialogDescription>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Badge variant={user.banned ? "destructive" : "secondary"}>
-                    {user.banned
-                      ? config.localization.banned
-                      : config.localization.active}
-                  </Badge>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        aria-label={config.localization.moreActions}
-                        size="icon-sm"
-                        variant="ghost"
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      aria-label={config.localization.moreActions}
+                      size="icon-sm"
+                      variant="surface"
+                    >
+                      <EllipsisIcon />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        disabled={
+                          canImpersonate.isPending ||
+                          !canImpersonate.data?.success ||
+                          (targetIsAdmin &&
+                            (canImpersonateAdmins.isPending ||
+                              !canImpersonateAdmins.data?.success)) ||
+                          isSelf
+                        }
+                        onSelect={() => setDangerousAction("impersonate")}
                       >
-                        <EllipsisIcon />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem
-                          disabled={
-                            canImpersonate.isPending ||
-                            !canImpersonate.data?.success ||
-                            (targetIsAdmin &&
-                              (canImpersonateAdmins.isPending ||
-                                !canImpersonateAdmins.data?.success)) ||
-                            isSelf
-                          }
-                          onSelect={() => setDangerousAction("impersonate")}
-                        >
-                          <LogInIcon />
-                          {config.localization.impersonateUser}
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                        <LogInIcon />
+                        {config.localization.impersonateUser}
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <>
@@ -1030,12 +963,9 @@ function UserInspector({
               className="min-h-0 gap-0 overflow-hidden"
               defaultValue="overview"
             >
-              <TabsList className="mx-6 h-11 shrink-0" variant="line">
+              <TabsList className="mx-6 h-11 shrink-0 bg-transparent" variant="line">
                 <TabsTrigger value="overview">
-                  <UserRound
-                    aria-hidden="true"
-                    className="text-muted-foreground"
-                  />
+                  <UserRound aria-hidden="true" className="opacity-70" />
                   {config.localization.overview}
                 </TabsTrigger>
                 <TabsTrigger
@@ -1045,10 +975,7 @@ function UserInspector({
                   }
                   value="sessions"
                 >
-                  <Monitor
-                    aria-hidden="true"
-                    className="text-muted-foreground"
-                  />
+                  <Monitor aria-hidden="true" className="opacity-70" />
                   {config.localization.sessions}
                 </TabsTrigger>
                 {contributedTabs.map((tab) => (
@@ -1062,7 +989,7 @@ function UserInspector({
                   <profileForm.AuthFormRoot className="grid h-full grid-rows-[minmax(0,1fr)_auto]">
                     <div className="overflow-y-auto">
                       <section className="flex flex-col gap-5 p-6">
-                        <h3 className="font-medium">
+                        <h3 className="text-lg font-semibold">
                           {config.localization.profileAndAccess}
                         </h3>
                         <FieldGroup>
@@ -1087,45 +1014,43 @@ function UserInspector({
                             </profileForm.AppField>
                           ))}
                         </FieldGroup>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm opacity-60">
                           {config.localization.created}:{" "}
                           {formatDate(user.createdAt)}
                         </p>
                         {user.banned && user.banReason ? (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm opacity-60">
                             {config.localization.banReason}: {user.banReason}
                           </p>
                         ) : null}
-                        <FieldError>
+                        <FieldError className="text-[var(--color-bg-danger)]">
                           {getAdminErrorMessage(updateUser.error)}
                         </FieldError>
                       </section>
-                      <Separator />
+                      <Separator className="bg-white/10" />
                       <section className="flex flex-col gap-4 p-6">
-                        <h3 className="font-medium">
+                        <h3 className="text-lg font-semibold">
                           {config.localization.security}
                         </h3>
-                        <div>
-                          <Button
-                            disabled={
-                              canSetPassword.isPending ||
-                              !canSetPassword.data?.success
-                            }
-                            onClick={() => setPasswordOpen(true)}
-                            type="button"
-                            variant="outline"
-                          >
-                            <KeyRoundIcon />
-                            {config.localization.setPassword}
-                          </Button>
-                        </div>
+                        <Button
+                          disabled={
+                            canSetPassword.isPending ||
+                            !canSetPassword.data?.success
+                          }
+                          onClick={() => setPasswordOpen(true)}
+                          type="button"
+                          variant="surface"
+                        >
+                          <KeyRoundIcon className="size-5" aria-hidden />
+                          {config.localization.setPassword}
+                        </Button>
                       </section>
-                      <Separator />
+                      <Separator className="bg-white/10" />
                       <section className="flex flex-col gap-4 p-6">
-                        <h3 className="font-medium">
+                        <h3 className="text-lg font-semibold">
                           {config.localization.dangerZone}
                         </h3>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col gap-2">
                           <Button
                             disabled={
                               canBan.isPending ||
@@ -1138,9 +1063,9 @@ function UserInspector({
                                 : setDangerousAction("ban")
                             }
                             type="button"
-                            variant="outline"
+                            variant="surface"
                           >
-                            <BanIcon />
+                            <BanIcon className="size-5" aria-hidden />
                             {user.banned
                               ? config.localization.unbanUser
                               : config.localization.banUser}
@@ -1153,27 +1078,21 @@ function UserInspector({
                             }
                             onClick={() => setDangerousAction("delete")}
                             type="button"
-                            variant="destructive"
+                            variant="ghost"
+                            className="text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
                           >
-                            <Trash2Icon />
+                            <Trash2Icon className="size-5" aria-hidden />
                             {config.localization.deleteUser}
                           </Button>
                         </div>
                         {unban.error ? (
-                          <FieldError>
+                          <FieldError className="text-[var(--color-bg-danger)]">
                             {getAdminErrorMessage(unban.error)}
                           </FieldError>
                         ) : null}
                       </section>
                     </div>
-                    <div className="flex flex-col-reverse gap-2 border-t bg-muted/50 px-6 py-4 sm:flex-row sm:justify-end">
-                      <Button
-                        onClick={() => onOpenChange(false)}
-                        type="button"
-                        variant="outline"
-                      >
-                        {config.localization.cancel}
-                      </Button>
+                    <div className="flex flex-col gap-2 border-t border-white/10 bg-black/20 px-6 py-4">
                       <profileForm.Subscribe
                         selector={(state) =>
                           String(state.values.additionalFields.username ?? "")
@@ -1187,11 +1106,20 @@ function UserInspector({
                               canUpdate.isPending ||
                               !canUpdate.data?.success
                             }
+                            size="lg"
                           >
                             {config.localization.saveChanges}
                           </profileForm.AuthFormSubmitButton>
                         )}
                       </profileForm.Subscribe>
+                      <Button
+                        onClick={() => onOpenChange(false)}
+                        type="button"
+                        variant="surface"
+                        size="lg"
+                      >
+                        {config.localization.cancel}
+                      </Button>
                     </div>
                   </profileForm.AuthFormRoot>
                 </profileForm.AppForm>
@@ -1206,12 +1134,12 @@ function UserInspector({
                       .slice(0, 3)
                       .map((id) => (
                         <Skeleton
-                          className="h-20 w-full"
+                          className="h-20 w-full rounded-2xl"
                           key={`session-${id}`}
                         />
                       ))
                   ) : !sessionsPermission.data?.success ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm opacity-70">
                       {config.localization.accessDeniedDescription}
                     </p>
                   ) : sessions.data?.sessions.length ? (
@@ -1224,25 +1152,26 @@ function UserInspector({
                           isSelf
                         }
                         onClick={() => setDangerousAction("revokeAll")}
-                        variant="outline"
+                        variant="surface"
+                        size="sm"
                       >
                         {config.localization.revokeAllSessions}
                       </Button>
                       {sessions.data.sessions.map((item) => (
                         <div
-                          className="flex items-start justify-between gap-3 rounded-lg border p-3"
+                          className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--color-bg-surface)] p-4"
                           key={item.id}
                         >
                           <div className="min-w-0 text-sm">
                             <div className="truncate font-medium">
                               {item.userAgent || config.localization.sessions}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="mt-1 text-xs opacity-60">
                               {formatDate(item.createdAt)} ·{" "}
                               {formatDate(item.expiresAt)}
                             </div>
                             {config.showIpAddress && item.ipAddress ? (
-                              <div className="mt-1 font-mono text-xs text-muted-foreground">
+                              <div className="mt-1 font-mono text-xs opacity-60">
                                 {item.ipAddress}
                               </div>
                             ) : null}
@@ -1260,6 +1189,7 @@ function UserInspector({
                             }
                             size="icon-sm"
                             variant="ghost"
+                            className="text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
                           >
                             <Trash2Icon />
                           </Button>
@@ -1267,7 +1197,7 @@ function UserInspector({
                       ))}
                     </>
                   ) : (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
+                    <p className="py-8 text-center text-sm opacity-70">
                       {config.localization.noSessions}
                     </p>
                   )}
@@ -1341,7 +1271,7 @@ function UserInspector({
                     value={banDuration}
                   />
                 </InputGroup>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs opacity-60">
                   {config.localization.banDurationDescription}
                 </p>
               </Field>
@@ -1438,12 +1368,12 @@ function PasswordDialog({
             </InputGroup>
             <FieldError>{errorMessage}</FieldError>
           </Field>
-          <DialogFooter>
-            <Button onClick={close} type="button" variant="outline">
-              {config.localization.cancel}
-            </Button>
-            <Button disabled={!password || mutation.isPending} type="submit">
+          <DialogFooter className="mt-2 flex-col gap-3 sm:flex-col">
+            <Button disabled={!password || mutation.isPending} type="submit" size="lg">
               {config.localization.setPassword}
+            </Button>
+            <Button onClick={close} type="button" variant="surface" size="lg">
+              {config.localization.cancel}
             </Button>
           </DialogFooter>
         </form>
