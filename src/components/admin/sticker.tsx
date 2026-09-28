@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { LoaderCircle, Printer, QrCode } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { fitStickerQrCellSize } from "@/lib/lbx-patch"
@@ -39,19 +40,23 @@ export function StickerPreview({ name, url }: { name: string; url: string }) {
 export function ShowStickerQrButton({
   name,
   url,
+  label = "Oppsett-QR",
   description = "Skann koden for å koble telefonen i Smooth Print.",
+  className,
 }: {
   name: string
   url: string
+  label?: string
   description?: string
+  className?: string
 }) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
-      <Button type="button" variant="surface" onClick={() => setOpen(true)}>
+      <Button type="button" variant="surface" className={className} onClick={() => setOpen(true)}>
         <QrCode className="size-5" aria-hidden />
-        Vis QR
+        {label}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -95,10 +100,8 @@ export function PrintStickerButton({
   templateFile?: string
 }) {
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   async function print() {
-    setError(null)
     setBusy(true)
     try {
       let fileBase64 = await loadTemplateBase64(templateFile)
@@ -121,19 +124,16 @@ export function PrintStickerButton({
           : buildStickerPrintUrl(input)
       window.location.href = href
     } catch {
-      setError("Klarte ikke å åpne Smooth Print med etiketten.")
+      toast.error("Klarte ikke å åpne Smooth Print med etiketten.")
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
-      <Button type="button" size="lg" disabled={busy || !name || !url} onClick={() => void print()}>
-        {busy ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Printer className="size-5" aria-hidden />}
-        Skriv ut etikett
-      </Button>
-    </div>
+    <Button type="button" size="lg" disabled={busy || !name || !url} onClick={() => void print()}>
+      {busy ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Printer className="size-5" aria-hidden />}
+      Skriv ut etikett
+    </Button>
   )
 }

@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useId, useLayoutEffect, useState } from "react"
 import { useForm } from "react-hook-form"
-import { Copy, Eye, EyeOff, Link2, Pencil, QrCode, RefreshCw } from "lucide-react"
+import { ChevronDown, Copy, Eye, EyeOff, Link2, Pencil, QrCode, RefreshCw } from "lucide-react"
+import { toast } from "sonner"
 import type { z } from "zod"
 import { StickerIllustration } from "@/components/admin/enroll-illustrations"
 import { PrinterModelMeta, PrinterModelThumb } from "@/components/admin/printer-model"
@@ -106,12 +107,16 @@ function LoginSecretsButton({
   origin,
   secrets,
   onLoaded,
+  label = "PIN og innlogging",
+  className,
 }: {
   id: string
   name: string
   origin: string
   secrets?: { pin?: string; token?: string }
   onLoaded: (result: { pin: string; token: string }) => void
+  label?: string
+  className?: string
 }) {
   const [open, setOpen] = useState(false)
 
@@ -121,24 +126,25 @@ function LoginSecretsButton({
       onLoaded(result)
       setOpen(true)
     },
+    onError: () => {
+      toast.error("Klarte ikke å hente PIN og QR.")
+    },
   })
 
   const loginUrl = secrets?.token && origin ? printerLoginUrl(origin, secrets.token) : ""
 
   return (
-    <div className="flex flex-col gap-2">
+    <>
       <Button
         type="button"
         variant="surface"
+        className={className}
         disabled={load.isPending}
         onClick={() => (secrets?.token ? setOpen(true) : load.mutate())}
       >
         <QrCode className="size-5" aria-hidden />
-        Vis PIN og innloggings-QR
+        {label}
       </Button>
-      {load.isError ? (
-        <p className="text-sm text-[var(--color-bg-danger)]">Klarte ikke å hente PIN og QR.</p>
-      ) : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -161,6 +167,80 @@ function LoginSecretsButton({
           </div>
         </DialogContent>
       </Dialog>
+    </>
+  )
+}
+
+function PrinterCardActions({
+  printer,
+  origin,
+  secrets,
+  onSecrets,
+}: {
+  printer: Printer
+  origin: string
+  secrets?: { pin?: string; token?: string }
+  onSecrets: (result: { pin?: string; token?: string }) => void
+}) {
+  const [moreOpen, setMoreOpen] = useState(false)
+  const setupUrl = `${origin}${apiPath(printerSetupPath(printer))}`
+  const banned = Boolean(printer.banned)
+  const dayOfButtonClass =
+    "h-auto min-h-14 w-full flex-col gap-1 bg-black/25 py-3 text-base whitespace-normal"
+
+  return (
+    <div className="flex flex-col gap-2">
+      <PrintStickerButton name={printer.name} url={setupUrl} />
+
+      <div className="grid grid-cols-2 gap-2">
+        <ShowStickerQrButton name={printer.name} url={setupUrl} className={dayOfButtonClass} />
+        <LoginSecretsButton
+          id={printer.id}
+          name={printer.name}
+          origin={origin}
+          secrets={secrets}
+          className={dayOfButtonClass}
+          onLoaded={(result) => onSecrets(result)}
+        />
+      </div>
+
+      {banned ? (
+        <DeactivatePrinterButton id={printer.id} name={printer.name} banned={banned} />
+      ) : null}
+
+      <Button
+        type="button"
+        variant="ghost"
+        className="justify-between opacity-80"
+        aria-expanded={moreOpen}
+        onClick={() => setMoreOpen((open) => !open)}
+      >
+        {moreOpen ? "Skjul" : "Mer"}
+        <ChevronDown
+          className={`size-5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </Button>
+
+      {moreOpen ? (
+        <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
+          <EditNameButton id={printer.id} name={printer.name} />
+          <RotatePinButton
+            id={printer.id}
+            name={printer.name}
+            onRotated={onSecrets}
+          />
+          <RotateQrButton
+            id={printer.id}
+            name={printer.name}
+            onRotated={onSecrets}
+          />
+          {!banned ? (
+            <DeactivatePrinterButton id={printer.id} name={printer.name} banned={banned} />
+          ) : null}
+          <RemovePrinterButton id={printer.id} name={printer.name} />
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -208,6 +288,7 @@ function EditNameButton({
     },
     onError: (_error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(printersQueryKey, context.previous)
+      toast.error("Klarte ikke å oppdatere navnet.")
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: printersQueryKey })
@@ -219,6 +300,7 @@ function EditNameButton({
       <Button
         type="button"
         variant="surface"
+        className="justify-start bg-black/20"
         onClick={() => {
           reset({ name })
           setOpen(true)
@@ -248,9 +330,6 @@ function EditNameButton({
                   errors={errors.name ? [errors.name] : undefined}
                 />
               </Field>
-              {rename.isError ? (
-                <p className="text-[var(--color-bg-danger)]">Klarte ikke å oppdatere navnet.</p>
-              ) : null}
               <div className="flex flex-col gap-3">
                 <Button type="submit" size="lg" disabled={rename.isPending}>
                   Lagre
@@ -302,6 +381,7 @@ function RotatePinButton({
       <Button
         type="button"
         variant="surface"
+        className="justify-start bg-black/20"
         disabled={rotate.isPending}
         onClick={() => setConfirmOpen(true)}
       >
@@ -365,6 +445,7 @@ function RotateQrButton({
       <Button
         type="button"
         variant="surface"
+        className="justify-start bg-black/20"
         disabled={rotate.isPending}
         onClick={() => setConfirmOpen(true)}
       >
@@ -428,7 +509,7 @@ function DeactivatePrinterButton({
     return (
       <Button
         type="button"
-        variant="surface"
+        size="lg"
         disabled={toggle.isPending}
         onClick={() => toggle.mutate(false)}
       >
@@ -441,7 +522,7 @@ function DeactivatePrinterButton({
     <Button
       type="button"
       variant="ghost"
-      className="text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
+      className="justify-start text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
       disabled={toggle.isPending}
       onClick={() => toggle.mutate(true)}
     >
@@ -506,17 +587,17 @@ export function PrinterInventory({
       ) : (
         <ul className="flex flex-col gap-4">
           {printers.map((printer) => {
-            const setupUrl = `${origin}${apiPath(printerSetupPath(printer))}`
             const status = statusLabel(printer)
             const secrets = secretsById[printer.id]
+            const addressLabel = printer.connectType === "WiFi" ? "IP" : "MAC"
 
             return (
               <li
                 key={printer.id}
                 className="flex flex-col gap-4 rounded-2xl bg-[var(--color-bg-surface)] p-4"
               >
-                <div className="flex gap-4">
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <div className="flex gap-3">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-2xl">{printer.name}</h2>
                       <span
@@ -531,66 +612,32 @@ export function PrinterInventory({
                         {status.label}
                       </span>
                     </div>
-                    <PrinterModelMeta modelId={printer.model} />
-                    <p className="font-mono text-sm break-all opacity-70">
-                      {printer.connectType === "WiFi" ? "IP" : "MAC"} {printer.address}
+                    <PrinterModelMeta modelId={printer.model} className="opacity-80" />
+                    <p className="font-mono text-sm break-all opacity-60">
+                      {addressLabel} {printer.address}
+                      {printer.serial ? ` · SN ${printer.serial}` : ""}
                     </p>
-                    {printer.serial ? (
-                      <p className="font-mono text-sm break-all opacity-70">SN {printer.serial}</p>
-                    ) : null}
-                    <p className="text-sm opacity-70">
+                    <p className="text-sm opacity-60">
                       {formatValidity(printer.validFrom, printer.validTo)}
                     </p>
                   </div>
-                  <PrinterModelThumb modelId={printer.model} size="lg" className="self-start" />
+                  <PrinterModelThumb modelId={printer.model} size="md" className="self-start" />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <PrintStickerButton name={printer.name} url={setupUrl} />
-                  <ShowStickerQrButton name={printer.name} url={setupUrl} />
-                  <LoginSecretsButton
-                    id={printer.id}
-                    name={printer.name}
-                    origin={origin}
-                    secrets={secrets}
-                    onLoaded={(result) =>
-                      setSecretsById((current) => ({ ...current, [printer.id]: result }))
-                    }
-                  />
-                  <EditNameButton id={printer.id} name={printer.name} />
-                  <RotatePinButton
-                    id={printer.id}
-                    name={printer.name}
-                    onRotated={(result) =>
-                      setSecretsById((current) => ({
-                        ...current,
-                        [printer.id]: {
-                          pin: result.pin ?? current[printer.id]?.pin,
-                          token: result.token ?? current[printer.id]?.token,
-                        },
-                      }))
-                    }
-                  />
-                  <RotateQrButton
-                    id={printer.id}
-                    name={printer.name}
-                    onRotated={(result) =>
-                      setSecretsById((current) => ({
-                        ...current,
-                        [printer.id]: {
-                          pin: result.pin ?? current[printer.id]?.pin,
-                          token: result.token ?? current[printer.id]?.token,
-                        },
-                      }))
-                    }
-                  />
-                  <DeactivatePrinterButton
-                    id={printer.id}
-                    name={printer.name}
-                    banned={Boolean(printer.banned)}
-                  />
-                  <RemovePrinterButton id={printer.id} name={printer.name} />
-                </div>
+                <PrinterCardActions
+                  printer={printer}
+                  origin={origin}
+                  secrets={secrets}
+                  onSecrets={(result) =>
+                    setSecretsById((current) => ({
+                      ...current,
+                      [printer.id]: {
+                        pin: result.pin ?? current[printer.id]?.pin,
+                        token: result.token ?? current[printer.id]?.token,
+                      },
+                    }))
+                  }
+                />
               </li>
             )
           })}

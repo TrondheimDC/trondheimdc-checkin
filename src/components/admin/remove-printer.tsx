@@ -38,7 +38,7 @@ export function RemovePrinterButton({ id, name }: { id: string; name: string }) 
     <>
       <Button
         variant="ghost"
-        className="text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
+        className="justify-start text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
         disabled={remove.isPending}
         onClick={() => setConfirmOpen(true)}
       >
