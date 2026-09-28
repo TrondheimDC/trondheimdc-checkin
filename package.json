@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "biome check src",
     "db:generate": "drizzle-kit generate",
     "import:attendees": "tsx scripts/import-attendees.ts",
     "seed:admin": "tsx scripts/seed-admin.ts"
@@ -52,6 +53,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.6",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22.20.4",
     "@types/papaparse": "^5.5.2",

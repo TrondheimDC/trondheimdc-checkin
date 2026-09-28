@@ -1,13 +1,8 @@
 import {
   AuthProvider as AuthProviderPrimitive,
-  type AuthProviderProps
+  type AuthProviderProps,
 } from "@better-auth-ui/react"
-import type {
-  ComponentPropsWithoutRef,
-  ComponentType,
-  PropsWithChildren,
-  ReactNode
-} from "react"
+import type { ComponentPropsWithoutRef, ComponentType, PropsWithChildren, ReactNode } from "react"
 
 import { ErrorToaster } from "./error-toaster"
 

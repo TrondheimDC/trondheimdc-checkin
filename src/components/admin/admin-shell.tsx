@@ -12,11 +12,11 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarInset,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
@@ -46,7 +46,11 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/printers")} size="lg">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/admin/printers")}
+                    size="lg"
+                  >
                     <Link href="/admin/printers" onClick={closeMobile}>
                       <Printer />
                       Printere
@@ -54,7 +58,11 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/import")} size="lg">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/admin/import")}
+                    size="lg"
+                  >
                     <Link href="/admin/import" onClick={closeMobile}>
                       <FileUp />
                       Deltakere
@@ -62,7 +70,11 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/smooth-print")} size="lg">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/admin/smooth-print")}
+                    size="lg"
+                  >
                     <Link href="/admin/smooth-print" onClick={closeMobile}>
                       <Package />
                       Smooth Print
@@ -70,7 +82,11 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/brukere")} size="lg">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/admin/brukere")}
+                    size="lg"
+                  >
                     <Link href="/admin/brukere" onClick={closeMobile}>
                       <Users />
                       Brukere
@@ -78,7 +94,11 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/testutskrift")} size="lg">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/admin/testutskrift")}
+                    size="lg"
+                  >
                     <Link href="/admin/testutskrift" onClick={closeMobile}>
                       <FlaskConical />
                       Testutskrift
@@ -86,7 +106,12 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton disabled size="lg" className="opacity-40" title="Ikke laget ennå">
+                  <SidebarMenuButton
+                    disabled
+                    size="lg"
+                    className="opacity-40"
+                    title="Ikke laget ennå"
+                  >
                     <Shapes />
                     P-touch Editor
                   </SidebarMenuButton>
@@ -96,12 +121,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="border-t border-white/10 p-3">
-          <UserButton
-            className="w-full justify-start"
-            align="start"
-            side="top"
-            hideSettings
-          />
+          <UserButton className="w-full justify-start" align="start" side="top" hideSettings />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>

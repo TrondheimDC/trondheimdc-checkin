@@ -1,7 +1,7 @@
 import {
+  type SmoothPrintApk,
   smoothPrintApkResponseSchema,
   smoothPrintApksResponseSchema,
-  type SmoothPrintApk,
 } from "@/lib/db/schema"
 import { apiPath } from "@/lib/utils"
 
@@ -60,7 +60,10 @@ export async function uploadSmoothPrintApk(input: {
   return smoothPrintApkResponseSchema.parse(json).apk
 }
 
-export async function setSmoothPrintApkActive(id: string, active: boolean): Promise<SmoothPrintApk> {
+export async function setSmoothPrintApkActive(
+  id: string,
+  active: boolean,
+): Promise<SmoothPrintApk> {
   const response = await fetch(apiPath(`/api/smooth-print/apks/${id}`), {
     method: "PATCH",
     headers: { "content-type": "application/json" },

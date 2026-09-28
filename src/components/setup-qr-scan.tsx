@@ -1,7 +1,7 @@
 "use client"
 
 import { ScanCamera } from "@/components/scan-camera"
-import { parsePrinterSetupUrl, type PrinterSetupParams } from "@/lib/printer-setup"
+import { type PrinterSetupParams, parsePrinterSetupUrl } from "@/lib/printer-setup"
 
 export function SetupQrScan({ onFound }: { onFound: (printer: PrinterSetupParams) => void }) {
   return (

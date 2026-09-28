@@ -32,19 +32,11 @@ const RESEND_COOLDOWN_SECONDS = 60
  * @returns The verify-email card React element
  */
 export function VerifyEmail({ className }: VerifyEmailProps) {
-  const {
-    authClient,
-    basePaths,
-    baseURL,
-    localization,
-    redirectTo,
-    viewPaths,
-    Link
-  } = useAuth()
+  const { authClient, basePaths, baseURL, localization, redirectTo, viewPaths, Link } = useAuth()
 
   const isHydrated = useIsHydrated()
   const [email, setEmail] = useState(
-    (isHydrated && sessionStorage.getItem("better-auth-ui.verify-email")) || ""
+    (isHydrated && sessionStorage.getItem("better-auth-ui.verify-email")) || "",
   )
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS)
 
@@ -62,31 +54,24 @@ export function VerifyEmail({ className }: VerifyEmailProps) {
     return () => clearInterval(interval)
   }, [cooldown, email])
 
-  const { mutate: sendVerificationEmail, isPending } = useSendVerificationEmail(
-    authClient,
-    {
-      onSuccess: () => {
-        toast.success(localization.auth.verificationEmailSent)
-        setCooldown(RESEND_COOLDOWN_SECONDS)
-      }
-    }
-  )
+  const { mutate: sendVerificationEmail, isPending } = useSendVerificationEmail(authClient, {
+    onSuccess: () => {
+      toast.success(localization.auth.verificationEmailSent)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    },
+  })
 
   const isCoolingDown = cooldown > 0
 
   return (
     <Card className={cn("w-full max-w-sm", className)}>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">
-          {localization.auth.verifyEmail}
-        </CardTitle>
+        <CardTitle className="text-xl font-semibold">{localization.auth.verifyEmail}</CardTitle>
       </CardHeader>
 
       <CardContent>
         <div className="flex flex-col gap-4">
-          <FieldDescription>
-            {localization.auth.checkYourEmail}
-          </FieldDescription>
+          <FieldDescription>{localization.auth.checkYourEmail}</FieldDescription>
 
           {email && (
             <div className="flex flex-col gap-3">
@@ -99,17 +84,14 @@ export function VerifyEmail({ className }: VerifyEmailProps) {
                 onClick={() =>
                   sendVerificationEmail({
                     email,
-                    callbackURL: `${baseURL}${redirectTo}`
+                    callbackURL: `${baseURL}${redirectTo}`,
                   })
                 }
               >
                 {isPending && <Spinner />}
 
                 {isCoolingDown
-                  ? localization.auth.resendIn.replace(
-                      "{{seconds}}",
-                      String(cooldown)
-                    )
+                  ? localization.auth.resendIn.replace("{{seconds}}", String(cooldown))
                   : localization.auth.resend}
               </Button>
             </div>

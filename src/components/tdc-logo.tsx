@@ -7,7 +7,7 @@ export function TdcLogo({ className }: { className?: string }) {
       aria-label="TDC"
     >
       <svg
-        aria-hidden
+        aria-hidden="true"
         viewBox="0 0 40 52"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -19,7 +19,7 @@ export function TdcLogo({ className }: { className?: string }) {
         />
       </svg>
       <svg
-        aria-hidden
+        aria-hidden="true"
         viewBox="0 0 154 52"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -31,7 +31,7 @@ export function TdcLogo({ className }: { className?: string }) {
         />
       </svg>
       <svg
-        aria-hidden
+        aria-hidden="true"
         viewBox="0 0 40 52"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"

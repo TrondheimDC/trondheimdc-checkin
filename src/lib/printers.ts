@@ -1,18 +1,18 @@
 import { hashPassword } from "better-auth/crypto"
-import { and, desc, eq } from "drizzle-orm"
 import { randomInt, randomUUID } from "crypto"
+import { and, desc, eq } from "drizzle-orm"
+import type { z } from "zod"
 import { db } from "@/lib/db"
 import {
   account,
+  type Printer,
   printerBodySchema,
   printerSchema,
-  printerUpdateBodySchema,
   printers,
+  printerUpdateBodySchema,
   user,
-  type Printer,
 } from "@/lib/db/schema"
 import { createPrinterToken } from "@/lib/printer-token"
-import type { z } from "zod"
 
 export type { Printer }
 export type PrinterCreateBody = z.output<typeof printerBodySchema>

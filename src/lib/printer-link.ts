@@ -1,1 +1,1 @@
-export { parsePrinterSetupUrl, printerSetupPath, type PrinterSetupParams } from "./printer-setup"
+export { type PrinterSetupParams, parsePrinterSetupUrl, printerSetupPath } from "./printer-setup"

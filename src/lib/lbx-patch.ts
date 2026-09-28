@@ -57,7 +57,11 @@ function readU16(bytes: Uint8Array, offset: number): number {
 
 function readU32(bytes: Uint8Array, offset: number): number {
   return (
-    (bytes[offset]! | (bytes[offset + 1]! << 8) | (bytes[offset + 2]! << 16) | (bytes[offset + 3]! << 24)) >>> 0
+    (bytes[offset]! |
+      (bytes[offset + 1]! << 8) |
+      (bytes[offset + 2]! << 16) |
+      (bytes[offset + 3]! << 24)) >>>
+    0
   )
 }
 
@@ -187,8 +191,7 @@ function bytesToBase64(bytes: Uint8Array): string {
  */
 function qrModuleCount(data: string): number {
   const bytes = new TextEncoder().encode(data)
-  return QRCode.create([{ data: bytes, mode: "byte" }], { errorCorrectionLevel: "M" })
-    .modules.size
+  return QRCode.create([{ data: bytes, mode: "byte" }], { errorCorrectionLevel: "M" }).modules.size
 }
 
 /** Width (pt) of the QR object's frame, so the template stays the source of truth. */

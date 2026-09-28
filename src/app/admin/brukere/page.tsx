@@ -6,8 +6,8 @@ export default function AdminBrukerePage() {
       <header className="pt-2">
         <h1 className="text-4xl">Brukere</h1>
         <p className="mt-2 max-w-xl text-base opacity-70">
-          Administratorer for innsjekk. Dør-innlogging opprettes sammen med
-          printeren under Printere.
+          Administratorer for innsjekk. Dør-innlogging opprettes sammen med printeren under
+          Printere.
         </p>
       </header>
       <Admin path="brukere" hideNav />

@@ -1,8 +1,8 @@
 "use client"
 
 import { useMutation } from "@tanstack/react-query"
-import { Ban, FileUp, UserMinus, UserPlus, Users, UserRoundCheck } from "lucide-react"
-import { useEffect, useState, type ReactNode } from "react"
+import { Ban, FileUp, UserMinus, UserPlus, UserRoundCheck, Users } from "lucide-react"
+import { type ReactNode, useEffect, useState } from "react"
 import { z } from "zod"
 import { FileDropzone } from "@/components/admin/file-dropzone"
 import type { ImportSyncResult } from "@/lib/attendees"
@@ -12,10 +12,9 @@ type ImportResult = ImportSyncResult & { ignored: number; warnings: string[] }
 
 const csvFileSchema = z
   .custom<File>((value) => value instanceof File, { message: "Velg en CSV-fil." })
-  .refine(
-    (file) => file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv",
-    { message: "Velg en CSV-fil." },
-  )
+  .refine((file) => file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv", {
+    message: "Velg en CSV-fil.",
+  })
 
 function useCountUp(target: number, durationMs = 900) {
   const [value, setValue] = useState(0)
@@ -79,13 +78,20 @@ function ImportResultPanel({ result }: { result: ImportResult }) {
       <div className="attendee-badge-glow" aria-hidden />
 
       <div className="attendee-badge relative overflow-hidden rounded-2xl bg-black/35 px-5 py-6">
-        <p className="text-xs tracking-[0.35em] uppercase text-[var(--color-fg-brand)]">Synk ferdig</p>
+        <p className="text-xs tracking-[0.35em] uppercase text-[var(--color-fg-brand)]">
+          Synk ferdig
+        </p>
         <p className="mt-3 font-display text-5xl tabular-nums leading-none">{total}</p>
         <p className="mt-2 text-base opacity-70">aktive deltakere i lista</p>
       </div>
 
       <div className="attendee-stagger relative mt-4 flex flex-col gap-2">
-        <SyncStat label="Nye" value={result.added} icon={<UserPlus className="size-5" />} delayMs={80} />
+        <SyncStat
+          label="Nye"
+          value={result.added}
+          icon={<UserPlus className="size-5" />}
+          delayMs={80}
+        />
         <SyncStat
           label="Oppdatert"
           value={result.updated}
@@ -202,7 +208,9 @@ export function ImportAttendees() {
                 Synker…
               </span>
               {uploadingName ? (
-                <span className="relative max-w-full truncate text-sm opacity-60">{uploadingName}</span>
+                <span className="relative max-w-full truncate text-sm opacity-60">
+                  {uploadingName}
+                </span>
               ) : null}
             </>
           }

@@ -1,0 +1,32 @@
+# Dependencies & build output (recreated in the image)
+node_modules
+.next
+out
+
+# Runtime data — mounted as a volume, never baked into the image
+data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+
+# Git / IDE / docs (not needed to build or run)
+.git
+.github
+.cursor
+.gitignore
+*.md
+docs
+RESEARCH.md
+AGENTS.md
+
+# Misc
+*.tsbuildinfo
+Dockerfile*
+docker-compose*.yml
+.dockerignore

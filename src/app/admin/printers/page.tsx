@@ -1,8 +1,8 @@
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
-import { PrinterInventory } from "./inventory"
 import { printersQueryKey } from "@/lib/printer-queries"
 import { printerRepository } from "@/lib/printers"
 import { requestStickerOrigin } from "@/lib/request-sticker-origin"
+import { PrinterInventory } from "./inventory"
 
 export default async function PrintersPage() {
   const printers = await printerRepository.list()

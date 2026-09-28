@@ -33,7 +33,7 @@ export function ResetLinkSent({ className }: ResetLinkSentProps) {
 
   const isHydrated = useIsHydrated()
   const [email, setEmail] = useState(
-    (isHydrated && sessionStorage.getItem(RESET_LINK_SENT_STORAGE_KEY)) || ""
+    (isHydrated && sessionStorage.getItem(RESET_LINK_SENT_STORAGE_KEY)) || "",
   )
 
   useEffect(() => {
@@ -63,10 +63,7 @@ export function ResetLinkSent({ className }: ResetLinkSentProps) {
           <FieldDescription className="text-center">
             {localization.auth.rememberYourPassword}{" "}
             <Link
-              href={getAuthLinkURL(
-                `${basePaths.auth}/${viewPaths.auth.signIn}`,
-                redirectTo
-              )}
+              href={getAuthLinkURL(`${basePaths.auth}/${viewPaths.auth.signIn}`, redirectTo)}
               className="underline underline-offset-4"
             >
               {localization.auth.signIn}

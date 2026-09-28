@@ -6,11 +6,7 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { SetupQrScan } from "@/components/setup-qr-scan"
 import { Button } from "@/components/ui/button"
-import {
-  refinePlatform,
-  supportsAndroidIntent,
-  type PhonePlatform,
-} from "@/lib/platform"
+import { type PhonePlatform, refinePlatform, supportsAndroidIntent } from "@/lib/platform"
 import {
   buildAndroidPrintIntent,
   buildConnectUrl,
@@ -22,6 +18,7 @@ import {
 } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
 import { apiPath } from "@/lib/utils"
+
 const SETUP_KEY = "tdc-checkin-printer-seen"
 const IOS_APP = "https://apps.apple.com/us/app/smooth-print/id1629559918"
 
@@ -236,8 +233,7 @@ function resolveEntry(input: {
   pendingResume: PendingResume | null
 } {
   const omitScan = Boolean(input.initialPrinter)
-  const connectOk =
-    !input.connectResult || input.connectResult.toUpperCase().includes("SUCCESS")
+  const connectOk = !input.connectResult || input.connectResult.toUpperCase().includes("SUCCESS")
 
   if (input.afterConnect && connectOk) {
     const path = input.initialPath ?? "qr"
@@ -591,7 +587,9 @@ export function SetupFlow({
           <div className="w-full max-w-sm rounded-2xl bg-[var(--color-black-3)] px-6 py-7">
             <p className="text-4xl leading-tight">{TEST_NAME}</p>
             <p className="mt-3 text-xl opacity-80">{TEST_LINE2}</p>
-            <p className="mt-5 font-mono text-xs tracking-wide opacity-45">Sjekker ikke inn noen deltaker</p>
+            <p className="mt-5 font-mono text-xs tracking-wide opacity-45">
+              Sjekker ikke inn noen deltaker
+            </p>
           </div>
         ) : current.kind === "scan" && cameraOn ? (
           <SetupQrScan onFound={onQrFound} />
@@ -607,16 +605,22 @@ export function SetupFlow({
                 <p className="mt-1 font-mono text-lg break-all">{printer.serial}</p>
               </>
             ) : (
-              <p className="mt-4 text-sm opacity-60">Mangler serienummer. iPhone trenger det for Bluetooth.</p>
+              <p className="mt-4 text-sm opacity-60">
+                Mangler serienummer. iPhone trenger det for Bluetooth.
+              </p>
             )}
             <p className="mt-4 font-mono text-sm opacity-60">{printer.model}</p>
-            {connectOkHint ? <p className="mt-4 text-sm text-[var(--color-fg-brand)]">{connectOkHint}</p> : null}
+            {connectOkHint ? (
+              <p className="mt-4 text-sm text-[var(--color-fg-brand)]">{connectOkHint}</p>
+            ) : null}
             {connectFailHint ? (
               <p className="mt-4 text-sm text-[var(--color-bg-danger)]">{connectFailHint}</p>
             ) : null}
           </div>
         ) : current.kind === "connect" && !printer ? (
-          <p className="text-base opacity-70">Mangler printeropplysninger. Gå tilbake og skann QR.</p>
+          <p className="text-base opacity-70">
+            Mangler printeropplysninger. Gå tilbake og skann QR.
+          </p>
         ) : current.kind === "install" || current.kind === "guide" || current.kind === "confirm" ? (
           <img
             src={current.image}
@@ -687,7 +691,11 @@ export function SetupFlow({
         {current.kind === "scan" ? (
           <>
             {cameraOn ? (
-              <Button variant="surface" className="h-12 w-full text-base" onClick={() => setCameraOn(false)}>
+              <Button
+                variant="surface"
+                className="h-12 w-full text-base"
+                onClick={() => setCameraOn(false)}
+              >
                 Lukk kamera
               </Button>
             ) : (
@@ -744,8 +752,14 @@ export function SetupFlow({
 
         {current.kind === "test-print" ? (
           <>
-            {printError ? <p className="text-base text-[var(--color-bg-danger)]">{printError}</p> : null}
-            <Button className="h-12 w-full text-base" disabled={busy} onClick={() => void printTest()}>
+            {printError ? (
+              <p className="text-base text-[var(--color-bg-danger)]">{printError}</p>
+            ) : null}
+            <Button
+              className="h-12 w-full text-base"
+              disabled={busy}
+              onClick={() => void printTest()}
+            >
               {busy ? (
                 <LoaderCircle className="size-5 animate-spin" aria-hidden />
               ) : (

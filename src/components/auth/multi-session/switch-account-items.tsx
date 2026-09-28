@@ -41,9 +41,7 @@ export function SwitchAccountItems({ className }: SwitchAccountItemsProps) {
           key={device.session.token}
           className={className}
           disabled={setActiveSession.isPending}
-          onClick={() =>
-            setActiveSession.mutate({ sessionToken: device.session.token })
-          }
+          onClick={() => setActiveSession.mutate({ sessionToken: device.session.token })}
         >
           {setActiveSession.isPending ? (
             <Spinner />
@@ -55,7 +53,7 @@ export function SwitchAccountItems({ className }: SwitchAccountItemsProps) {
             username:
               (device.user as { username?: string | null }).username ??
               (device.user as { displayUsername?: string | null }).displayUsername,
-            name: device.user.name
+            name: device.user.name,
           }) || device.user.email}
         </DropdownMenuItem>
       ))}

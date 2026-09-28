@@ -1,11 +1,11 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { CalendarRange } from "lucide-react"
 import Link from "next/link"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useId, useState } from "react"
 import type { ChangeEvent } from "react"
+import { useId, useState } from "react"
 import { useForm } from "react-hook-form"
 import type { z } from "zod"
 import {
@@ -24,9 +24,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group"
-import { printerBodySchema, type Printer } from "@/lib/db/schema"
-import { createPrinter, printersQueryKey } from "@/lib/printer-queries"
-import { printerSetupPath } from "@/lib/printer-setup"
+import { type Printer, printerBodySchema } from "@/lib/db/schema"
 import {
   formatBluetoothMac,
   formatMacInput,
@@ -35,13 +33,12 @@ import {
   macDelete,
   normalizePrinterSerial,
 } from "@/lib/printer-format"
-import {
-  DEFAULT_PRINTER_MODEL,
-  PRINTER_MODELS,
-  type PrinterModelId,
-} from "@/lib/printer-models"
+import { DEFAULT_PRINTER_MODEL, PRINTER_MODELS, type PrinterModelId } from "@/lib/printer-models"
+import { createPrinter, printersQueryKey } from "@/lib/printer-queries"
+import { printerSetupPath } from "@/lib/printer-setup"
 import { printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath, cn } from "@/lib/utils"
+
 type PrinterFormValues = z.input<typeof printerBodySchema>
 type PrinterBody = z.output<typeof printerBodySchema>
 
@@ -78,7 +75,11 @@ function upperOnChange(registerOnChange: (event: ChangeEvent<HTMLInputElement>) 
   }
 }
 
-function commitMac(input: HTMLInputElement, next: { value: string; caret: number }, notify: () => void) {
+function commitMac(
+  input: HTMLInputElement,
+  next: { value: string; caret: number },
+  notify: () => void,
+) {
   input.value = next.value
   input.setSelectionRange(next.caret, next.caret)
   notify()
@@ -149,8 +150,7 @@ export function EnrollPrinter({ origin }: { origin: string }) {
     connectType: "BT",
   })
   const previewUrl = origin ? `${origin}${apiPath(previewPath)}` : previewPath
-  const setupUrl =
-    saved && origin ? `${origin}${apiPath(printerSetupPath(saved.printer))}` : ""
+  const setupUrl = saved && origin ? `${origin}${apiPath(printerSetupPath(saved.printer))}` : ""
   const loginUrl = saved && origin ? printerLoginUrl(origin, saved.token) : ""
 
   return (
@@ -242,7 +242,10 @@ export function EnrollPrinter({ origin }: { origin: string }) {
                   className={enrollMonoControlClass}
                   onChange={(event) => {
                     const input = event.target
-                    const next = formatMacInput(input.value, input.selectionStart ?? input.value.length)
+                    const next = formatMacInput(
+                      input.value,
+                      input.selectionStart ?? input.value.length,
+                    )
                     commitMac(input, next, () => addressField.onChange(event))
                   }}
                   onKeyDown={(event) => {
@@ -252,14 +255,20 @@ export function EnrollPrinter({ origin }: { origin: string }) {
                     const end = input.selectionEnd ?? 0
                     if (start !== end) return
                     const next =
-                      event.key === "Backspace" ? macBackspace(input.value, start) : macDelete(input.value, start)
+                      event.key === "Backspace"
+                        ? macBackspace(input.value, start)
+                        : macDelete(input.value, start)
                     if (!next) return
                     event.preventDefault()
                     commitMac(input, next, () => addressField.onChange(event))
                   }}
                   onBeforeInput={(event) => {
                     const inputType = (event.nativeEvent as InputEvent).inputType
-                    if (inputType !== "deleteContentBackward" && inputType !== "deleteContentForward") return
+                    if (
+                      inputType !== "deleteContentBackward" &&
+                      inputType !== "deleteContentForward"
+                    )
+                      return
                     const input = event.currentTarget
                     const start = input.selectionStart ?? 0
                     if ((input.selectionEnd ?? 0) !== start) return
@@ -357,7 +366,10 @@ export function EnrollPrinter({ origin }: { origin: string }) {
             {showValidity ? (
               <div className="flex flex-col gap-4">
                 <Field data-invalid={Boolean(errors.validFrom) || undefined}>
-                  <FieldLabel htmlFor={validFromId} className="text-base text-[var(--color-fg-base)]">
+                  <FieldLabel
+                    htmlFor={validFromId}
+                    className="text-base text-[var(--color-fg-base)]"
+                  >
                     Gyldig fra
                   </FieldLabel>
                   <InputGroup className={enrollInputGroupClass}>

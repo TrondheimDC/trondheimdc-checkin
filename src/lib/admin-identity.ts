@@ -9,9 +9,6 @@ export function isPlaceholderAdminEmail(email: string | null | undefined): boole
   return Boolean(email?.toLowerCase().endsWith(`@${ADMIN_EMAIL_DOMAIN}`))
 }
 
-export function adminLabel(user: {
-  username?: string | null
-  name?: string | null
-}): string {
+export function adminLabel(user: { username?: string | null; name?: string | null }): string {
   return user.username?.trim() || user.name?.trim() || ""
 }

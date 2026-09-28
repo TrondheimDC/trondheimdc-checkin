@@ -1,7 +1,7 @@
 import { createAuthPlugin } from "@better-auth-ui/core"
 import {
   usernamePlugin as coreUsernamePlugin,
-  type UsernamePluginOptions
+  type UsernamePluginOptions,
 } from "@better-auth-ui/core/plugins/username"
 
 import { SignInUsername } from "@/components/auth/username/sign-in-username"
@@ -18,13 +18,13 @@ export const usernamePlugin = createAuthPlugin(
         field.name === "username"
           ? {
               ...field,
-              render: UsernameField
+              render: UsernameField,
             }
-          : field
+          : field,
       ),
       views: {
-        auth: { signIn: SignInUsername }
-      }
+        auth: { signIn: SignInUsername },
+      },
     }
-  }
+  },
 )

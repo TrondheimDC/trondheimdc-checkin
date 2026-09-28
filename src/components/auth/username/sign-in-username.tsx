@@ -1,33 +1,17 @@
 "use client"
 
 import { authMutationKeys, validateStringLength } from "@better-auth-ui/core"
-import {
-  isPasskeyAutoFillEnabled,
-  withPasskeyAutoFill,
-} from "@better-auth-ui/core/plugins/passkey"
+import { isPasskeyAutoFillEnabled, withPasskeyAutoFill } from "@better-auth-ui/core/plugins/passkey"
 import type { UsernameAuthClient } from "@better-auth-ui/core/plugins/username"
-import {
-  AuthPrompts,
-  useAuth,
-  useAuthPlugin,
-  useFetchOptions,
-} from "@better-auth-ui/react"
+import { AuthPrompts, useAuth, useAuthPlugin, useFetchOptions } from "@better-auth-ui/react"
 import { useSignInUsername } from "@better-auth-ui/react/plugins/username"
 import { useIsMutating } from "@tanstack/react-query"
 import { Eye, EyeOff, Lock } from "lucide-react"
 import { useState } from "react"
-import {
-  ProviderButtons,
-  type SocialLayout,
-} from "@/components/auth/provider-buttons"
+import { ProviderButtons, type SocialLayout } from "@/components/auth/provider-buttons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldSeparator,
-} from "@/components/ui/field"
+import { Field, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
   InputGroup,
@@ -54,13 +38,8 @@ export function SignInUsername({
   socialLayout,
   socialPosition = "bottom",
 }: SignInUsernameProps) {
-  const {
-    authClient,
-    emailAndPassword,
-    localization,
-    plugins,
-    socialProviders,
-  } = useAuth<UsernameAuthClient>()
+  const { authClient, emailAndPassword, localization, plugins, socialProviders } =
+    useAuth<UsernameAuthClient>()
 
   const { fetchOptions, resetFetchOptions } = useFetchOptions()
   const continueSignIn = useSignInContinuation()
@@ -73,16 +52,15 @@ export function SignInUsername({
       await signInUsername({
         username: value.identifier,
         password: value.password,
-        ...(emailAndPassword?.rememberMe
-          ? { rememberMe: value.rememberMe }
-          : {}),
+        ...(emailAndPassword?.rememberMe ? { rememberMe: value.rememberMe } : {}),
         fetchOptions,
       })
     },
   })
 
-  const { mutateAsync: signInUsername, isPending: isSignInUsernamePending } =
-    useSignInUsername(authClient, {
+  const { mutateAsync: signInUsername, isPending: isSignInUsernamePending } = useSignInUsername(
+    authClient,
+    {
       onError: () => {
         form.setFieldValue("password", "")
         resetFetchOptions()
@@ -91,7 +69,8 @@ export function SignInUsername({
         sessionStorage.removeItem("better-auth-ui.verify-email")
         continueSignIn(data)
       },
-    })
+    },
+  )
 
   const signInMutating = useIsMutating({
     mutationKey: authMutationKeys.signIn.all,
@@ -102,14 +81,11 @@ export function SignInUsername({
   const isPending = signInMutating + signUpMutating > 0
   const isSignInPending = isSignInUsernamePending
 
-  const Captcha = plugins.find(
-    (plugin) => plugin.captchaComponent,
-  )?.captchaComponent
+  const Captcha = plugins.find((plugin) => plugin.captchaComponent)?.captchaComponent
 
   const passkeyAutoFill = isPasskeyAutoFillEnabled(plugins)
 
-  const showSeparator =
-    emailAndPassword?.enabled && socialProviders && socialProviders.length > 0
+  const showSeparator = emailAndPassword?.enabled && socialProviders && socialProviders.length > 0
 
   return (
     <Card className={cn("w-full max-w-sm gap-5 py-8", className)}>
@@ -119,9 +95,7 @@ export function SignInUsername({
         <div className="mb-1 flex size-11 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-fg-brand)_16%,transparent)] text-[var(--color-fg-brand)]">
           <Lock className="size-5" aria-hidden />
         </div>
-        <CardTitle className="text-xl font-semibold">
-          {localization.auth.signIn}
-        </CardTitle>
+        <CardTitle className="text-xl font-semibold">{localization.auth.signIn}</CardTitle>
       </CardHeader>
 
       <CardContent>
@@ -166,23 +140,16 @@ export function SignInUsername({
                             id="username"
                             name={field.name}
                             type="text"
-                            autoComplete={withPasskeyAutoFill(
-                              "username",
-                              passkeyAutoFill,
-                            )}
+                            autoComplete={withPasskeyAutoFill("username", passkeyAutoFill)}
                             autoCapitalize="none"
                             autoCorrect="off"
                             spellCheck={false}
-                            placeholder={
-                              usernameLocalization.usernamePlaceholder
-                            }
+                            placeholder={usernameLocalization.usernamePlaceholder}
                             required
                             disabled={isPending}
                             value={field.state.value}
                             onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
+                            onChange={(event) => field.handleChange(event.target.value)}
                             aria-invalid={isInvalid}
                           />
                           <field.AuthFormFieldError />
@@ -205,9 +172,7 @@ export function SignInUsername({
                       const isInvalid = isAuthFormFieldInvalid(field.state.meta)
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel htmlFor="password">
-                            {localization.auth.password}
-                          </FieldLabel>
+                          <FieldLabel htmlFor="password">{localization.auth.password}</FieldLabel>
 
                           <InputGroup>
                             <InputGroupInput
@@ -220,12 +185,8 @@ export function SignInUsername({
                               )}
                               value={field.state.value}
                               onBlur={field.handleBlur}
-                              onChange={(event) =>
-                                field.handleChange(event.target.value)
-                              }
-                              placeholder={
-                                localization.auth.passwordPlaceholder
-                              }
+                              onChange={(event) => field.handleChange(event.target.value)}
+                              placeholder={localization.auth.passwordPlaceholder}
                               required
                               disabled={isPending}
                               aria-invalid={isInvalid}
@@ -269,9 +230,7 @@ export function SignInUsername({
                               name={field.name}
                               checked={field.state.value}
                               disabled={isPending}
-                              onCheckedChange={(checked) =>
-                                field.handleChange(checked === true)
-                              }
+                              onCheckedChange={(checked) => field.handleChange(checked === true)}
                             />
 
                             <FieldLabel
@@ -286,9 +245,7 @@ export function SignInUsername({
                     </form.AppField>
                   )}
 
-                  {Captcha && (
-                    <div className="flex justify-center">{Captcha}</div>
-                  )}
+                  {Captcha && <div className="flex justify-center">{Captcha}</div>}
 
                   <form.AuthFormServerError />
 
@@ -305,10 +262,7 @@ export function SignInUsername({
 
                     {plugins.flatMap((plugin) =>
                       (plugin.authButtons ?? []).map((AuthButton, index) => (
-                        <AuthButton
-                          key={`${plugin.id}-${index.toString()}`}
-                          view="signIn"
-                        />
+                        <AuthButton key={`${plugin.id}-${index.toString()}`} view="signIn" />
                       )),
                     )}
                   </div>

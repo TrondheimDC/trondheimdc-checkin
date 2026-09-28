@@ -1,12 +1,9 @@
+import { NextRequest, NextResponse } from "next/server"
 import { isSession, requireAdminApiSession } from "@/lib/auth-api"
 import { printerPatchResponseSchema, printerUpdateBodySchema } from "@/lib/db/schema"
 import { printerRepository } from "@/lib/printers"
-import { NextRequest, NextResponse } from "next/server"
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await requireAdminApiSession()
   if (!isSession(session)) return session
 
@@ -29,10 +26,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  _request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await requireAdminApiSession()
   if (!isSession(session)) return session
 

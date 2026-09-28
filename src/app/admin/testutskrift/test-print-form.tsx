@@ -9,8 +9,8 @@ import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
 import {
   getPrintSample,
   PRINT_SAMPLES,
-  testPrintFormSchema,
   type TestPrintFormValues,
+  testPrintFormSchema,
 } from "@/lib/print-samples"
 import {
   buildAndroidPrintIntent,

@@ -1,7 +1,7 @@
-import { verifyPassword } from "better-auth/crypto"
+import type { BetterAuthPlugin } from "better-auth"
 import { createAuthEndpoint } from "better-auth/api"
 import { setSessionCookie } from "better-auth/cookies"
-import type { BetterAuthPlugin } from "better-auth"
+import { verifyPassword } from "better-auth/crypto"
 import { and, eq } from "drizzle-orm"
 import * as z from "zod"
 import { isWithinValidityWindow } from "@/lib/auth-validity"
@@ -57,7 +57,9 @@ export function printerLoginPlugin(): BetterAuthPlugin {
             ? await db
                 .select({ password: accountTable.password })
                 .from(accountTable)
-                .where(and(eq(accountTable.userId, row.id), eq(accountTable.providerId, "credential")))
+                .where(
+                  and(eq(accountTable.userId, row.id), eq(accountTable.providerId, "credential")),
+                )
                 .limit(1)
             : []
 

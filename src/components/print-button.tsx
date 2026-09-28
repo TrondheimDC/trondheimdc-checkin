@@ -3,8 +3,14 @@
 import { LoaderCircle, Printer } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { refinePlatform, supportsAndroidIntent, type PhonePlatform } from "@/lib/platform"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { type PhonePlatform, refinePlatform, supportsAndroidIntent } from "@/lib/platform"
 import { consumePrintOutcome, primeForIosTabReuse } from "@/lib/print-outcome"
 import {
   buildAndroidPrintIntent,

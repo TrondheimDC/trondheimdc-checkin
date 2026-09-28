@@ -11,8 +11,7 @@ export const TWO_FACTOR_PLUGIN_ID = "twoFactor"
  * Only the non-sensitive method names are stored, never a code, token, or the
  * two-factor cookie, which stays HTTP-only.
  */
-export const TWO_FACTOR_METHODS_STORAGE_KEY =
-  "better-auth-ui.two-factor-methods"
+export const TWO_FACTOR_METHODS_STORAGE_KEY = "better-auth-ui.two-factor-methods"
 
 type TwoFactorRedirect = {
   twoFactorRedirect: true
@@ -42,7 +41,7 @@ export function storeTwoFactorMethods(methods?: unknown) {
   try {
     sessionStorage.setItem(
       TWO_FACTOR_METHODS_STORAGE_KEY,
-      JSON.stringify(parseTwoFactorMethods(methods))
+      JSON.stringify(parseTwoFactorMethods(methods)),
     )
   } catch {
     // The challenge falls back to every method when storage is unavailable.

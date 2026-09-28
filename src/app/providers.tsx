@@ -49,9 +49,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             admin: { users: "brukere" },
           }}
           localization={authUiLocalization}
-          navigate={({ to, replace }) =>
-            replace ? router.replace(to) : router.push(to)
-          }
+          navigate={({ to, replace }) => (replace ? router.replace(to) : router.push(to))}
           Link={Link}
           avatar={{ enabled: false }}
           plugins={[

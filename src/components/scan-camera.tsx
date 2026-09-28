@@ -1,15 +1,19 @@
 "use client"
 
-import { BrowserMultiFormatReader, BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
+import {
+  BrowserMultiFormatReader,
+  BrowserQRCodeReader,
+  type IScannerControls,
+} from "@zxing/browser"
 import { Flashlight, FlashlightOff } from "lucide-react"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
 import {
   applyTorch,
   openRearCamera,
   pickRearCamera,
+  type TorchTrack,
   trackSupportsTorch,
   videoTrackFrom,
-  type TorchTrack,
 } from "@/lib/camera-torch"
 import { cn } from "@/lib/utils"
 
@@ -148,12 +152,7 @@ export function ScanCamera<T>({
   }
 
   return (
-    <div
-      className={cn(
-        "relative mx-auto overflow-hidden rounded-2xl bg-black",
-        aspectClassName,
-      )}
-    >
+    <div className={cn("relative mx-auto overflow-hidden rounded-2xl bg-black", aspectClassName)}>
       <video ref={videoRef} className="h-full w-full object-cover" muted playsInline autoPlay />
       <div className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-inset ring-[var(--color-fg-brand)]/50" />
       <button

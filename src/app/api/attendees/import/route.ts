@@ -1,7 +1,7 @@
+import { NextRequest, NextResponse } from "next/server"
 import { attendeeRepository } from "@/lib/attendees"
 import { isSession, requireAdminApiSession } from "@/lib/auth-api"
 import { parseCheckinCsv } from "@/lib/checkin-csv"
-import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   const session = await requireAdminApiSession()

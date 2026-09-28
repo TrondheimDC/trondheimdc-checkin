@@ -5,10 +5,7 @@ import { smoothPrintApkRepository } from "@/lib/smooth-print-apks"
 
 export const runtime = "nodejs"
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await requireAdminApiSession()
   if (!isSession(session)) return session
 
@@ -24,10 +21,7 @@ export async function PATCH(
   return NextResponse.json(smoothPrintApkResponseSchema.parse({ apk }))
 }
 
-export async function DELETE(
-  _request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await requireAdminApiSession()
   if (!isSession(session)) return session
 

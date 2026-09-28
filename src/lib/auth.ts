@@ -1,12 +1,12 @@
-import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
-import { admin, multiSession, username } from "better-auth/plugins"
+import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
+import { admin, multiSession, username } from "better-auth/plugins"
 import { eq } from "drizzle-orm"
-import { db } from "@/lib/db"
-import * as schema from "@/lib/db/schema"
 import { printerLoginPlugin } from "@/lib/auth/printer-login-plugin"
 import { isWithinValidityWindow } from "@/lib/auth-validity"
+import { db } from "@/lib/db"
+import * as schema from "@/lib/db/schema"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
 

@@ -90,7 +90,11 @@ export function AndroidInstallFlow() {
           </Button>
         )}
         {step > 0 ? (
-          <Button variant="ghost" className="h-12 w-full text-base" onClick={() => setStep((value) => value - 1)}>
+          <Button
+            variant="ghost"
+            className="h-12 w-full text-base"
+            onClick={() => setStep((value) => value - 1)}
+          >
             Tilbake
           </Button>
         ) : (

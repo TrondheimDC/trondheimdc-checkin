@@ -1,0 +1,18 @@
+# Runtime on the VPS. The image is built in CI and shipped via docker save/load —
+# this file does not build; it only runs the loaded image with persistent data.
+#
+# One-time bootstrap:
+#   sudo mkdir -p /var/www/sites/innsjekk.trondheimdc.no/data
+#   sudo chown -R 1000:1000 /var/www/sites/innsjekk.trondheimdc.no/data
+#   cp .env.example .env   # then edit secrets
+services:
+  innsjekk:
+    image: innsjekk:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3010:3000"
+    env_file:
+      - .env
+    volumes:
+      # LibSQL DB + Smooth Print APKs (survives image replacements)
+      - ./data:/app/data

@@ -1,19 +1,25 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { LoaderCircle, Printer, QrCode } from "lucide-react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { fitStickerQrCellSize } from "@/lib/lbx-patch"
 import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
-import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import {
   buildAndroidStickerIntent,
   buildStickerPrintUrl,
   DEFAULT_PAPER_SIZE_ID,
   loadTemplateBase64,
 } from "@/lib/print-url"
+import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import { apiPath } from "@/lib/utils"
 
 export function StickerPreview({ name, url }: { name: string; url: string }) {
@@ -32,7 +38,11 @@ export function StickerPreview({ name, url }: { name: string; url: string }) {
   return (
     <div className="mx-auto flex w-40 flex-col items-center rounded-2xl bg-[var(--color-white-1)] px-3 py-4 text-[var(--color-black)]">
       <p className="w-full truncate text-center font-display text-lg font-bold">{name || "Navn"}</p>
-      {src ? <img src={src} alt="" className="mt-2 size-32" /> : <div className="mt-2 size-32 bg-black/10" />}
+      {src ? (
+        <img src={src} alt="" className="mt-2 size-32" />
+      ) : (
+        <div className="mt-2 size-32 bg-black/10" />
+      )}
     </div>
   )
 }
@@ -142,7 +152,11 @@ export function PrintStickerButton({
 
   return (
     <Button type="button" size="lg" disabled={busy || !name || !url} onClick={() => void print()}>
-      {busy ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Printer className="size-5" aria-hidden />}
+      {busy ? (
+        <LoaderCircle className="size-5 animate-spin" aria-hidden />
+      ) : (
+        <Printer className="size-5" aria-hidden />
+      )}
       Skriv ut etikett
     </Button>
   )

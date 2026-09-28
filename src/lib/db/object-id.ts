@@ -25,13 +25,9 @@ export type ObjectId<TPrefix extends ObjectIdPrefix = ObjectIdPrefix> =
 
 const createBody = customAlphabet(OBJECT_ID_ALPHABET, OBJECT_ID_BODY_LENGTH)
 
-const bodyPattern = new RegExp(
-  `^[${OBJECT_ID_ALPHABET}]{${OBJECT_ID_BODY_LENGTH}}$`,
-)
+const bodyPattern = new RegExp(`^[${OBJECT_ID_ALPHABET}]{${OBJECT_ID_BODY_LENGTH}}$`)
 
-export function createObjectId<TPrefix extends ObjectIdPrefix>(
-  prefix: TPrefix,
-): ObjectId<TPrefix> {
+export function createObjectId<TPrefix extends ObjectIdPrefix>(prefix: TPrefix): ObjectId<TPrefix> {
   return `${objectIdPrefixes[prefix]}_${createBody()}` as ObjectId<TPrefix>
 }
 
@@ -57,10 +53,7 @@ export function isObjectIdBody(value: string): boolean {
  * Values that are not a body for this prefix (e.g. admin usernames on a
  * shared `username` column) pass through unchanged.
  */
-export function objectId<TPrefix extends ObjectIdPrefix>(
-  columnName: string,
-  prefix: TPrefix,
-) {
+export function objectId<TPrefix extends ObjectIdPrefix>(columnName: string, prefix: TPrefix) {
   const label = objectIdPrefixes[prefix]
   const prefixPattern = new RegExp(`^${label}_`, "i")
 

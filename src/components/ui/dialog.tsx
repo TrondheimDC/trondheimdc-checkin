@@ -59,7 +59,12 @@ function DialogDescription({
   className,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Description>) {
-  return <DialogPrimitive.Description className={cn("mt-2 text-base opacity-75", className)} {...props} />
+  return (
+    <DialogPrimitive.Description
+      className={cn("mt-2 text-base opacity-75", className)}
+      {...props}
+    />
+  )
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -76,10 +81,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-footer"
-      className={cn(
-        "mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
-        className,
-      )}
+      className={cn("mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
       {...props}
     />
   )

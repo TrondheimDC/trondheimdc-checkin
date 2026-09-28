@@ -33,15 +33,10 @@ export type UserViewProps = {
  * @param user - Optional user object to display; when omitted the current session user is used
  * @returns A React element showing the user's avatar with their identifying information
  */
-export function UserView({
-  className,
-  isPending,
-  hideSubtitle = false,
-  user
-}: UserViewProps) {
+export function UserView({ className, isPending, hideSubtitle = false, user }: UserViewProps) {
   const { authClient } = useAuth<UsernameAuthClient>()
   const { data: session, isPending: sessionPending } = useSession(authClient, {
-    enabled: !user && !isPending
+    enabled: !user && !isPending,
   })
 
   const resolvedUser = user ?? session?.user
@@ -62,29 +57,20 @@ export function UserView({
 
   const label = adminLabel({
     username: resolvedUser?.displayUsername || resolvedUser?.username,
-    name: resolvedUser?.name
+    name: resolvedUser?.name,
   })
   const email = resolvedUser?.email
   const showEmail =
-    !hideSubtitle &&
-    Boolean(email) &&
-    !isPlaceholderAdminEmail(email) &&
-    email !== label
+    !hideSubtitle && Boolean(email) && !isPlaceholderAdminEmail(email) && email !== label
 
   return (
     <div className={cn("flex items-center gap-2 min-w-0", className)}>
       <UserAvatar user={resolvedUser as User | undefined} />
 
       <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-        <span className="truncate font-medium text-foreground">
-          {label || email}
-        </span>
+        <span className="truncate font-medium text-foreground">{label || email}</span>
 
-        {showEmail ? (
-          <span className="text-muted-foreground truncate text-xs">
-            {email}
-          </span>
-        ) : null}
+        {showEmail ? <span className="text-muted-foreground truncate text-xs">{email}</span> : null}
       </div>
     </div>
   )

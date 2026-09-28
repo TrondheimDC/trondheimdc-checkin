@@ -1,11 +1,11 @@
 "use client"
 
-import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { ChevronDown, Copy, Eye, EyeOff, Link2, Pencil, QrCode, RefreshCw } from "lucide-react"
+import Link from "next/link"
 import { useId, useLayoutEffect, useState } from "react"
 import { useForm } from "react-hook-form"
-import { ChevronDown, Copy, Eye, EyeOff, Link2, Pencil, QrCode, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { StickerIllustration } from "@/components/admin/enroll-illustrations"
@@ -13,11 +13,18 @@ import { PrinterModelMeta, PrinterModelThumb } from "@/components/admin/printer-
 import { RemovePrinterButton } from "@/components/admin/remove-printer"
 import { PrintStickerButton, ShowStickerQrButton, StickerPreview } from "@/components/admin/sticker"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group"
 import { isWithinValidityWindow } from "@/lib/auth-validity"
-import { printerEditBodySchema, type Printer } from "@/lib/db/schema"
+import { toDatetimeLocalValue } from "@/lib/datetime-local"
+import { type Printer, printerEditBodySchema } from "@/lib/db/schema"
 import {
   fetchPrinterSecrets,
   fetchPrinters,
@@ -27,10 +34,12 @@ import {
 import { printerSetupPath } from "@/lib/printer-setup"
 import { printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath } from "@/lib/utils"
-import { toDatetimeLocalValue } from "@/lib/datetime-local"
+
 function formatValidity(from: string | null, to: string | null) {
   const fmt = (iso: string) =>
-    new Intl.DateTimeFormat("nb-NO", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso))
+    new Intl.DateTimeFormat("nb-NO", { dateStyle: "medium", timeStyle: "short" }).format(
+      new Date(iso),
+    )
   if (!from && !to) return "Ingen begrensning"
   if (from && to) return `${fmt(from)} – ${fmt(to)}`
   if (from) return `Fra ${fmt(from)}`
@@ -94,7 +103,11 @@ function RevealPin({ pin }: { pin: string }) {
         {visible ? pin : "••••••"}
       </p>
       <Button type="button" variant="surface" onClick={() => setVisible((v) => !v)}>
-        {visible ? <EyeOff className="size-5" aria-hidden /> : <Eye className="size-5" aria-hidden />}
+        {visible ? (
+          <EyeOff className="size-5" aria-hidden />
+        ) : (
+          <Eye className="size-5" aria-hidden />
+        )}
         {visible ? "Skjul PIN" : "Vis PIN"}
       </Button>
     </div>
@@ -223,16 +236,8 @@ function PrinterCardActions({
       {moreOpen ? (
         <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
           <EditPrinterButton printer={printer} />
-          <RotatePinButton
-            id={printer.id}
-            name={printer.name}
-            onRotated={onSecrets}
-          />
-          <RotateQrButton
-            id={printer.id}
-            name={printer.name}
-            onRotated={onSecrets}
-          />
+          <RotatePinButton id={printer.id} name={printer.name} onRotated={onSecrets} />
+          <RotateQrButton id={printer.id} name={printer.name} onRotated={onSecrets} />
           {!banned ? (
             <DeactivatePrinterButton id={printer.id} name={printer.name} banned={banned} />
           ) : null}
@@ -595,9 +600,9 @@ export function PrinterInventory({
 }) {
   const queryClient = useQueryClient()
   const [cacheReady, setCacheReady] = useState(false)
-  const [secretsById, setSecretsById] = useState<
-    Record<string, { pin?: string; token?: string }>
-  >({})
+  const [secretsById, setSecretsById] = useState<Record<string, { pin?: string; token?: string }>>(
+    {},
+  )
 
   useLayoutEffect(() => {
     queryClient.setQueryData(printersQueryKey, serverPrinters)

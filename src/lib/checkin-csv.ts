@@ -98,7 +98,9 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
     transformHeader: mapHeader,
   })
 
-  const fatal = parsed.errors.filter((error) => error.code !== "TooFewFields" && error.code !== "TooManyFields")
+  const fatal = parsed.errors.filter(
+    (error) => error.code !== "TooFewFields" && error.code !== "TooManyFields",
+  )
   if (fatal.length > 0) {
     const first = fatal[0]
     throw new Error(`CSV-feil på rad ${first?.row ?? "?"}: ${first?.message ?? "ukjent"}`)
@@ -106,7 +108,9 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
 
   const fields = parsed.meta.fields ?? []
   if (!fields.includes("barcode")) {
-    throw new Error("Fant ikke kolonnen Barcode/Strekkode. Last ned totalrapport, ikke deltaker-Excel.")
+    throw new Error(
+      "Fant ikke kolonnen Barcode/Strekkode. Last ned totalrapport, ikke deltaker-Excel.",
+    )
   }
 
   const warnings: string[] = []
