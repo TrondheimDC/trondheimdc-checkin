@@ -4,4 +4,4 @@ export const SCAN_INLINE_DEFAULT = true
 
 /** Auto check-in + print when the attendee is not already checked in. */
 export const SCAN_AUTO_PRINT_KEY = "tdc-scan-auto-print"
-export const SCAN_AUTO_PRINT_DEFAULT = true
+export const SCAN_AUTO_PRINT_DEFAULT = false

@@ -504,10 +504,11 @@ h2 {
   animation: scan-dot 1.4s ease-in-out infinite;
 }
 
-/* Press feedback for shared buttons. */
+/* Press feedback for shared buttons.
+ * Do not set overflow:hidden here — in a flex column that lets items shrink
+ * below their content height and clips multi-line labels (esp. Android). */
 .btn-press {
   position: relative;
-  overflow: hidden;
 }
 
 .btn-press::after {

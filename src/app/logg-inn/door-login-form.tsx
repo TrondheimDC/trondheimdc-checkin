@@ -51,17 +51,10 @@ export function DoorLoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
-  const pinInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setToken(parsePrinterTokenInput(urlToken) ?? "")
   }, [urlToken])
-
-  useEffect(() => {
-    if (!token) return
-    const id = window.requestAnimationFrame(() => pinInputRef.current?.focus())
-    return () => window.cancelAnimationFrame(id)
-  }, [token])
 
   function acceptToken(next: string) {
     setScanOpen(false)
@@ -109,7 +102,6 @@ export function DoorLoginForm() {
       // Clear so staff can retype from the start.
       setError("Ugyldig QR eller PIN")
       setPin("")
-      queueMicrotask(() => pinInputRef.current?.focus())
       return
     }
     router.replace(apiPath("/"))
@@ -129,15 +121,7 @@ export function DoorLoginForm() {
 
   const scanDialog = (
     <Dialog open={scanOpen} onOpenChange={setScanOpen}>
-      <DialogContent
-        className="flex w-[min(100%-1.5rem,28rem)] max-w-none flex-col gap-0 p-4"
-        onCloseAutoFocus={(event) => {
-          // Keep focus for the PIN field after a successful scan (Radix would
-          // otherwise restore it to the now-unmounted "Skann QR" trigger).
-          event.preventDefault()
-          queueMicrotask(() => pinInputRef.current?.focus())
-        }}
-      >
+      <DialogContent className="flex w-[min(100%-1.5rem,28rem)] max-w-none flex-col gap-0 p-4">
         <DialogTitle>Skann innloggings-QR</DialogTitle>
         <DialogDescription>QR-koden står under printeren.</DialogDescription>
         <div className="mt-4 flex min-h-0 justify-center">
@@ -267,7 +251,6 @@ export function DoorLoginForm() {
           <Field>
             <FieldLabel className="justify-center">PIN</FieldLabel>
             <InputOTP
-              ref={pinInputRef}
               maxLength={6}
               pattern={REGEXP_ONLY_DIGITS}
               value={pin}

@@ -35,16 +35,15 @@ function SettingToggle({
     <Button
       type="button"
       variant={pressed ? "default" : "surface"}
-      size="lg"
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onToggle}
-      className="h-auto items-start justify-start gap-3 py-4 text-left whitespace-normal"
+      className="flex h-auto w-full shrink-0 items-start justify-start gap-3 px-4 py-3.5 text-left text-base leading-snug whitespace-normal"
     >
       <span className="mt-0.5 shrink-0">{icon}</span>
-      <span className="min-w-0 flex-1">
+      <span className="min-w-0 flex-1 font-normal">
         <span className="block font-semibold">{title}</span>
-        <span className="mt-1 block text-sm font-normal opacity-70">{description}</span>
+        <span className="mt-1 block text-sm opacity-70">{description}</span>
       </span>
     </Button>
   )
@@ -100,7 +99,7 @@ export function SettingsScreen({ printerName }: { printerName: string }) {
           disabled={!flagsReady}
           icon={<ScanLine className="size-5" aria-hidden />}
           title="Vis resultat på skann"
-          description="Hold deg på skann-siden og vis deltakeren over kameraet."
+          description="Vis deltakeren over kameraet, ikke på en egen side."
         />
 
         <SettingToggle
@@ -109,25 +108,23 @@ export function SettingsScreen({ printerName }: { printerName: string }) {
           disabled={!flagsReady}
           icon={<Zap className="size-5" aria-hidden />}
           title="Skriv ut med en gang"
-          description="Skriv ut automatisk når deltakeren ikke er innsjekket. Allerede innsjekkede krever trykk."
+          description="Skriv ut automatisk for nye innsjekker."
         />
 
         <Button
           asChild
           variant="surface"
-          size="lg"
-          className="h-auto items-center justify-start gap-3 py-4 text-left"
+          className="flex h-auto w-full shrink-0 items-center justify-start gap-3 px-4 py-3.5 text-left text-base whitespace-normal"
         >
           <Link href="/oppsett">
-            <Printer className="size-5" aria-hidden />
+            <Printer className="size-5 shrink-0" aria-hidden />
             Oppsett av printer
           </Link>
         </Button>
 
         <Button
           variant="ghost"
-          size="lg"
-          className="h-auto items-center justify-start gap-3 py-4 text-left text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
+          className="flex h-auto w-full shrink-0 items-center justify-start gap-3 px-4 py-3.5 text-left text-base whitespace-normal text-[var(--color-bg-danger)] hover:bg-[color-mix(in_srgb,var(--color-bg-danger)_16%,transparent)] hover:text-[var(--color-bg-danger)]"
           disabled={signOut.isPending}
           onClick={() => signOut.mutate()}
         >

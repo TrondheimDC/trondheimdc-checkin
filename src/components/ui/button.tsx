@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "btn-press inline-flex cursor-pointer touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl font-semibold transition-[transform,background-color,opacity] duration-150 ease-out will-change-transform select-none disabled:pointer-events-none disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-fg-brand)] active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "btn-press inline-flex cursor-pointer touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl font-semibold transition-[transform,background-color,opacity] duration-150 ease-out select-none disabled:pointer-events-none disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-fg-brand)] active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -43,7 +43,7 @@ export function Button({
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot : "button"
-  return <Comp className={cn(buttonVariants({ variant, size, className }))} {...props} />
+  return <Comp className={cn(buttonVariants({ variant, size }), className)} {...props} />
 }
 
 export { buttonVariants }
