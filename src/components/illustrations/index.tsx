@@ -18,6 +18,11 @@ type ArtProps = { className?: string }
 /** Placeholder text on drawn stickers. */
 const printerName = "Printernavn"
 
+/** Setup sticker on the front of a printer that is already set up (`QlPrinter` units). */
+function FrontSticker() {
+  return <Sticker x={65} y={141} w={40} name={printerName} seed={3} />
+}
+
 function Scene({ label, className, children }: ArtProps & { label: string; children: ReactNode }) {
   return (
     <svg
@@ -70,7 +75,9 @@ export function PrinterBluetoothIllustration({ className }: ArtProps) {
   const iy = 30 + 54.5 * 1.02
   return (
     <Scene label="Bluetooth-ikonet øverst til høyre på printerskjermen" className={className}>
-      <QlPrinter x={40} y={30} scale={1.02} lcd={<LcdIdle bluetooth={brand} />} />
+      <QlPrinter x={40} y={30} scale={1.02} lcd={<LcdIdle bluetooth={brand} />}>
+        <FrontSticker />
+      </QlPrinter>
       <circle cx={ix} cy={iy} r="9" fill="none" stroke={brand} strokeWidth="2" />
       <path
         d={`M${ix + 7} ${iy - 7}L256 58`}
@@ -108,7 +115,9 @@ export function PhonePairIllustration({ className }: ArtProps) {
         ))}
       </Phone>
       <DottedArrow x1={150} x2={198} y={120} />
-      <QlPrinter x={204} y={62} scale={0.62} lcd={<LcdIdle bluetooth={brand} />} />
+      <QlPrinter x={204} y={62} scale={0.62} lcd={<LcdIdle bluetooth={brand} />}>
+        <FrontSticker />
+      </QlPrinter>
     </Scene>
   )
 }
@@ -128,7 +137,7 @@ export function ScanStickerIllustration({ className }: ArtProps) {
   return (
     <Scene label="Skann QR-klistremerket foran på printeren" className={className}>
       <QlPrinter x={14} y={26} scale={1} lcd={<LcdIdle />}>
-        <Sticker x={65} y={141} w={40} name={printerName} seed={3} />
+        <FrontSticker />
         <rect
           x="60"
           y="136"
@@ -156,7 +165,9 @@ export function ScanStickerIllustration({ className }: ArtProps) {
 export function LoginQrUnderPrinterIllustration({ className }: ArtProps) {
   return (
     <Scene label="Innloggings-QR limt under printeren" className={className}>
-      <QlPrinter x={20} y={40} scale={0.7} lcd={<LcdIdle />} />
+      <QlPrinter x={20} y={40} scale={0.7} lcd={<LcdIdle />}>
+        <FrontSticker />
+      </QlPrinter>
 
       <path
         d="M96 204C116 236 166 236 186 198"
