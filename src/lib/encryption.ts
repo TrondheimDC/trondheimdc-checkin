@@ -11,23 +11,34 @@ const ENCRYPTION_PREFIX = "enc:v1:"
 const IV_LENGTH = 12
 const AUTH_TAG_LENGTH = 16
 
-const betterAuthSecret = getAuthSecret()
-const encryptionSecret = process.env.ENCRYPTION_KEY?.trim() || undefined
-
 const deriveKey = (secret: string) =>
   createHmac("sha256", secret).update("tdc-innsjekk:db-encryption:v1").digest()
 
-const primaryKey = deriveKey(encryptionSecret ?? betterAuthSecret)
-
-/** Dedicated ENCRYPTION_KEY still decrypts values written with the auth secret. */
-const decryptionKeys = encryptionSecret ? [primaryKey, deriveKey(betterAuthSecret)] : [primaryKey]
+/**
+ * Resolved on first use, not at import: this module is reachable from client
+ * bundles via the Drizzle schema (shared Zod schemas), where the secret does not
+ * exist and must never be read.
+ */
+let keys: { primary: Buffer; decryption: Buffer[] } | undefined
+const getKeys = () => {
+  if (keys) return keys
+  const betterAuthSecret = getAuthSecret()
+  const encryptionSecret = process.env.ENCRYPTION_KEY?.trim() || undefined
+  const primary = deriveKey(encryptionSecret ?? betterAuthSecret)
+  // Dedicated ENCRYPTION_KEY still decrypts values written with the auth secret.
+  keys = {
+    primary,
+    decryption: encryptionSecret ? [primary, deriveKey(betterAuthSecret)] : [primary],
+  }
+  return keys
+}
 
 export const isEncrypted = (value: string) => value.startsWith(ENCRYPTION_PREFIX)
 
 export const encryptValue = (value: string): string => {
   if (!value || isEncrypted(value)) return value
   const iv = randomBytes(IV_LENGTH)
-  const cipher = createCipheriv("aes-256-gcm", primaryKey, iv)
+  const cipher = createCipheriv("aes-256-gcm", getKeys().primary, iv)
   const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()])
   return `${ENCRYPTION_PREFIX}${Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64")}`
 }
@@ -38,7 +49,7 @@ export const decryptValue = (value: string): string => {
   const iv = payload.subarray(0, IV_LENGTH)
   const authTag = payload.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH)
   const encrypted = payload.subarray(IV_LENGTH + AUTH_TAG_LENGTH)
-  for (const key of decryptionKeys) {
+  for (const key of getKeys().decryption) {
     try {
       const decipher = createDecipheriv("aes-256-gcm", key, iv)
       decipher.setAuthTag(authTag)
