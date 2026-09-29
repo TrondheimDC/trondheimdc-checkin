@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "crypto"
+import { getAuthSecret } from "@/lib/auth-secret"
 
 /**
  * AES-256-GCM at rest, same shape as Dokploy: versioned prefix, key derived
@@ -10,8 +11,7 @@ const ENCRYPTION_PREFIX = "enc:v1:"
 const IV_LENGTH = 12
 const AUTH_TAG_LENGTH = 16
 
-const betterAuthSecret =
-  process.env.BETTER_AUTH_SECRET || "dev-only-change-me-in-production-32chars"
+const betterAuthSecret = getAuthSecret()
 const encryptionSecret = process.env.ENCRYPTION_KEY?.trim() || undefined
 
 const deriveKey = (secret: string) =>

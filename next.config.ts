@@ -5,7 +5,9 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
 const nextConfig: NextConfig = {
   output: "standalone",
   basePath,
-  allowedDevOrigins: ["preview1.t3code.asamsig.com"],
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
   // Keep Drizzle SQL migrations in the standalone trace (also copied in Dockerfile).
   outputFileTracingIncludes: {
     "/*": ["./drizzle/**/*"],

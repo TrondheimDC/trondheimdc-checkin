@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js"
 import { admin, multiSession, username } from "better-auth/plugins"
 import { eq } from "drizzle-orm"
 import { printerLoginPlugin } from "@/lib/auth/printer-login-plugin"
+import { getAuthSecret } from "@/lib/auth-secret"
 import { isWithinValidityWindow } from "@/lib/auth-validity"
 import { db } from "@/lib/db"
 import * as schema from "@/lib/db/schema"
@@ -17,8 +18,10 @@ export const auth = betterAuth({
   }),
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   basePath: `${basePath}/api/auth`,
-  trustedOrigins: ["https://preview1.t3code.asamsig.com"],
-  secret: process.env.BETTER_AUTH_SECRET || "dev-only-change-me-in-production-32chars",
+  trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+  secret: getAuthSecret(),
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
