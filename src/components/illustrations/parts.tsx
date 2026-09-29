@@ -38,12 +38,23 @@ export function QlPrinter({
 
       {open ? (
         <>
-          {/* Roll compartment with the DK roll and the serial label */}
+          {/* Roll compartment with the DK roll; the serial barcode label sits below the roll */}
           <rect x="8" y="10" width="154" height="58" rx="14" fill="#0a0a0a" />
           <rect x="38" y="24" width="94" height="28" rx="14" fill="#fafafa" />
           <rect x="30" y="21" width="14" height="34" rx="4" fill="#2e2e2e" />
           <rect x="126" y="21" width="14" height="34" rx="4" fill="#2e2e2e" />
-          <rect x="142" y="30" width="14" height="18" rx="2" fill={paper} />
+          <rect x="46" y="56" width="78" height="10" rx="2" fill={paper} />
+          {Array.from({ length: 22 }, (_, i) => (
+            <rect
+              // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
+              key={i}
+              x={50 + i * 3.4}
+              y="58"
+              width={i % 3 === 0 ? 2 : 1.1}
+              height="6"
+              fill={ink}
+            />
+          ))}
           <rect x="24" y="-26" width="6" height="36" fill="#2a2a2a" />
           <rect x="140" y="-26" width="6" height="36" fill="#2a2a2a" />
           <g transform="translate(0 -46)">

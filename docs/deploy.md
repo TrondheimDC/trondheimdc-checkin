@@ -9,14 +9,14 @@ Complete guide: what CI does today, how to prepare the VPS (including Docker), n
 | Dockerfile + Compose + standalone Next | Yes |
 | PR CI: Biome lint | Yes |
 | Master CI: build Docker image (+ artifact) | Yes |
-| Automatic SSH deploy on push to `master` | **No** — disabled until the VPS has Docker |
-| Manual deploy via Actions (`workflow_dispatch` + “Deploy to VPS”) | Wired, but needs server bootstrap first |
+| Automatic SSH deploy on push to `master` | Yes |
+| Manual deploy via Actions (`workflow_dispatch` + “Deploy to VPS”) | Yes |
 | Nginx sample + site `logs/` layout | Yes (docs in this folder) |
-| Docker on the VPS | **Not yet** |
-| DNS `innsjekk.trondheimdc.no` | Confirm on your side |
-| GitHub secrets `SSH_*` | Same shape as utlegg; only needed when deploying |
+| Docker on the VPS | Yes |
+| DNS `innsjekk.trondheimdc.no` | Yes (CNAME → `worldwide.trondheimdc.no`) |
+| GitHub secrets `SSH_*` | Same shape as utlegg |
 
-**Today:** merge this branch → every push to `master` **builds** the image in Actions. Nothing is copied to the server until you opt in.
+**Today:** every push to `master` builds the image in Actions and deploys it to the VPS.
 
 ## Overview (when deploy is enabled)
 
@@ -211,11 +211,10 @@ Same as [trondheimdc-utlegg](https://github.com/TrondheimDC/trondheimdc-utlegg):
 
 ### 7. First deploy
 
-Until you opt in, pushes only build. After Docker + steps above:
+Every push to `master` deploys. To deploy manually (or the first time, after the steps above):
 
 1. Actions → **CD - Build image** → *Run workflow*
 2. Enable **Deploy to VPS**
-3. Or merge/push and later flip the workflow so push deploys again (see below)
 
 Manual check on the server after a successful deploy:
 
@@ -244,25 +243,9 @@ curl -sI https://innsjekk.trondheimdc.no | head
 | Event | Lint | Build image | Deploy |
 |---|---|---|---|
 | Pull request → `master` | Yes | No | No |
-| Push to `master` | — | Yes | **No** (for now) |
+| Push to `master` | — | Yes | Yes |
 | `workflow_dispatch` + Deploy unchecked | — | Yes | No |
 | `workflow_dispatch` + Deploy checked | — | Yes | Yes |
-
-### Re-enable deploy on every push to `master`
-
-In [`.github/workflows/cd.yml`](../.github/workflows/cd.yml), change the deploy job `if:` from:
-
-```yaml
-if: github.event_name == 'workflow_dispatch' && inputs.deploy
-```
-
-to:
-
-```yaml
-if: github.ref == 'refs/heads/master'
-```
-
-(or remove the `if` and always deploy after a successful build on that workflow).
 
 ---
 

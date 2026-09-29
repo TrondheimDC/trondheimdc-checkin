@@ -71,6 +71,13 @@
       "when": 1790588021734,
       "tag": "0009_stasjon-username-pin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1790718697334,
+      "tag": "0010_remove-seed-attendees",
+      "breakpoints": true
     }
   ]
 }

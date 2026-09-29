@@ -77,8 +77,6 @@ Full steps (where to download, CSV conversion, column mapping): **[docs/checkin-
 
 The import **syncs by barcode**. Cancelled, waitlist, and refunded tickets are soft-deleted. Rows without barcode/name are ignored. Email, phone, and address are not stored.
 
-Seeded sample ids for local demos include `test`, `bjorn`, and `a-1001`…`a-1010`.
-
 ## Badge template
 
 The hosted template is `public/templates/badge.lbx` (objects `NAME` and `LINE2`). On print, the browser fetches it and hands it to Smooth Print as base64 (`fileattach`), so Smooth Print does not need to download the file itself.

@@ -45,17 +45,17 @@ type PrinterBody = z.output<typeof printerBodySchema>
 const steps = [
   {
     title: "Les av Bluetooth-adressen",
-    body: "Menu → Bluetooth → Bluetooth Status. Address er MAC-en. Ikke bruk adressen under WLAN.",
+    body: "Menu → Bluetooth → Bluetooth Status → Address.",
     art: MacMenuIllustration,
   },
   {
     title: "Skann serienummeret",
-    body: "Strekkoden står på etiketten inni lokket, ved DK-rullen. iOS trenger serienummeret for Bluetooth.",
+    body: "Strekkoden står inne i printeren, under stedet der man setter inn lapprulle.",
     art: SerialIllustration,
   },
   {
     title: "Skriv ut og lim på",
-    body: "Navnet kommer over QR-koden på samme DK-11208-etikett. Lim den på printeren.",
+    body: "Navnet kommer over QR-koden. Lim den på printeren.",
     art: StickerIllustration,
   },
 ]

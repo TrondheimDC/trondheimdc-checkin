@@ -240,17 +240,20 @@ export function MacMenuIllustration({ className }: ArtProps) {
   )
 }
 
-/** Enroll: the serial barcode sits inside the lid, next to the DK roll. */
+/** Enroll: the serial barcode label is inside the printer, below the DK roll. */
 export function SerialIllustration({ className }: ArtProps) {
-  // Serial label on the open printer: local (149, 39) at (16, 84) × 0.66.
-  const sx = 16 + 149 * 0.66
-  const sy = 84 + 39 * 0.66
+  // Serial label under the roll on the open printer: local (85, 61) at (16, 84) × 0.66.
+  const sx = 16 + 85 * 0.66
+  const sy = 84 + 61 * 0.66
   return (
-    <Scene label="Strekkode med serienummer inni lokket" className={className}>
+    <Scene
+      label="Strekkode med serienummer inne i printeren, under etikettrullen"
+      className={className}
+    >
       <QlPrinter x={16} y={84} scale={0.66} open />
-      <circle cx={sx} cy={sy} r="10" fill="none" stroke={brand} strokeWidth="2" />
+      <circle cx={sx} cy={sy} r="13" fill="none" stroke={brand} strokeWidth="2" />
       <path
-        d={`M${sx + 8} ${sy - 6}L168 76M${sx + 8} ${sy + 6}L168 150`}
+        d={`M${sx + 12} ${sy - 6}L168 76M${sx + 12} ${sy + 6}L168 150`}
         stroke={paper}
         strokeOpacity="0.25"
         strokeWidth="1.5"
@@ -288,7 +291,7 @@ export function StickerIllustration({ className }: ArtProps) {
   return (
     <Scene label="Printeren skriver ut etikett med navn over QR" className={className}>
       <QlPrinter x={79} y={8} scale={0.95} lcd={<LcdIdle />}>
-        <Sticker x={52} y={126} w={66} name={printerName} seed={5} />
+        <FrontSticker />
       </QlPrinter>
     </Scene>
   )
