@@ -4,7 +4,7 @@ import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { Keyboard, QrCode } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { LoginQrUnderPrinterIllustration } from "@/components/admin/enroll-illustrations"
+import { LoginQrUnderPrinterIllustration } from "@/components/illustrations"
 import { ScanCamera } from "@/components/scan-camera"
 import { Button } from "@/components/ui/button"
 import {

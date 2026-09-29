@@ -22,21 +22,20 @@ Tasks:
 
 - [x] Spike UI via `/koble` → now redirects into `/oppsett` (MAC/serial/model → tap → `brotherwebprint://connect`)
 - [x] Setup QR payload is https `/oppsett?path=qr&…` (also accepts legacy `/koble?…`); admin stickers print that link
-- [x] `/oppsett` happy path: install → printer BT on → Skann QR (Start kamera) → Smooth Print `connect` → test print. Manual fallback from scan: OS pair → select in Smooth Print → test. See [RESEARCH.md → Setup order](../RESEARCH.md#setup-order--decision-2026-09-27-revised-same-day)
+- [x] `/oppsett` happy path: Android — install → printer BT on → Skann QR → `connect` → test print. iOS — same prelude, then **OS Bluetooth pair** (MFi) before `connect` → test print. Manual fallback from scan: OS pair → select in Smooth Print → test. See [RESEARCH.md → Setup order](../RESEARCH.md#setup-order--decision-2026-09-27-revised-same-day)
 - [x] Fix: sticker QR deep link (`path=qr&step=connect`) skipped install/Bluetooth-on prelude on a fresh phone — now shown once, then a primed session resumes instantly on refresh/deeplink (`src/app/oppsett/setup-flow.tsx`)
 - [x] Android: install with Ferdig (do not open the app); force-close Smooth Print only before print (overlay dialog). Connect opens the app when needed.
 - [x] Connect URL scheme checked against Brother docs — `buildConnectQuery` matches (`connecttype`, `connectaddress`, `serialnum`, `model`); `connectcallback` omitted (new-tab problem)
 - [x] Android: sticker / in-app `brotherwebprint://connect` verified on hardware (happy path without OS-pair-first).
 - [x] **Android onboarding grade-A** (2026-09-27): install → Ferdig (don’t open) → verify BT icon → Skann QR → connect (permissions/terms/BT on cold start) → returns to browser → force-close → test print overlay. Manual fallback also works.
-- [ ] **Verify iOS onboarding** on hardware (full matrix in [MVP-verification.md](./MVP-verification.md)): App Store install → verify BT → Skann QR / sticker connect → does Safari need OS Bluetooth pair before connect? Test print + tab-reuse callback already partially verified.
-- [ ] If iOS connect fails without prior OS pair: document in [RESEARCH.md](../RESEARCH.md) and keep / emphasize manual path
+- [x] **iOS onboarding verified** (2026-09-28): App Store install → verify BT → **OS Bluetooth pair required before connect** (MFi) → Skann QR / sticker `connect` → test print. Wizard inserts the pair step on the QR path; documented in [RESEARCH.md](../RESEARCH.md) and `/oppsett`.
+- [x] iOS connect without prior OS pair fails (Failure / Not connected) — expected; pair step is on the happy path, not only the manual fallback
 - [x] `brotherwebprint://print` had no return-to-webapp callback — wired up `successCallback`/`failureCallback` (https URLs back to `/deltaker/[id]`) in `src/lib/print-url.ts` + `src/components/print-button.tsx`; confirmed on iOS that it does return to Safari and appends its own `errorCode=SUCCESS`
 - [x] Callback opened a **new Safari tab per print** on iOS (confirmed on hardware; a fragment-based callback is not an option — Smooth Print percent-encodes `#` into the path and concatenates without a separator). Mitigated: `print-button.tsx` now pre-sets the tab's address bar to the exact success-callback shape before firing the print (iOS only), so a successful print should match and reuse the tab; failure still opens a new tab
 - [x] Retest on iOS: tab-reuse pre-set works — Safari reuses the tab. But it still does a **full reload** (not caused by our own `replaceState` calls, confirmed — see [RESEARCH.md](../RESEARCH.md)), which flashes the whole app + attendee loading skeletons on every print
 - [x] Android badge print: omit `successCallback`/`failureCallback` — Chrome always opened a new tab per callback (worse than Smooth Print's dialog on the same tab). Dialog only works if Smooth Print is **not** already in the background; otherwise print switches into the app. iOS keeps the callback + address-bar pre-set. See [RESEARCH.md → Android omit](../RESEARCH.md#android-omit-print-callbacks--decision-2026-09-27)
 - [x] Faster turnaround idea (navigate to `/` via `visibilitychange` as soon as the tab regains focus after Smooth Print, instead of waiting on the callback's reload): tried, found a bug before it ever reached hardware (flag never clears on a successful print since a reload never fires `visibilitychange`, so the next unrelated app-switch would misfire a navigation), reverted — see [RESEARCH.md](../RESEARCH.md). Worth another idea for turnaround speed, but not this one as-is
 - [ ] Attendee list at 900 people: decide whether `/sok` should show everyone by default when the search box is empty (currently only searches once you type). Full virtualization is real integration work, not cheap — `cmdk`'s keyboard nav (arrow keys / Home / End) queries the live DOM for all rendered items, so a windowed subset breaks it unless carefully coordinated. Cheaper path: cap the default list (e.g. first ~150) or paginate/"load more", not true virtualization; needs a persisted setting too if we keep the current empty-state (`useLocalFlag`, same pattern as "Vis innsjekkede")
-- [ ] Spike: can iOS print DK-11208 badges via AirPrint (native print dialog, no Smooth Print) for Wi-Fi-connected printers? See [RESEARCH.md → AirPrint](../RESEARCH.md#airprint--possible-way-to-skip-smooth-print-on-ios-entirely-unverified). Bluetooth-paired printers would still need Smooth Print either way
 
 ## Before the conference (MVP polish)
 
@@ -46,7 +45,6 @@ Tasks:
 - [x] Store files under `data/apks/` (gitignored); stream active via `GET /api/smooth-print/apk`
 - [x] `/oppsett` uses hosted APK when one is active; otherwise Brother agreement page
 - [x] Conference APK uploaded and active (staff setup day)
-- [ ] Note license/redistribution constraints from Brother in the README if needed
 
 ### Auth & printere
 
@@ -74,17 +72,20 @@ better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer als
 - [x] Printer inventory at `/admin/printers`: name, Bluetooth MAC, serial, model
 - [x] Enroll flow with illustrations, sticker preview, and print of a DK-11208 label (name above QR → `/oppsett?path=qr`)
 - [ ] Confirm the generated `printer.lbx` QR actually prints on the QL (template is hand-built, not from P-touch Editor)
+- [x] Guide illustrations share one SVG kit (`src/components/illustrations`) drawn after the real QL-820NWBc: `/oppsett` Bluetooth, pair, scan (sticker on the front); `/logg-inn` (underside → printer); enroll + empty inventory
+- [x] Login sticker says «Logg inn · {name}» so it can’t be mixed up with the setup sticker (bare name). Stickers printed before this still work — reprint only if you want the new text (same token)
+- [ ] **Blocker:** `/oppsett` confirm step (`step=confirm`, manual path) needs a real Smooth Print screenshot — portrait, printer selected. Shows the app icon as a placeholder until then. Capture on a paired phone, drop it in `public/oppsett/`, point `CONFIRM_IOS` / `CONFIRM_ANDROID` at it, and drop the icon styling for that step in `setup-flow.tsx`
 - [x] Replace attendee list via API; show import counts / skipped rows
-- [ ] Keep CLI import as a fallback ([checkin-totalrapport.md](./checkin-totalrapport.md))
+- [x] Keep CLI import as a fallback ([checkin-totalrapport.md](./checkin-totalrapport.md))
 
 ### Day-of readiness
 
 - [x] Confirm a **real ticket QR** payload matches the totalrapport `Barcode` column (scan → correct attendee)
 - [x] Full happy path on **Android** (scan → confirm → print)
-- [ ] Smoke-test print on **iOS Safari** (Android verified; iOS awaiting hardware — see [RESEARCH.md](../RESEARCH.md))
+- [x] Smoke-test print on **iOS Safari** (2026-09-28; badge print OK — see [RESEARCH.md](../RESEARCH.md))
 - [ ] Re-import totalrapport near the event (and morning-of) so late signups / cancellations are in
-- [ ] Decide phone↔printer topology: one phone per printer; Brother does not document whether a second phone can steal Bluetooth while the first is still paired
-- [ ] Compare **`fileattach` (base64)** vs **`filename=<https://…/badge.lbx>`** on iOS and Android — reliability, speed, template updates ([RESEARCH.md](../RESEARCH.md))
+- [x] Phone↔printer topology: **one phone per printer** (agreed; Brother does not document whether a second phone can steal Bluetooth while the first is still paired)
+- [ ] **Deploy:** HTTPS + base path / nginx on the conference host (camera + custom schemes need secure context; no basic auth in front — app sessions). Biggest remaining MVP gap.
 
 ## Beyond MVP
 
@@ -164,6 +165,11 @@ Tasks:
 - [ ] Document which schemes work from Safari / Chrome with a user gesture
 
 Supported platforms (for staff phones): iOS 14.1+, Android 8.0+; Bluetooth Classic (MFi on iOS) and Wi-Fi — see [RESEARCH.md](../RESEARCH.md).
+
+### Postponed (not this conference)
+
+- [ ] Spike: iOS AirPrint for DK-11208 on Wi-Fi printers (skip Smooth Print). See [RESEARCH.md → AirPrint](../RESEARCH.md#airprint--possible-way-to-skip-smooth-print-on-ios-entirely-postponed). Bluetooth still needs Smooth Print.
+- [ ] Compare **`fileattach` (base64)** vs **`filename=<https://…/badge.lbx>`** on iOS and Android — reliability, speed, template updates ([RESEARCH.md](../RESEARCH.md)). Current `fileattach` path is fine for day-of.
 
 ## Nice to have
 

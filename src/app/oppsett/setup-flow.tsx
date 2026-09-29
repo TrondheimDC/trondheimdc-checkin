@@ -3,7 +3,12 @@
 import { Camera, LoaderCircle, Printer } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { type ComponentType, useCallback, useEffect, useMemo, useState } from "react"
+import {
+  PhonePairIllustration,
+  PrinterBluetoothIllustration,
+  ScanStickerIllustration,
+} from "@/components/illustrations"
 import { SetupQrScan } from "@/components/setup-qr-scan"
 import { Button } from "@/components/ui/button"
 import { type PhonePlatform, refinePlatform, supportsAndroidIntent } from "@/lib/platform"
@@ -26,6 +31,8 @@ const TEST_NAME = "Test"
 const TEST_LINE2 = "TDC"
 
 type SetupPath = "qr" | "manual"
+
+type Art = ComponentType<{ className?: string }>
 
 type Step =
   | {
@@ -56,7 +63,7 @@ type Step =
   | {
       id: "bt-on" | "pair"
       kind: "guide"
-      image: string
+      art: Art
       title: string
       body: string
     }
@@ -100,7 +107,7 @@ const CAMERA_IOS: Step = {
 const BT_ON: Step = {
   id: "bt-on",
   kind: "guide",
-  image: "/oppsett/oppsett-bluetooth.png",
+  art: PrinterBluetoothIllustration,
   title: "Sjekk Bluetooth",
   body: "Bluetooth-ikonet skal synes øverst til høyre på printerskjermen. Mangler det: Menu → Bluetooth (6), og slå den på.",
 }
@@ -115,7 +122,7 @@ const SCAN: Step = {
 const PAIR: Step = {
   id: "pair",
   kind: "guide",
-  image: "/oppsett/oppsett-paring.png",
+  art: PhonePairIllustration,
   title: "Koble telefonen til printeren",
   body: "Gå til Innstillinger → Bluetooth og velg QL-820NWB(XXXX). Sjekk at koden er lik på begge, og bekreft på printeren og telefonen.",
 }
@@ -137,7 +144,7 @@ const CONNECT_ANDROID: Step = {
 const CONFIRM_IOS: Step = {
   id: "confirm",
   kind: "confirm",
-  image: "/oppsett/oppsett-bekreft.png",
+  image: "/oppsett/smooth-print.jpg",
   title: "Velg printeren i Smooth Print",
   body: "Åpne Smooth Print og sjekk at QL-820NWB(XXXX) er valgt.",
 }
@@ -145,7 +152,7 @@ const CONFIRM_IOS: Step = {
 const CONFIRM_ANDROID: Step = {
   id: "confirm",
   kind: "confirm",
-  image: "/oppsett/oppsett-bekreft.png",
+  image: "/oppsett/smooth-print.jpg",
   title: "Velg printeren i Smooth Print",
   body: "Åpne Smooth Print og velg QL-820NWB(XXXX). Lukk appen helt etterpå, før testutskriften.",
 }
@@ -163,6 +170,8 @@ const TEST_PRINT_ANDROID: Step = {
   title: "Skriv ut et testskilt",
   body: "Lukk Smooth Print helt først (sveip bort). Da viser appen et vindu over denne siden.",
 }
+
+const artClassName = "max-h-full rounded-2xl bg-[var(--color-bg-surface)]"
 
 /** Shared before the fork — install, (iOS) camera permission, printer Bluetooth on. */
 function buildPrelude(platform: PhonePlatform): Step[] {
@@ -621,15 +630,17 @@ export function SetupFlow({
           <p className="text-base opacity-70">
             Mangler printeropplysninger. Gå tilbake og skann QR.
           </p>
-        ) : current.kind === "install" || current.kind === "guide" || current.kind === "confirm" ? (
+        ) : current.kind === "install" || current.kind === "confirm" ? (
           <img
             src={current.image}
-            alt={current.id === "install" ? "Smooth Print" : ""}
-            className={`max-h-full max-w-full object-contain ${
-              current.id === "install" ? "h-28 w-28 rounded-[22%] object-cover" : ""
-            }`}
+            alt="Smooth Print"
+            className="h-28 w-28 rounded-[22%] object-cover"
           />
-        ) : current.kind === "scan" || current.kind === "camera" ? (
+        ) : current.kind === "guide" ? (
+          <current.art className={artClassName} />
+        ) : current.kind === "scan" ? (
+          <ScanStickerIllustration className={artClassName} />
+        ) : current.kind === "camera" ? (
           <div className="flex size-28 items-center justify-center rounded-2xl bg-[var(--color-bg-surface)] text-[var(--color-fg-brand)]">
             <Camera className="size-12" strokeWidth={1.5} aria-hidden />
           </div>

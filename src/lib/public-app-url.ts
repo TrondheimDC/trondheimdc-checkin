@@ -20,3 +20,12 @@ export function printerLoginPath(token: string): string {
 export function printerLoginUrl(origin: string, token: string): string {
   return `${origin}${apiPath(printerLoginPath(token))}`
 }
+
+/**
+ * Text above the QR on the under-printer login sticker. The setup sticker on
+ * the front carries the bare printer name; this one says what it is for, so the
+ * two cannot be mixed up. The template's text frame shrinks to fit.
+ */
+export function loginStickerText(printerName: string): string {
+  return `Logg inn · ${printerName}`
+}

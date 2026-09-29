@@ -60,9 +60,6 @@ export default async function SetupPage({
   return (
     <>
       <link rel="preload" as="image" href="/oppsett/smooth-print.jpg" />
-      <link rel="preload" as="image" href="/oppsett/oppsett-bluetooth.png" />
-      <link rel="preload" as="image" href="/oppsett/oppsett-paring.png" />
-      <link rel="preload" as="image" href="/oppsett/oppsett-bekreft.png" />
       <SetupFlow
         androidUrl={androidUrl}
         initialPlatform={initialPlatform}

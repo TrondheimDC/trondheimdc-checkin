@@ -8,10 +8,10 @@ import { useId, useLayoutEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
-import { StickerIllustration } from "@/components/admin/enroll-illustrations"
 import { PrinterModelMeta, PrinterModelThumb } from "@/components/admin/printer-model"
 import { RemovePrinterButton } from "@/components/admin/remove-printer"
 import { PrintStickerButton, ShowStickerQrButton, StickerPreview } from "@/components/admin/sticker"
+import { StickerIllustration } from "@/components/illustrations"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,7 +32,7 @@ import {
   printersQueryKey,
 } from "@/lib/printer-queries"
 import { printerSetupPath } from "@/lib/printer-setup"
-import { printerLoginUrl } from "@/lib/public-app-url"
+import { loginStickerText, printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath } from "@/lib/utils"
 
 function formatValidity(from: string | null, to: string | null) {
@@ -166,9 +166,9 @@ function LoginSecretsButton({
             {secrets?.pin ? <RevealPin pin={secrets.pin} /> : null}
             {loginUrl ? (
               <>
-                <StickerPreview name={name} url={loginUrl} />
+                <StickerPreview name={loginStickerText(name)} url={loginUrl} />
                 <PrintStickerButton
-                  name={name}
+                  name={loginStickerText(name)}
                   url={loginUrl}
                   fallbackPath="/admin/printers"
                   templateFile="stasjon.lbx"

@@ -82,16 +82,19 @@ Also:
 
 **Not the next step: `http://localhost:8088/print` (Android only).** Brother documents an HTTP print that returns XML instead of launching a URL. Unverified; CORS, long `fileattach` GETs, and whether the port listens can all kill it. Not needed for the omit decision.
 
-### Setup order — decision 2026-09-27 (revised same day)
+### Setup order — decision 2026-09-27 (revised; iOS verified 2026-09-28)
 
-Happy path after Android hardware confirmed `brotherwebprint://connect` from the sticker QR:
+Platforms diverge after the shared prelude:
 
-1. **Install Smooth Print** (Android: press Ferdig — do **not** open the app; come back to the wizard).
+1. **Install Smooth Print** (Android: press Ferdig — do **not** open the app; come back to the wizard. iOS: App Store).
 2. **Verify Bluetooth** on the printer — Bluetooth icon top-right on the display; if missing: Menu → Bluetooth (6) and turn on.
-3. **Skann QR** on the printer sticker → `connect` in Smooth Print (in-app camera; Start kamera). Sticker deeplink with fields already in the URL skips the camera and lands on connect after the prelude.
-4. **Test print** (no print callbacks on Android). Android: force-close Smooth Print first so the overlay dialog appears over Chrome.
+3. **Skann QR** on the printer sticker (in-app camera; Start kamera). Sticker deeplink with fields already in the URL skips the camera after the prelude.
+4. **iOS only — OS Bluetooth pair** (Settings → Bluetooth → QL-820NWB(XXXX), matching codes). Required before Smooth Print `connect` (MFi). See Find/connect below.
+5. **Smooth Print `connect`** → **Test print**. Android: no print callbacks; force-close Smooth Print first so the overlay dialog appears over Chrome. iOS setup test print also omits callbacks (staff confirm the label in the wizard).
 
-**Happy path on Android (verified 2026-09-27):** if Smooth Print was never opened after install, connect cold-starts the app → permission / terms / Bluetooth prompts → connects → returns to the browser. If the app was already open in the background, staff stay in Smooth Print instead.
+**Happy path on Android (verified 2026-09-27):** sticker / in-app scan → `connect` without walking OS pair first. If Smooth Print was never opened after install, connect cold-starts the app → permission / terms / Bluetooth prompts → connects → returns to the browser. If the app was already open in the background, staff stay in Smooth Print instead.
+
+**Happy path on iOS (verified 2026-09-28):** install → verify BT → **OS pair** → Skann QR / sticker → `connect` → test print. Without OS pair, `connect` returns Failure / Not connected. `/oppsett` inserts the pair step on the QR path (not only on Manuelt oppsett).
 
 **Manual fallback** (from the scan step): OS Bluetooth pair (matching codes) → select printer in Smooth Print → test print. Android: force-close after selecting, before test print.
 
@@ -119,14 +122,12 @@ Find/search (`brotherwebprint://search?…`) is documented separately and not us
 
 This app currently fetches `public/templates/badge.lbx`, base64-encodes it, and passes **`fileattach`** so Smooth Print does not HTTP-fetch the template itself.
 
-Brother also allows `filename` to be an **internet URL** to the `.lbx` on our web server (no `fileattach`). We should compare both on hardware:
+Brother also allows `filename` to be an **internet URL** to the `.lbx` on our web server (no `fileattach`). Comparison postponed (not this conference); `fileattach` is fine for day-of.
 
 | Approach | Pros | Cons / open questions |
 |---|---|---|
 | `fileattach` + base64 (current) | Works offline after page load; no second HTTP from Smooth Print | Large URL / intent payload; caching rules (`formatarchiveupdate`) |
 | `filename=<https://…/badge.lbx>` | Smaller scheme URL; template always from server | Smooth Print must reach the host; auth/base-path/CDN caching; first print latency |
-
-**To verify:** reliability, speed, and template-update behaviour on iOS and Android for both modes. Prefer the more robust default for day-of check-in.
 
 Template rules: https://support.brother.com/g/s/es/htmldoc/smoothprint/guide/setup_overview/
 
@@ -149,9 +150,9 @@ Worth trying as a **poll** before / after print: is the printer connected, ready
 
 **Android (grade-A, 2026-09-27):** sticker / in-app scan → `brotherwebprint://connect` works as the happy path without walking OS pair + manual confirm first. Cold start after install (Ferdig, don’t open) runs permissions/terms/Bluetooth, then returns to the browser.
 
-**iOS: OS pairing first is required.** The QL-820NWB talks to iOS over Bluetooth Classic as an MFi accessory (External Accessory framework). An iOS app can only open a session with an accessory that is already paired; the only in-app way to pair is Apple's `showBluetoothAccessoryPicker`, which the app itself has to present. Brother's iOS SDK says the printers "need to be paired on the OS setting beforehand" (`BRPtouchBluetoothManager` docs). Smooth Print's `connect` scheme does not present that picker. On hardware, connect returned Failure / "Not connected" before OS pairing, and Success after pairing with the short serial + `QL-820NWB`. Android has no MFi layer, so connect pairs on its own there.
+**iOS: OS pairing first is required (confirmed 2026-09-28).** The QL-820NWB talks to iOS over Bluetooth Classic as an MFi accessory (External Accessory framework). An iOS app can only open a session with an accessory that is already paired; the only in-app way to pair is Apple's `showBluetoothAccessoryPicker`, which the app itself has to present. Brother's iOS SDK says the printers "need to be paired on the OS setting beforehand" (`BRPtouchBluetoothManager` docs). Smooth Print's `connect` scheme does not present that picker. On hardware, connect returned Failure / "Not connected" before OS pairing, and Success after pairing with the short serial + `QL-820NWB`. `/oppsett` therefore puts OS pair on the iOS QR happy path (`step=pair`), not only on Manuelt oppsett. Android has no MFi layer, so connect pairs on its own there.
 
-### AirPrint — possible way to skip Smooth Print on iOS entirely (unverified)
+### AirPrint — possible way to skip Smooth Print on iOS entirely (postponed)
 
 The QL-820NWB/NWBc supports AirPrint over Wi-Fi (Brother's own FAQ documents disabling AirPrint broadcast, implying it's on by default; a third-party enterprise integration guide covers configuring AirPrint on this exact model for label printing). iOS has AirPrint built in, so a Wi-Fi-connected printer could in theory be printed to from Safari's native print dialog with **no Smooth Print app at all** — no app-switch, no callback problem.
 
@@ -161,7 +162,7 @@ The QL-820NWB/NWBc supports AirPrint over Wi-Fi (Brother's own FAQ documents dis
 - Whether we can drive it from a web page at all — AirPrint via `window.print()` in Safari opens the OS print sheet for the *current page*, not an arbitrary label layout; we'd likely need to render a print-formatted page (CSS `@page` sized to 38×90mm) rather than reuse the `.lbx` template.
 - This only helps the Wi-Fi connection type, not Bluetooth — printers paired over Bluetooth still need Smooth Print.
 
-Worth a small spike (one AirPrint test print of a DK-11208-sized page from Safari) before treating this as a real alternative. Not started.
+Postponed — not this conference. Not started.
 
 ## Pairing (manual path today)
 
@@ -208,19 +209,19 @@ Unsupported browsers (Firefox / Safari): staff copy **«Bruk en nettleser som st
 
 Tracked under [docs/TODO.md → Desktop printing](docs/TODO.md#desktop-printing-webusb). Unverified: DK-11208 over WebUSB, desktop UI.
 
-## iOS field test (2026-09-26, real QL-820NWBc + iPhone Safari)
+## iOS field test (2026-09-26, real QL-820NWBc + iPhone Safari; onboarding + print reconfirmed 2026-09-28)
 
 - Scanning the printer sticker QR opened `/oppsett` straight at the **connect** step, skipping "install the app" and "turn on the printer's Bluetooth" — bad for a phone that has not been through setup yet. Fixed in the app: a fresh phone now still sees the install/Bluetooth-on screens before jumping to connect; a primed session (already past those screens) still resumes instantly on refresh/deeplink.
-- `brotherwebprint://connect` **failed over Bluetooth until OS-level pairing was done first** (Settings → Bluetooth → select printer → confirm the code shown on both devices). The scheme did not perform the OS pairing itself. Unclear whether this is unavoidable on iOS or a sequencing issue in our connect call — needs another pass once we can retest.
+- `brotherwebprint://connect` **failed over Bluetooth until OS-level pairing was done first** (Settings → Bluetooth → select printer → confirm the code shown on both devices). The scheme did not perform the OS pairing itself. **Confirmed unavoidable on iOS (MFi):** not a sequencing bug in our connect call. Wizard now inserts OS pair before connect on the QR path; see Setup order / Find/connect above.
 - Our own `connectcallback` (an https URL we own, not Brother's undocumented `successCallback`/`failureCallback` schemes) **does fire and returns to the webapp** on iOS — confirms the connect-callback mechanism works in `openConnect()` (`src/app/oppsett/setup-flow.tsx`). Opened Smooth Print, then bounced back to a page on failure; still need to confirm the success case and what `result` actually contains.
-- **`brotherwebprint://print` had no callback wired up at the time of this test.** After printing, Smooth Print stayed open — iOS never returned to Safari. This is a real UX cost per print, not just per setup (every badge print during check-in). `successCallback`/`failureCallback` were wired up after this test; see the Print URL section above for what the follow-up run showed (they do fire with an https URL, they append their own `errorCode`, and a query-string callback opens a new tab).
+- **`brotherwebprint://print` had no callback wired up at the time of the 2026-09-26 test.** After printing, Smooth Print stayed open — iOS never returned to Safari. `successCallback`/`failureCallback` were wired up after; see the Print URL section above (https callbacks, `errorCode`, tab-reuse pre-set). **Day-of badge print on iOS Safari reconfirmed OK 2026-09-28.**
 - Not yet verified: whether a second phone can connect while the first still holds the Bluetooth pairing (tester turned their own phone's Bluetooth off before testing, so this is still open).
 
 ## Not verified on hardware
 
 - What iOS Safari does when Smooth Print is not installed. Android uses an `intent://` URL with `package=com.brother.ptouch.smoothprint` and `S.browser_fallback_url` to `/oppsett` when the APK is missing. iOS only gets a soft “Skjedde det ingenting?” hint if the page is still visible after 2 s (Safari usually backgrounds when the app opens).
 - Whether a second phone can connect while the first still holds Bluetooth. A third-party note says one Bluetooth device at a time. Brother’s FAQ does not say that.
-- Whether `filename=<https URL>` without `fileattach` is as reliable as base64 attach on both platforms.
+- Whether `filename=<https URL>` without `fileattach` is as reliable as base64 attach on both platforms. **Postponed** — current `fileattach` path is fine for day-of.
 - Android badge print without the callback pair: overlay dialog over Chrome **only when Smooth Print is not already in the background**. Confirmed; if the app is in recents, print switches into Smooth Print. See the Android omit decision above.
 - A QR code that contains raw Bluetooth pairing data outside Smooth Print’s schemes. Not found in the Smooth Print manual or the QL-820NWBc Bluetooth FAQ.
 - Which cipher `@libsql/client` uses for `encryptionKey` on the installed version. The app follows the same `encryptionKey` option `tdc-sales` uses.

@@ -34,8 +34,8 @@ One phone ↔ one printer ↔ one door login. The login is a better-auth shadow 
 | Field | Notes |
 |---|---|
 | Printer `name` | e.g. «Inngang A» — also the door user display name / audit actor |
-| Setup QR | Visible on the printer; `/oppsett?path=qr&…` with MAC/serial/model |
-| Login QR | Underside of the printer; `/logg-inn?token=prt_…` |
+| Setup QR | Front of the printer; name above the QR; `/oppsett?path=qr&…` with MAC/serial/model |
+| Login QR | Underside of the printer; «Logg inn · {name}» above the QR (`loginStickerText`); `/logg-inn?token=prt_…` |
 | PIN | 6 digits; password for the door user. **Rotér PIN** without changing the QR |
 | Token | `prt_` + uppercase nanoid body. Drizzle `objectId("username", "prt")` stores body only. Long-lived; **Ny innloggings-QR** when reprinting |
 

@@ -8,14 +8,14 @@ import type { ChangeEvent } from "react"
 import { useId, useState } from "react"
 import { useForm } from "react-hook-form"
 import type { z } from "zod"
+import { PrinterModelOption } from "@/components/admin/printer-model"
+import { SerialScanButton } from "@/components/admin/serial-scan"
+import { PrintStickerButton, StickerPreview } from "@/components/admin/sticker"
 import {
   MacMenuIllustration,
   SerialIllustration,
   StickerIllustration,
-} from "@/components/admin/enroll-illustrations"
-import { PrinterModelOption } from "@/components/admin/printer-model"
-import { SerialScanButton } from "@/components/admin/serial-scan"
-import { PrintStickerButton, StickerPreview } from "@/components/admin/sticker"
+} from "@/components/illustrations"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import {
@@ -36,7 +36,7 @@ import {
 import { DEFAULT_PRINTER_MODEL, PRINTER_MODELS, type PrinterModelId } from "@/lib/printer-models"
 import { createPrinter, printersQueryKey } from "@/lib/printer-queries"
 import { printerSetupPath } from "@/lib/printer-setup"
-import { printerLoginUrl } from "@/lib/public-app-url"
+import { loginStickerText, printerLoginUrl } from "@/lib/public-app-url"
 import { apiPath, cn } from "@/lib/utils"
 
 type PrinterFormValues = z.input<typeof printerBodySchema>
@@ -183,9 +183,9 @@ export function EnrollPrinter({ origin }: { origin: string }) {
           </div>
           <div className="flex w-full max-w-sm flex-col items-center gap-3">
             <p className="text-sm opacity-70">Innloggings-QR (under printeren)</p>
-            <StickerPreview name={saved.printer.name} url={loginUrl} />
+            <StickerPreview name={loginStickerText(saved.printer.name)} url={loginUrl} />
             <PrintStickerButton
-              name={saved.printer.name}
+              name={loginStickerText(saved.printer.name)}
               url={loginUrl}
               fallbackPath="/admin/printers"
               templateFile="stasjon.lbx"

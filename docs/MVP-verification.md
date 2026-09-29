@@ -25,21 +25,21 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
-| 1 | Fresh `/oppsett`: install → verify BT → Skann QR → connect → test print | ☐ | ☑ | Android grade-A 2026-09-27; iOS still to verify |
-| 2 | Scan step: Start kamera + Manuelt oppsett fallback (OS pair → confirm) | ☐ | ☑ | |
-| 3 | Sticker deeplink (`/oppsett?path=qr&…`): prelude then connect (skips camera) | ☐ | ☑ | |
-| 4 | After connect, printer is usable for print (or failure is obvious) | ☐ | ☑ | Keep manual fallback |
-| 5 | Manual confirm path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☐ | ☑ | Matching codes on phone + printer |
-| 6 | Test print produces a valid label on DK-11208 | ☐ | ☑ | Android: no print callbacks; overlay if SP was closed |
-| 7 | Returning to `/oppsett` later is still usable (re-pair / re-test) | ☐ | ☑ | |
+| 1 | Fresh `/oppsett`: install → verify BT → Skann QR → connect → test print | ☑ | ☑ | Android grade-A 2026-09-27; iOS 2026-09-28 (OS pair before connect) |
+| 2 | Scan step: Start kamera + Manuelt oppsett fallback (OS pair → confirm) | ☑ | ☑ | iOS: OS pair is also on the QR happy path |
+| 3 | Sticker deeplink (`/oppsett?path=qr&…`): prelude then connect (skips camera) | ☑ | ☑ | iOS still inserts OS pair before connect |
+| 4 | After connect, printer is usable for print (or failure is obvious) | ☑ | ☑ | Keep manual fallback |
+| 5 | Manual confirm path: Bluetooth OS pair → confirm in Smooth Print → test print works | ☑ | ☑ | Matching codes on phone + printer |
+| 6 | Test print produces a valid label on DK-11208 | ☑ | ☑ | Android: no print callbacks; overlay if SP was closed |
+| 7 | Returning to `/oppsett` later is still usable (re-pair / re-test) | ☑ | ☑ | |
 
 ### iOS-specific
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 8 | App Store Smooth Print install link works | ☐ | |
-| 9 | Bluetooth Classic (MFi) pairing works with QL-820NWBc | ☐ | |
-| 10 | Custom scheme opens from a user tap in Safari (`brotherwebprint://…`) | ☐ | Safari blocks non-gesture opens |
+| 8 | App Store Smooth Print install link works | ☑ | Verified 2026-09-28 |
+| 9 | Bluetooth Classic (MFi) pairing works with QL-820NWBc | ☑ | Required before `connect`; wizard step `pair` |
+| 10 | Custom scheme opens from a user tap in Safari (`brotherwebprint://…`) | ☑ | Safari blocks non-gesture opens |
 | 11 | Missing Smooth Print: staff get a clear next step (not a silent fail) | ☐ | Android has intent → `/oppsett`; iOS may still be weaker |
 
 ### Android-specific
@@ -58,7 +58,7 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 |---|---|---|---|
 | 17 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
 | 18 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☐ | Confirm `printer.lbx` on real QL |
-| 19 | Scanning that sticker on phone opens the right connect flow | ☐ | Android ☑; iOS to verify |
+| 19 | Scanning that sticker on phone opens the right connect flow | ☑ | Android ☑; iOS ☑ (2026-09-28; OS pair before connect) |
 
 ---
 
@@ -67,17 +67,17 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
 | 19 | Real ticket QR matches totalrapport `Barcode` → correct attendee | ☑ | ☑ | Confirmed |
-| 20 | Search by name / company finds attendees | ☐ | ☑ | Android happy path done; iOS awaiting hardware |
-| 21 | Confirm → print badge (`NAME` / `LINE2`) on DK-11208 | ☐ | ☑ | Android verified; iOS Safari not yet on hardware |
-| 22 | Reprint / second print for same attendee behaves acceptably | ☐ | ☐ | |
-| 23 | Camera permission denied / missing: usable recovery | ☐ | ☐ | Search still works |
-| 24 | One phone ↔ one printer topology agreed for the door | ☐ | ☐ | Second-phone “steal” Bluetooth not documented by Brother |
+| 20 | Search by name / company finds attendees | ☐ | ☑ | Android happy path done; iOS search not separately signed off |
+| 21 | Confirm → print badge (`NAME` / `LINE2`) on DK-11208 | ☑ | ☑ | Android + iOS Safari verified 2026-09-28 |
+| 22 | Reprint / second print for same attendee behaves acceptably | ☑ | ☑ | Verified 2026-09-28 |
+| 23 | Camera permission denied / missing: usable recovery | ☑ | ☑ | Search still works |
+| 24 | One phone ↔ one printer topology agreed for the door | ☑ | ☑ | Agreed: one phone per printer |
 
-Optional comparison (does not block MVP if current path is solid):
+Optional — postponed (not this conference):
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 25 | Compare `fileattach` (base64) vs `filename=<https://…/badge.lbx>` | ☐ | Reliability, speed, template updates — see RESEARCH.md |
+| 25 | Compare `fileattach` (base64) vs `filename=<https://…/badge.lbx>` | — | Deferred; current `fileattach` path is fine for day-of |
 
 ---
 
@@ -85,12 +85,12 @@ Optional comparison (does not block MVP if current path is solid):
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 26 | CSV import via admin UI (counts / skipped rows make sense) | ☐ | Same rules as `pnpm import:attendees` |
-| 27 | CLI import still works as fallback | ☐ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
+| 26 | CSV import via admin UI (counts / skipped rows make sense) | ☑ | Same rules as `pnpm import:attendees` |
+| 27 | CLI import still works as fallback | ☑ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
 | 28 | Re-import plan: near-event + morning-of | ☐ | Late signups / cancellations |
 | 29 | Auth: admin + printer (magic link / 6-digit PIN); door + admin + `/oppsett` gated | ☐ | Design: [auth-printers.md](./auth-printers.md) |
-| 30 | Conference Smooth Print APK uploaded and active | ☑ | Note Brother license/redistribution in README if needed |
-| 31 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | Camera + custom schemes need secure context |
+| 30 | Conference Smooth Print APK uploaded and active | ☑ | |
+| 31 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | **Biggest remaining MVP gap** — camera + custom schemes need secure context |
 
 ---
 
@@ -116,8 +116,8 @@ Before building live integration, decide **data mode**:
 
 | Role | Name | Date | Platforms verified |
 |---|---|---|---|
-| Onboarding QA | | 2026-09-27 | Android ☑ — iOS pending |
-| Day-of print QA | | | iOS pending / Android ☑ (scan→print) |
-| Admin / deploy | | | |
+| Onboarding QA | | 2026-09-28 | Android ☑ (2026-09-27) — iOS ☑ (OS pair before connect) |
+| Day-of print QA | | 2026-09-28 | Android ☑ + iOS Safari ☑ (scan→print) |
+| Admin / deploy | | | Deploy (HTTPS / nginx) still open |
 
 MVP signed off when the Definition of done above is true and open rows in this doc are either checked or explicitly deferred with a note.

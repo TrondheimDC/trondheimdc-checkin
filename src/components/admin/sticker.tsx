@@ -37,7 +37,13 @@ export function StickerPreview({ name, url }: { name: string; url: string }) {
 
   return (
     <div className="mx-auto flex w-40 flex-col items-center rounded-2xl bg-[var(--color-white-1)] px-3 py-4 text-[var(--color-black)]">
-      <p className="w-full truncate text-center font-display text-lg font-bold">{name || "Navn"}</p>
+      <p
+        className={`w-full truncate text-center font-display font-bold ${
+          name.length > 14 ? "text-sm" : name.length > 10 ? "text-base" : "text-lg"
+        }`}
+      >
+        {name || "Navn"}
+      </p>
       {src ? (
         <img src={src} alt="" className="mt-2 size-32" />
       ) : (
