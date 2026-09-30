@@ -30,22 +30,38 @@ import {
 import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import { setupStickerText } from "@/lib/public-app-url"
 import { printStickerUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
-import { apiPath } from "@/lib/utils"
+import { apiPath, cn } from "@/lib/utils"
+
+/** Label in reader orientation: 90 × 38 mm DK-11208, in template points. */
+const LABEL_W_PT = 255.1
+
+/** Template points → container width units, so the preview scales as one piece. */
+function pt(value: number) {
+  return `${(value * 100) / LABEL_W_PT}cqw`
+}
+
+/** Single line in a 128 pt frame, shrunk to fit like the LBX `shrink="true"` NAME frame. */
+function nameFontPt(name: string) {
+  return Math.min(15, 128 / (Math.max(name.length, 1) * 0.56))
+}
 
 /**
  * On-screen stand-in for the landscape DK-11208 sticker (90 × 38 mm): QR on the
- * left, name and TDC art on the right. Mirrors printer.lbx / stasjon.lbx, which
- * scripts/build-sticker-templates.py generates.
+ * left, name and TDC art on the right. Boxes are the reader-space frames from
+ * scripts/build-sticker-templates.ts (printer.lbx / stasjon.lbx).
  */
 export function StickerPreview({
   name,
   url,
   variant = "setup",
+  className,
 }: {
   name: string
   url: string
   /** `login` is the stasjon.lbx sticker that covers the printer's model label. */
   variant?: "setup" | "login"
+  /** Width override; everything inside scales with it. */
+  className?: string
 }) {
   const [src, setSrc] = useState<string | null>(null)
 
@@ -60,35 +76,59 @@ export function StickerPreview({
   }, [url])
 
   const login = variant === "login"
+  const title = name || "Navn"
 
   return (
-    <div className="mx-auto flex aspect-[90/38] w-80 max-w-full gap-[4%] rounded-xl bg-[var(--color-white-1)] p-[3%] text-[var(--color-black)]">
-      {src ? (
-        <img src={src} alt="" className="aspect-square h-full" />
-      ) : (
-        <div className="aspect-square h-full bg-black/10" />
-      )}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <p className="h-2 self-end text-[0.5rem] font-bold leading-none">
-          {login ? "Model QL-820NWBc" : null}
+    <div className={cn("@container mx-auto w-80 max-w-full", className)}>
+      <div className="relative aspect-[255.1/107.7] w-full overflow-hidden rounded-xl bg-[var(--color-white-1)] text-[var(--color-black)] [--color-fg-brand:var(--color-black)]">
+        {src ? (
+          <img
+            src={src}
+            alt=""
+            className="absolute"
+            style={{ left: pt(8.4), top: pt(4.35), width: pt(99), height: pt(99) }}
+          />
+        ) : (
+          <div
+            className="absolute bg-black/10"
+            style={{ left: pt(8.4), top: pt(4.35), width: pt(99), height: pt(99) }}
+          />
+        )}
+        {login ? (
+          <p
+            className="absolute flex items-center justify-end font-bold leading-none whitespace-nowrap"
+            style={{ left: pt(150), top: pt(5), width: pt(94), height: pt(9), fontSize: pt(6.5) }}
+          >
+            Model QL-820NWBc
+          </p>
+        ) : null}
+        <p
+          className="absolute flex items-center font-bold leading-none whitespace-nowrap"
+          style={{
+            left: pt(116),
+            top: pt(17),
+            width: pt(128),
+            height: pt(22),
+            fontSize: pt(nameFontPt(title)),
+          }}
+        >
+          {title}
         </p>
         <p
-          className={`mt-1 truncate font-bold leading-tight ${
-            name.length > 24 ? "text-xs" : name.length > 18 ? "text-sm" : "text-base"
-          }`}
+          className="absolute flex items-center justify-end leading-none whitespace-nowrap"
+          style={{ left: pt(116), top: pt(75), width: pt(128), height: pt(9), fontSize: pt(6.5) }}
         >
-          {name || "Navn"}
+          innsjekk.trondheimdc.no
         </p>
-        <div className="mt-auto flex items-end justify-between gap-2 [--color-fg-brand:var(--color-black)]">
-          <img
-            src={apiPath("/badge/8bit-duck-dither.png")}
-            alt=""
-            className="size-12 [image-rendering:pixelated]"
-          />
-          <div className="flex flex-col items-end gap-1">
-            <p className="text-[0.5rem] leading-none">innsjekk.trondheimdc.no</p>
-            <TdcLogo className="h-3 gap-[0.105rem]" />
-          </div>
+        <img
+          src={apiPath("/badge/8bit-duck-dither.png")}
+          alt=""
+          className="absolute [image-rendering:pixelated]"
+          style={{ left: pt(116), top: pt(54), width: pt(46), height: pt(46) }}
+        />
+        {/* 14 pt tall mark; gap is 7.28/52 of the height, as in tdc-logo.tsx. */}
+        <div className="absolute" style={{ right: pt(11.1), top: pt(86) }}>
+          <TdcLogo className="h-[5.49cqw] gap-[0.77cqw]" />
         </div>
       </div>
     </div>

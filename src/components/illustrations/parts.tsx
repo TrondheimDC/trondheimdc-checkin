@@ -208,38 +208,108 @@ export function Qr({
   )
 }
 
-/** Printed sticker: name above a square QR (same layout as `StickerPreview`). */
+/** 12 × 12 duck from public/badge/8bit-duck-dither.png, by grey level. */
+const duckRows = [
+  "......---...",
+  ".....=----..",
+  ".....=--#-..",
+  ".....=----x-",
+  ".....x=---..",
+  "......x==...",
+  "-....-----..",
+  "-=------=-=.",
+  "--------=-=.",
+  "=--========.",
+  ".x========x.",
+  "..xxxxxxxx..",
+]
+const duckShades: Record<string, string> = {
+  "-": "#d0d0d0",
+  "=": "#909090",
+  x: "#585858",
+  "#": ink,
+}
+
+function Duck({ x, y, size }: { x: number; y: number; size: number }) {
+  const cell = size / 12
+  return (
+    <g transform={`translate(${x} ${y}) scale(${cell})`} shapeRendering="crispEdges">
+      {duckRows.flatMap((row, cy) =>
+        [...row].map((shade, cx) =>
+          shade === "." ? null : (
+            <rect
+              // biome-ignore lint/suspicious/noArrayIndexKey: static pixel art
+              key={`${cx}-${cy}`}
+              x={cx}
+              y={cy}
+              width="1.05"
+              height="1.05"
+              fill={duckShades[shade]}
+            />
+          ),
+        ),
+      )}
+    </g>
+  )
+}
+
+/** TDC wordmark (tdc-logo.tsx) in ink; `h` tall, 248.56 / 52 as wide. */
+function TdcMark({ x, y, h }: { x: number; y: number; h: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${h / 52})`} fill={ink}>
+      <path d="M10.1 17.33H0V0h39.81v17.33H29.72V52H10.1z" />
+      <path
+        transform="translate(47.28 0)"
+        d="M153.73 34.67C153.73 44.24 145.98 52 136.42 52H0V0h136.42c9.56 0 17.31 7.76 17.31 17.33z"
+      />
+      <path
+        transform="translate(208.56 0)"
+        d="M39.81 17.33H19.91v17.34h19.9V52H17.31C7.75 52 0 44.24 0 34.67V17.33C0 7.76 7.75 0 17.31 0h22.5z"
+      />
+    </g>
+  )
+}
+
+/**
+ * Printed DK-11208 sticker, landscape (90 × 38 mm): QR left, title top right,
+ * duck, URL and TDC mark below — same frames as `StickerPreview` and
+ * scripts/build-sticker-templates.ts. Drawn in template points (255.1 × 107.7),
+ * scaled to `w`. `login` adds the model line of the stasjon.lbx sticker.
+ */
 export function Sticker({
   x = 0,
   y = 0,
   w,
   name,
   seed,
+  login = false,
 }: {
   x?: number
   y?: number
   w: number
   name: string
   seed?: number
+  login?: boolean
 }) {
-  const qr = w * 0.72
-  const h = w * 0.3 + qr + w * 0.14
-  // Long names shrink to fit, like the template's fixed text frame.
-  const fontSize = Math.min(w * 0.16, (w * 0.9) / (name.length * 0.56))
+  // Long names shrink to fit the 128 pt NAME frame, like the template.
+  const fontSize = Math.min(15, 128 / (name.length * 0.56))
   return (
-    <g transform={`translate(${x} ${y})`}>
-      <rect x="0" y="0" width={w} height={h} rx={w * 0.08} fill={paper} />
-      <text
-        x={w / 2}
-        y={w * 0.15 + fontSize * 0.36}
-        textAnchor="middle"
-        fill={ink}
-        fontSize={fontSize}
-        fontWeight="700"
-      >
+    <g transform={`translate(${x} ${y}) scale(${w / 255.1})`}>
+      <rect x="0" y="0" width="255.1" height="107.7" rx="10" fill={paper} />
+      <Qr x={8.4} y={4.35} size={99} seed={seed} />
+      {login ? (
+        <text x="244" y="12" textAnchor="end" fill={ink} fontSize="6.5" fontWeight="700">
+          Model QL-820NWBc
+        </text>
+      ) : null}
+      <text x="116" y={28 + fontSize * 0.36} fill={ink} fontSize={fontSize} fontWeight="700">
         {name}
       </text>
-      <Qr x={(w - qr) / 2} y={w * 0.3} size={qr} seed={seed} />
+      <Duck x={116} y={54} size={46} />
+      <text x="244" y="82" textAnchor="end" fill={ink} fontSize="6.5">
+        innsjekk.trondheimdc.no
+      </text>
+      <TdcMark x={177.1} y={86} h={14} />
     </g>
   )
 }

@@ -55,7 +55,7 @@ const steps = [
   },
   {
     title: "Skriv ut og lim på",
-    body: "Navnet kommer over QR-koden. Lim den på printeren.",
+    body: "Navnet står ved siden av QR-koden. Lim den på printeren.",
     art: StickerIllustration,
   },
 ]
@@ -203,10 +203,8 @@ export function EnrollPrinter({ origin }: { origin: string }) {
           </Button>
         </section>
       ) : (
-        <form
-          className="grid gap-6 md:grid-cols-[1fr_11rem]"
-          onSubmit={handleSubmit((data) => save.mutate(data))}
-        >
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit((data) => save.mutate(data))}>
+          <StickerPreview name={setupStickerText(name)} url={previewUrl} className="w-[28rem]" />
           <FieldGroup className="gap-4">
             <Field data-invalid={Boolean(errors.name) || undefined}>
               <FieldLabel htmlFor={nameId} className="text-base text-[var(--color-fg-base)]">
@@ -444,7 +442,6 @@ export function EnrollPrinter({ origin }: { origin: string }) {
               Lagre i inventaret
             </Button>
           </FieldGroup>
-          <StickerPreview name={setupStickerText(name)} url={previewUrl} />
         </form>
       )}
     </main>

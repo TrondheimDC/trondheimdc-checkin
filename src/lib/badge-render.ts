@@ -242,7 +242,7 @@ function objectFrame(element: Element): PtRect {
   return { x: pt("x"), y: pt("y"), width: pt("width"), height: pt("height") }
 }
 
-/** 32-bit BMP (what P-touch and scripts/build-sticker-templates.py write) → 1-bit mask. */
+/** 32-bit BMP (what P-touch and scripts/build-sticker-templates.ts write) → 1-bit mask. */
 function decodeBmp(bytes: Uint8Array): { width: number; height: number; black: Uint8Array } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const offset = view.getUint32(10, true)

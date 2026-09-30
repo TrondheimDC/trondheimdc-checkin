@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { loginStickerText } from "@/lib/public-app-url"
+import { loginStickerText, setupStickerText } from "@/lib/public-app-url"
 import { cn } from "@/lib/utils"
 import {
   AppWindow,
@@ -23,7 +23,7 @@ const printerName = "Printernavn"
 
 /** Setup sticker on the front of a printer that is already set up (`QlPrinter` units). */
 function FrontSticker() {
-  return <Sticker x={65} y={141} w={40} name={printerName} seed={3} />
+  return <Sticker x={42} y={141} w={86} name={setupStickerText(printerName)} seed={3} />
 }
 
 function Scene({ label, className, children }: ArtProps & { label: string; children: ReactNode }) {
@@ -142,10 +142,10 @@ export function ScanStickerIllustration({ className }: ArtProps) {
       <QlPrinter x={14} y={26} scale={1} lcd={<LcdIdle />}>
         <FrontSticker />
         <rect
-          x="60"
-          y="136"
-          width="50"
-          height="56.4"
+          x="38"
+          y="137"
+          width="94"
+          height="44.4"
           rx="7"
           fill="none"
           stroke={brand}
@@ -154,11 +154,11 @@ export function ScanStickerIllustration({ className }: ArtProps) {
       </QlPrinter>
 
       <Phone x={206} y={24} w={102} h={192} screen="#1d1d1d">
-        <Sticker x={22} y={62} w={58} name={printerName} seed={3} />
-        {corner(12, 50, 1, 1)}
-        {corner(90, 50, -1, 1)}
-        {corner(12, 142, 1, -1)}
-        {corner(90, 142, -1, -1)}
+        <Sticker x={12} y={80} w={78} name={setupStickerText(printerName)} seed={3} />
+        {corner(8, 72, 1, 1)}
+        {corner(94, 72, -1, 1)}
+        {corner(8, 121, 1, -1)}
+        {corner(94, 121, -1, -1)}
       </Phone>
     </Scene>
   )
@@ -208,7 +208,7 @@ export function LoginQrUnderPrinterIllustration({ className }: ArtProps) {
       ].map(([cx, cy]) => (
         <ellipse key={`${cx}-${cy}`} cx={cx} cy={cy} rx="8" ry="5" fill="#3a3a3a" />
       ))}
-      <Sticker x={210} y={72} w={80} name={loginStickerText(printerName)} seed={7} />
+      <Sticker x={208} y={97} w={84} name={loginStickerText(printerName)} seed={7} login />
     </Scene>
   )
 }
@@ -289,10 +289,10 @@ export function SerialIllustration({ className }: ArtProps) {
   )
 }
 
-/** Enroll / inventory: the printer prints the setup sticker (name above QR). */
+/** Enroll / inventory: the printer prints the setup sticker (QR beside the name). */
 export function StickerIllustration({ className }: ArtProps) {
   return (
-    <Scene label="Printeren skriver ut etikett med navn over QR" className={className}>
+    <Scene label="Printeren skriver ut etikett med QR og navn" className={className}>
       <QlPrinter x={79} y={8} scale={0.95} lcd={<LcdIdle />}>
         <FrontSticker />
       </QlPrinter>
