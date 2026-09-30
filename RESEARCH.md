@@ -205,12 +205,12 @@ The QL-820NWB speaks **Bluetooth Classic** (SPP; MFi on iOS). Web Bluetooth only
 
 ### Drivers
 
-- **macOS:** none. Close P-touch Editor / anything else holding the printer.
-- **Windows:** Chrome only opens USB devices bound to **WinUSB**. Windows binds the QL to its printer class driver, so staff swap it with [Zadig](https://zadig.akeo.ie/) (Options → List All Devices → QL-820NWB → WinUSB → Replace Driver). Brother’s driver / P-touch Editor lose USB access until it is rolled back in Device Manager. **Not verified on our hardware.**
+- **macOS:** none.
+- **Windows:** Chrome only opens USB devices bound to **WinUSB**. Windows binds the QL to its printer class driver, so staff swap it with [Zadig](https://zadig.akeo.ie/) (Options → List All Devices → QL-820NWB → WinUSB → Replace Driver). Once per PC. Connecting works on Windows with this; no replug needed.
 - **Linux:** udev rule for `04f9:209d` (`TAG+="uaccess"`); if the claim fails, unload `usblp`. **Not verified on our hardware.**
 - **All:** Editor Lite must be **off** (lamp off) — with it on the QL enumerates as mass storage. One tab at a time can hold the interface.
 
-Staff copy for all of this lives at `/oppsett/usb`.
+Staff get the driver step for their OS in the `/oppsett` USB wizard (none on Mac).
 
 ### Library notes (brother-ql-core 0.6.3)
 
@@ -231,7 +231,7 @@ Headless Chromium with a fake `navigator.usb` QL: restore via `getDevices()`, st
 ### Not verified on hardware
 
 - That the print lands on the label (margin side 12 vs 295) and reads the same way up as the phone badge. If it prints off the label, swap the margin pins; if upside down, rotate `badgePrintImage` 180°.
-- Windows Zadig and Linux udev steps.
+- Linux udev steps.
 - What `USBDevice.serialNumber` reports vs `printers.serial` (the serial check assumes it is the barcode serial or its last 9).
 - Font match: canvas uses Helvetica/Arial for P-touch “Helsinki”.
 

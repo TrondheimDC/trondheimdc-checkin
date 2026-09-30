@@ -101,6 +101,8 @@ Staff flow is in the app at `/oppsett` (install Smooth Print → Bluetooth → p
 
 The browser cannot see whether the printer is connected — staff confirm that in Smooth Print.
 
+**PC / Mac / Linux** print over USB from Chrome or Edge instead (no Smooth Print). Mac works out of the box; Windows needs the WinUSB driver (Zadig) once per PC; Linux needs a udev rule. Step-by-step: **[docs/usb-printing.md](docs/usb-printing.md)**.
+
 ## Further reading
 
 | Doc | Contents |
@@ -108,6 +110,7 @@ The browser cannot see whether the printer is connected — staff confirm that i
 | [docs/deploy.md](docs/deploy.md) | Production deploy: Docker save/load, Compose, server bootstrap |
 | [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md) | Export attendees from Checkin and import them |
 | [docs/auth-stasjoner.md](docs/auth-stasjoner.md) | Decided auth: better-auth, admins, innsjekkstasjoner, stickers |
+| [docs/usb-printing.md](docs/usb-printing.md) | Desktop printing over USB: setup for Mac, Windows (Zadig) and Linux, troubleshooting |
 | [docs/MVP-verification.md](docs/MVP-verification.md) | Hardware QA checklist before calling MVP done |
 | [docs/TODO.md](docs/TODO.md) | Remaining work (MVP polish, Checkin API, pairing, templates) |
 | [RESEARCH.md](RESEARCH.md) | Brother Smooth Print URLs, OS/wireless support, pairing, label media |

@@ -1,6 +1,6 @@
 import { headers } from "next/headers"
 import { userAgent } from "next/server"
-import { platformFromOsName } from "@/lib/platform"
+import { desktopOsFromName, platformFromOsName } from "@/lib/platform"
 import { type ConnectType, DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
 import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
@@ -15,6 +15,7 @@ const STEP_IDS = new Set<SetupStepId>([
   "scan",
   "connect",
   "pair",
+  "select",
   "confirm",
   "test-print",
 ])
@@ -61,8 +62,12 @@ export default async function SetupPage({
   return (
     <>
       <link rel="preload" as="image" href="/oppsett/smooth-print.jpg" />
+      {initialPlatform === "android" ? (
+        <link rel="preload" as="image" href="/oppsett/android-smooth-print-koblet.jpg" />
+      ) : null}
       <SetupEntry
         rawStep={query.step ?? null}
+        initialOs={desktopOsFromName(os.name)}
         androidUrl={androidUrl}
         initialPlatform={initialPlatform}
         initialPath={initialPath}

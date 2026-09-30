@@ -2,15 +2,18 @@ import type { ReactNode } from "react"
 import { loginStickerText } from "@/lib/public-app-url"
 import { cn } from "@/lib/utils"
 import {
+  AppWindow,
   BluetoothGlyph,
   brand,
   ink,
+  Laptop,
   lcdText,
   Phone,
   paper,
   QlPrinter,
   Sticker,
   Toggle,
+  UsbGlyph,
 } from "./parts"
 
 type ArtProps = { className?: string }
@@ -293,6 +296,182 @@ export function StickerIllustration({ className }: ArtProps) {
       <QlPrinter x={79} y={8} scale={0.95} lcd={<LcdIdle />}>
         <FrontSticker />
       </QlPrinter>
+    </Scene>
+  )
+}
+
+/** `/oppsett` USB: laptop and printer joined by the USB cable. */
+export function UsbCableIllustration({ className }: ArtProps) {
+  return (
+    <Scene label="PC koblet til printeren med USB-kabel" className={className}>
+      <Laptop x={20} y={62} w={146} h={96}>
+        <UsbGlyph x={55} y={20} size={36} color={brand} />
+        <rect x="28" y="64" width="90" height="16" rx="5" fill={brand} />
+        <text x="73" y="75" textAnchor="middle" fill={ink} fontSize="8" fontWeight="700">
+          Koble til printer
+        </text>
+      </Laptop>
+
+      {/* Cable from the laptop's side into the printer */}
+      <path
+        d="M186 166C204 166 196 130 214 130"
+        fill="none"
+        stroke="#8a8a8a"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      <rect x="176" y="161" width="12" height="10" rx="2" fill="#cfcfcf" />
+      <QlPrinter x={206} y={56} scale={0.62} lcd={<LcdIdle />}>
+        <FrontSticker />
+      </QlPrinter>
+      <rect x="204" y="124" width="14" height="12" rx="2" fill={brand} />
+    </Scene>
+  )
+}
+
+/** `/oppsett` USB connect: Chrome's device picker with the printer selected. */
+export function UsbPickerIllustration({ className }: ArtProps) {
+  return (
+    <Scene label="Nettleserens USB-liste med QL-820NWB valgt" className={className}>
+      <Laptop x={36} y={18} w={248} h={172}>
+        <rect x="6" y="6" width="236" height="14" rx="5" fill="#2a2a2a" />
+        {[16, 26, 36].map((cx) => (
+          <circle key={cx} cx={cx} cy="13" r="2.5" fill="#4a4a4a" />
+        ))}
+        <rect x="52" y="10" width="140" height="6" rx="3" fill="#3a3a3a" />
+
+        <rect x="30" y="34" width="188" height="122" rx="10" fill="#262626" />
+        <text x="44" y="54" fill={paper} fontSize="9" fontWeight="600">
+          innsjekk.trondheimdc.no vil koble til
+        </text>
+        <rect x="40" y="66" width="168" height="26" rx="6" fill={brand} />
+        <UsbGlyph x={48} y={72} size={14} color={ink} />
+        <text x="68" y="83" fill={ink} fontSize="10" fontWeight="700">
+          QL-820NWB
+        </text>
+        <rect x="40" y="98" width="168" height="1" fill="#3a3a3a" />
+        <rect x="110" y="126" width="46" height="20" rx="10" fill="none" stroke="#5a5a5a" />
+        <text x="133" y="139" textAnchor="middle" fill={paper} fontSize="8">
+          Avbryt
+        </text>
+        <rect x="160" y="126" width="50" height="20" rx="10" fill={brand} />
+        <text x="185" y="139" textAnchor="middle" fill={ink} fontSize="8" fontWeight="700">
+          Koble til
+        </text>
+      </Laptop>
+    </Scene>
+  )
+}
+
+/** `/oppsett` USB driver step on Windows: Zadig with the printer picked, WinUSB as target, Replace Driver. */
+export function ZadigIllustration({ className }: ArtProps) {
+  const field = "#f7f7f7"
+  const edge = "#b8b8b8"
+  const box = (x: number, w: number, y: number, text: string, size = 7.5) => (
+    <g key={`${x}-${text}`}>
+      <rect x={x} y={y} width={w} height="15" rx="2" fill={field} stroke={edge} />
+      <text x={x + 5} y={y + 10.5} fill={ink} fontSize={size}>
+        {text}
+      </text>
+    </g>
+  )
+  return (
+    <Scene label="Zadig med QL-820NWB valgt, WinUSB og Replace Driver" className={className}>
+      <AppWindow x={20} y={54} w={280} h={132} title="Zadig" light>
+        <g fill={ink} fontSize="8">
+          <text x="10" y="13">
+            Device
+          </text>
+          <text x="46" y="13">
+            Options
+          </text>
+          <text x="86" y="13">
+            Help
+          </text>
+        </g>
+
+        <rect
+          x="8"
+          y="20"
+          width="230"
+          height="17"
+          rx="2"
+          fill="#fff"
+          stroke={brand}
+          strokeWidth="2.5"
+        />
+        <text x="14" y="32" fill={ink} fontSize="8.5" fontWeight="700">
+          QL-820NWB (Interface 0)
+        </text>
+        <path d="M223 27l4 4 4-4" fill="none" stroke={ink} strokeWidth="1.3" />
+        <rect x="244" y="24" width="8" height="8" fill="#fff" stroke={ink} />
+        <text x="255" y="31.5" fill={ink} fontSize="7.5">
+          Edit
+        </text>
+
+        <text x="10" y="58" fill={ink} fontSize="8">
+          Driver
+        </text>
+        {box(42, 62, 47, "usbprint")}
+        <path
+          d="M108 54.5h14m-5-5 5 5-5 5"
+          fill="none"
+          stroke="#3aa655"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="130"
+          y="47"
+          width="98"
+          height="15"
+          rx="2"
+          fill="#fff"
+          stroke={brand}
+          strokeWidth="2.5"
+        />
+        <text x="135" y="57.5" fill={ink} fontSize="6.8" fontWeight="700">
+          WinUSB (v6.1.7600.16385)
+        </text>
+
+        <text x="10" y="80" fill={ink} fontSize="8">
+          USB ID
+        </text>
+        {box(42, 24, 69, "04F9")}
+        {box(70, 24, 69, "209D")}
+        {box(98, 16, 69, "00")}
+
+        <rect x="130" y="68" width="98" height="24" rx="4" fill={brand} />
+        <text x="179" y="83" textAnchor="middle" fill={ink} fontSize="9" fontWeight="700">
+          Replace Driver
+        </text>
+      </AppWindow>
+    </Scene>
+  )
+}
+
+/** `/oppsett` USB driver step on Linux: the udev rule and the reload in a terminal. */
+export function LinuxUdevIllustration({ className }: ArtProps) {
+  const lines: [string, string][] = [
+    ["$", "echo '…TAG+=\"uaccess\"' | sudo tee /etc/udev/"],
+    ["", "rules.d/60-brother-ql.rules"],
+    ["$", "sudo udevadm control --reload"],
+    ["$", "sudo modprobe -r usblp"],
+  ]
+  return (
+    <Scene label="Terminal med udev-regel for printeren" className={className}>
+      <AppWindow x={20} y={40} w={280} h={160} title="Terminal">
+        <g className="font-mono" fontSize="8">
+          {lines.map(([prompt, text], i) => (
+            <text key={text} x="14" y={26 + i * 26} fill={paper}>
+              {prompt ? <tspan fill={brand}>{prompt} </tspan> : null}
+              {text}
+            </text>
+          ))}
+        </g>
+        <rect x="14" y={26 + 4 * 26 - 8} width="6" height="10" fill={brand} />
+      </AppWindow>
     </Scene>
   )
 }

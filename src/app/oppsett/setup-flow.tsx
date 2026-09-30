@@ -61,6 +61,13 @@ type Step =
       body: string
     }
   | {
+      id: "select"
+      kind: "select"
+      image: string
+      title: string
+      body: string
+    }
+  | {
       id: "bt-on" | "pair"
       kind: "guide"
       art: Art
@@ -71,6 +78,8 @@ type Step =
       id: "confirm"
       kind: "confirm"
       image: string
+      /** Phone screenshot of the finished state, not the app icon. */
+      screenshot?: { width: number; height: number }
       title: string
       body: string
     }
@@ -141,6 +150,14 @@ const CONNECT_ANDROID: Step = {
   body: "Ett trykk åpner Smooth Print. Første gang må du godta vilkår og Bluetooth. Når tilkoblingen er ferdig, kommer du tilbake hit.",
 }
 
+const SELECT_ANDROID: Step = {
+  id: "select",
+  kind: "select",
+  image: "/oppsett/smooth-print.jpg",
+  title: "Koble til i Smooth Print",
+  body: "Åpne Smooth Print, trykk Connect via Bluetooth og velg QL-820NWB(XXXX). Første gang må du godta vilkår og Bluetooth.",
+}
+
 const CONFIRM_IOS: Step = {
   id: "confirm",
   kind: "confirm",
@@ -152,9 +169,10 @@ const CONFIRM_IOS: Step = {
 const CONFIRM_ANDROID: Step = {
   id: "confirm",
   kind: "confirm",
-  image: "/oppsett/smooth-print.jpg",
-  title: "Velg printeren i Smooth Print",
-  body: "Åpne Smooth Print og velg QL-820NWB(XXXX). Lukk appen helt etterpå, før testutskriften.",
+  image: "/oppsett/android-smooth-print-koblet.jpg",
+  screenshot: { width: 794, height: 1058 },
+  title: "Sjekk Smooth Print",
+  body: "Slik ser det ut når printeren er koblet til. Lukk appen helt etterpå (sveip bort).",
 }
 
 const TEST_PRINT_IOS: Step = {
@@ -168,7 +186,7 @@ const TEST_PRINT_ANDROID: Step = {
   id: "test-print",
   kind: "test-print",
   title: "Skriv ut et testskilt",
-  body: "Lukk Smooth Print helt først (sveip bort). Da viser appen et vindu over denne siden.",
+  body: "Lukk Smooth Print helt først (sveip bort). Da åpnes utskriftsdialogen her, uten å åpne appen.",
 }
 
 const artClassName = "max-h-full rounded-2xl bg-[var(--color-bg-surface)]"
@@ -184,7 +202,7 @@ function buildPrelude(platform: PhonePlatform): Step[] {
  * Happy path (`qr`): scan sticker → connect in Smooth Print.
  * iOS also needs OS Bluetooth pair before connect (MFi); Android does not.
  * Sticker deeplink with printer fields omits scan (`omitScan`).
- * Manual fallback: OS Bluetooth pair → select in Smooth Print.
+ * Manual fallback: iOS pairs in OS Bluetooth first; Android connects inside Smooth Print.
  */
 function buildPathSteps(path: SetupPath, platform: PhonePlatform, omitScan: boolean): Step[] {
   const prelude = buildPrelude(platform)
@@ -197,8 +215,8 @@ function buildPathSteps(path: SetupPath, platform: PhonePlatform, omitScan: bool
     return [...prelude, ...scan, connect, test]
   }
 
-  const confirm = platform === "android" ? CONFIRM_ANDROID : CONFIRM_IOS
-  return [...prelude, PAIR, confirm, test]
+  if (platform === "android") return [...prelude, SELECT_ANDROID, CONFIRM_ANDROID, test]
+  return [...prelude, PAIR, CONFIRM_IOS, test]
 }
 
 function pathStepIndex(
@@ -210,9 +228,9 @@ function pathStepIndex(
   return buildPathSteps(path, platform, omitScan).findIndex((item) => item.id === id)
 }
 
-function firstPathStepId(path: SetupPath, omitScan: boolean): Step["id"] {
+function firstPathStepId(path: SetupPath, omitScan: boolean, platform: PhonePlatform): Step["id"] {
   if (path === "qr") return omitScan ? "connect" : "scan"
-  return "pair"
+  return platform === "android" ? "select" : "pair"
 }
 
 export type SetupStepId = Step["id"]
@@ -220,7 +238,7 @@ export type SetupStepId = Step["id"]
 function inferPathForStep(stepId: SetupStepId, fallback: SetupPath | null): SetupPath | null {
   if (fallback) return fallback
   if (stepId === "scan" || stepId === "connect") return "qr"
-  if (stepId === "pair" || stepId === "confirm") return "manual"
+  if (stepId === "pair" || stepId === "select" || stepId === "confirm") return "manual"
   return fallback
 }
 
@@ -306,7 +324,7 @@ function resolveEntry(input: {
   if (input.initialPath) {
     const at = pathStepIndex(
       input.initialPath,
-      firstPathStepId(input.initialPath, omitScan),
+      firstPathStepId(input.initialPath, omitScan, input.platform),
       input.platform,
       omitScan,
     )
@@ -466,14 +484,14 @@ export function SetupFlow({
       return
     }
     setPath("qr")
-    setStep(pathStepIndex("qr", firstPathStepId("qr", omitScan), platform, omitScan))
+    setStep(pathStepIndex("qr", firstPathStepId("qr", omitScan, platform), platform, omitScan))
   }
 
   function chooseManual() {
     setCameraOn(false)
     setPrinter(null)
     setPath("manual")
-    setStep(pathStepIndex("manual", "pair", platform, false))
+    setStep(pathStepIndex("manual", firstPathStepId("manual", false, platform), platform, false))
   }
 
   const onQrFound = useCallback(
@@ -559,7 +577,7 @@ export function SetupFlow({
 
   function goBack() {
     if (pathSteps && path) {
-      const firstId = firstPathStepId(path, path === "qr" ? omitScan : false)
+      const firstId = firstPathStepId(path, path === "qr" ? omitScan : false, platform)
       if (current.id === firstId) {
         setPath(null)
         setPrinter(initialPrinter)
@@ -630,7 +648,17 @@ export function SetupFlow({
           <p className="text-base opacity-70">
             Mangler printeropplysninger. Gå tilbake og skann QR.
           </p>
-        ) : current.kind === "install" || current.kind === "confirm" ? (
+        ) : current.kind === "confirm" && current.screenshot ? (
+          <img
+            src={current.image}
+            alt="Smooth Print med printeren koblet til"
+            width={current.screenshot.width}
+            height={current.screenshot.height}
+            className="max-h-full w-auto rounded-2xl object-contain"
+          />
+        ) : current.kind === "install" ||
+          current.kind === "select" ||
+          current.kind === "confirm" ? (
           <img
             src={current.image}
             alt="Smooth Print"
@@ -730,7 +758,7 @@ export function SetupFlow({
               onChange={(event) => setSeen(event.target.checked)}
             />
             {platform === "android"
-              ? "Printeren er valgt, og Smooth Print er lukket"
+              ? "Smooth Print ser slik ut, og appen er lukket"
               : "Printeren er valgt i Smooth Print"}
           </label>
         ) : null}
@@ -808,7 +836,10 @@ export function SetupFlow({
           </Button>
         ) : null}
 
-        {current.kind === "install" || current.kind === "camera" || current.kind === "guide" ? (
+        {current.kind === "install" ||
+        current.kind === "camera" ||
+        current.kind === "guide" ||
+        current.kind === "select" ? (
           <Button
             className="h-12 w-full text-base"
             onClick={() => {

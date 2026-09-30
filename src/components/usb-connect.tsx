@@ -3,7 +3,9 @@
 import { Usb } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { desktopOsFromNavigator } from "@/lib/platform"
 import { connectUsbPrinter, type UsbPrinterState } from "@/lib/usb-printer"
+import { apiPath } from "@/lib/utils"
 
 export const USB_UNSUPPORTED_COPY =
   "Bruk en nettleser som støtter WebUSB (Chrome eller Edge) for å skrive ut fra PC/Mac."
@@ -34,12 +36,15 @@ export function UsbPrintMessage({ usb, error }: { usb: UsbPrinterState; error: s
       </p>
     )
   }
-  const help = !error && usb.kind === "error" && usb.driverHelp
+  // Mac has no driver step; there «in use» just means another tab.
+  const os = typeof navigator === "undefined" ? "other" : desktopOsFromNavigator()
+  const help =
+    !error && usb.kind === "error" && usb.driverHelp && (os === "windows" || os === "linux")
   return (
     <p className="text-base text-[var(--color-bg-danger)]">
       {message}{" "}
       {help ? (
-        <Link href="/oppsett/usb" className="underline underline-offset-4">
+        <Link href={apiPath("/oppsett?step=driver")} className="underline underline-offset-4">
           Hjelp
         </Link>
       ) : null}

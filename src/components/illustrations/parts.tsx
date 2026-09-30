@@ -276,3 +276,109 @@ export function Toggle({ x, y }: { x: number; y: number }) {
     </g>
   )
 }
+
+/** Open laptop. `children` draw in local units on a `w × h` screen (inset 6). */
+export function Laptop({
+  x = 0,
+  y = 0,
+  w,
+  h,
+  screen = "#161616",
+  children,
+}: {
+  x?: number
+  y?: number
+  w: number
+  h: number
+  screen?: string
+  children?: ReactNode
+}) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <ellipse cx={w / 2} cy={h + 16} rx={w / 2 + 16} ry="5" fill="#000" opacity="0.35" />
+      <rect
+        x="0"
+        y="0"
+        width={w}
+        height={h}
+        rx="10"
+        fill="#0d0d0d"
+        stroke="#7a7a7a"
+        strokeWidth="3"
+      />
+      <rect x="6" y="6" width={w - 12} height={h - 12} rx="5" fill={screen} />
+      <path d={`M-14 ${h + 2}h${w + 28}l-6 10H-8z`} fill="#cfcfcf" />
+      <rect x={w / 2 - 18} y={h + 2} width="36" height="3" rx="1.5" fill="#9a9a9a" />
+      {children}
+    </g>
+  )
+}
+
+/** Desktop window with a title bar. `children` draw in local units below the bar. */
+export function AppWindow({
+  x = 0,
+  y = 0,
+  w,
+  h,
+  title,
+  light = false,
+  children,
+}: {
+  x?: number
+  y?: number
+  w: number
+  h: number
+  title: string
+  light?: boolean
+  children?: ReactNode
+}) {
+  const bar = light ? "#ffffff" : "#2a2a2a"
+  const body = light ? "#f0f0f0" : "#0b0b0b"
+  const text = light ? ink : paper
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <rect x="0" y="0" width={w} height={h} rx="8" fill={body} />
+      <path d={`M0 8a8 8 0 0 1 8-8h${w - 16}a8 8 0 0 1 8 8v14H0z`} fill={bar} />
+      <text x="12" y="15" fill={text} fontSize="9" fontWeight="600">
+        {title}
+      </text>
+      <g stroke={text} strokeOpacity="0.6" strokeWidth="1.2" fill="none">
+        <path d={`M${w - 52} 11h8`} />
+        <rect x={w - 36} y="7" width="7" height="7" />
+        <path d={`M${w - 18} 7l7 7m0-7l-7 7`} />
+      </g>
+      <g transform="translate(0 22)">{children}</g>
+    </g>
+  )
+}
+
+export function UsbGlyph({
+  x = 0,
+  y = 0,
+  size,
+  color,
+}: {
+  x?: number
+  y?: number
+  size: number
+  color: string
+}) {
+  return (
+    <g
+      transform={`translate(${x} ${y}) scale(${size / 24})`}
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="10" cy="7" r="1" />
+      <circle cx="4" cy="20" r="1" />
+      <path d="M4.7 19.3 19 5" />
+      <path d="m21 3-3 1 2 2Z" />
+      <path d="M9.26 7.68 5 12l2 5" />
+      <path d="m10 14 5 2 3.5-3.5" />
+      <path d="m18 12 1-1 1 1-1 1Z" />
+    </g>
+  )
+}

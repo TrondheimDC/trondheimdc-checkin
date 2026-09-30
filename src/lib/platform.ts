@@ -47,3 +47,24 @@ export type PrintMethod = "smooth-print" | "usb"
 export function printMethodFor(platform: PhonePlatform): PrintMethod {
   return platform === "other" ? "usb" : "smooth-print"
 }
+
+/** Which USB driver step a desktop needs: Windows (Zadig), Linux (udev), Mac (none). */
+export type DesktopOs = "windows" | "mac" | "linux" | "other"
+
+/** Map Next.js `userAgent().os.name` (ua-parser) to a desktop OS. */
+export function desktopOsFromName(osName: string | undefined): DesktopOs {
+  if (osName === "Windows") return "windows"
+  if (osName === "macOS" || osName === "Mac OS") return "mac"
+  if (osName && /linux|ubuntu|debian|fedora|mint|arch|chromium os/i.test(osName)) return "linux"
+  return "other"
+}
+
+/** Client-only counterpart of `desktopOsFromName`. */
+export function desktopOsFromNavigator(
+  ua: string = typeof navigator !== "undefined" ? navigator.userAgent : "",
+): DesktopOs {
+  if (/Windows/i.test(ua)) return "windows"
+  if (/Macintosh|Mac OS X/i.test(ua)) return "mac"
+  if (/Linux|X11|CrOS/i.test(ua) && !/android/i.test(ua)) return "linux"
+  return "other"
+}
