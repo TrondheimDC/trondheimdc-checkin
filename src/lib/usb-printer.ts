@@ -2,13 +2,7 @@
 
 import type { WebBrotherQLPrinter } from "@thermal-label/brother-ql-web"
 import { useEffect, useSyncExternalStore } from "react"
-import {
-  type BadgeInput,
-  badgePrintImage,
-  portraitPrintImage,
-  renderBadge,
-  renderSticker,
-} from "@/lib/badge-render"
+import { type BadgeInput, badgePrintImage, renderBadge, renderSticker } from "@/lib/badge-render"
 import { currentPrintMethod } from "@/lib/print-method"
 
 /**
@@ -236,8 +230,12 @@ export function printBadgeUsb(
 }
 
 /** Setup / login sticker (`printer.lbx` / `stasjon.lbx` layout). */
-export function printStickerUsb(input: { name: string; qr: string }): Promise<void> {
-  return printLabel(async () => portraitPrintImage(await renderSticker(input)))
+export function printStickerUsb(input: {
+  name: string
+  qr: string
+  templateFile: string
+}): Promise<void> {
+  return printLabel(async () => badgePrintImage(await renderSticker(input)))
 }
 
 const SERVER_STATE: UsbPrinterState = { kind: "connecting" }

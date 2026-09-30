@@ -4,9 +4,9 @@ import QRCode from "qrcode"
  * Draws DK-11208 labels (badge, printer stickers) in the browser for USB printing (PC/Mac).
  *
  * Phones print `public/templates/*.lbx` through Smooth Print. Over USB the
- * printer only takes raster dots, so this redraws the same layout. The numbers
- * below are copied from each template's `label.xml` — change them together
- * with the LBX when the badge layout moves.
+ * printer only takes raster dots, so this redraws the same layout. Badge frames
+ * below are copied from the badge `label.xml` — change them together with the
+ * LBX. Printer stickers are drawn from their `.lbx` directly (`renderSticker`).
  */
 
 /** QL-820NWB head resolution. */
@@ -29,13 +29,9 @@ const DUCK_FRAME: PtRect = { x: 6.3, y: 224.6, width: 20, height: 20 }
 const NAME_FONT = { sizePt: 32, weight: 700 }
 const LINE2_FONT = { sizePt: 16, weight: 400 }
 
-/** `printer.lbx` / `stasjon.lbx`: upright name on top, QR under it. */
-const STICKER_NAME_FRAME: PtRect = { x: 4.3, y: 8.4, width: 99, height: 20 }
-const STICKER_NAME_FONT = { sizePt: 14, weight: 700 }
-const STICKER_QR_TOP_PT = 30
 /**
- * The LBX QR frame is the full printable width. Keep ~2 mm inside it so the QR
- * keeps a quiet zone on the 38 mm label, and snap to whole dots per module.
+ * Keep ~2 mm inside the LBX QR frame so the QR has a quiet zone on the 38 mm
+ * label, and snap to whole dots per module.
  */
 const STICKER_QR_MAX_DOTS = 372
 
@@ -73,16 +69,6 @@ function landscapeRect(frame: PtRect): DotRect {
   return { x: py, y: BADGE_DOTS.across - px - pw, width: ph, height: pw }
 }
 
-/** Portrait LBX frame → rect on the portrait canvas (sticker layout, no rotation). */
-function portraitRect(frame: PtRect): DotRect {
-  return {
-    x: ptToDots(frame.x - PAGE_MARGIN_PT.left),
-    y: ptToDots(frame.y - PAGE_MARGIN_PT.top),
-    width: ptToDots(frame.width),
-    height: ptToDots(frame.height),
-  }
-}
-
 function assetUrl(path: string): string {
   const base = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
   return `${base}${path}`
@@ -97,12 +83,15 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-/** Single line, centred, shrunk to fit — like the LBX `FIXEDFRAME` + `shrink="true"`. */
+type TextAlign = "LEFT" | "CENTER" | "RIGHT"
+
+/** Single line, shrunk to fit — like the LBX `FIXEDFRAME` + `shrink="true"`. */
 function drawFittedText(
   ctx: CanvasRenderingContext2D,
   text: string,
   rect: DotRect,
   font: { sizePt: number; weight: number },
+  align: TextAlign = "CENTER",
 ) {
   const value = text.trim()
   if (!value) return
@@ -116,9 +105,11 @@ function drawFittedText(
   const metrics = ctx.measureText(value)
   const ascent = metrics.fontBoundingBoxAscent ?? size * 0.8
   const descent = metrics.fontBoundingBoxDescent ?? size * 0.2
-  ctx.textAlign = "center"
+  const x =
+    align === "LEFT" ? rect.x : align === "RIGHT" ? rect.x + rect.width : rect.x + rect.width / 2
+  ctx.textAlign = align === "LEFT" ? "left" : align === "RIGHT" ? "right" : "center"
   ctx.textBaseline = "alphabetic"
-  ctx.fillText(value, rect.x + rect.width / 2, rect.y + rect.height / 2 + (ascent - descent) / 2)
+  ctx.fillText(value, x, rect.y + rect.height / 2 + (ascent - descent) / 2)
 }
 
 /** 8×8 Bayer thresholds for the duck's grey cells (P-touch uses a mesh dither here). */
@@ -244,42 +235,124 @@ export function badgePrintImage(landscape: HTMLCanvasElement): {
   return out
 }
 
+/** Reads the `pt`-suffixed attributes of an LBX `pt:objectStyle`. */
+function objectFrame(element: Element): PtRect {
+  const style = element.getElementsByTagName("pt:objectStyle")[0]
+  const pt = (name: string) => Number.parseFloat(style?.getAttribute(name) ?? "0")
+  return { x: pt("x"), y: pt("y"), width: pt("width"), height: pt("height") }
+}
+
+/** 32-bit BMP (what P-touch and scripts/build-sticker-templates.py write) → 1-bit mask. */
+function decodeBmp(bytes: Uint8Array): { width: number; height: number; black: Uint8Array } {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const offset = view.getUint32(10, true)
+  const width = view.getInt32(18, true)
+  const rawHeight = view.getInt32(22, true)
+  if (view.getUint16(28, true) !== 32) throw new Error("lbx_bmp_not_32bit")
+  const height = Math.abs(rawHeight)
+  const black = new Uint8Array(width * height)
+  for (let row = 0; row < height; row++) {
+    // Positive height: rows are stored bottom-up.
+    const src = offset + (rawHeight > 0 ? height - 1 - row : row) * width * 4
+    for (let col = 0; col < width; col++) {
+      const i = src + col * 4
+      const lum = 0.11 * bytes[i]! + 0.59 * bytes[i + 1]! + 0.3 * bytes[i + 2]!
+      black[row * width + col] = lum < 128 ? 1 : 0
+    }
+  }
+  return { width, height, black }
+}
+
 /**
- * Portrait 413 × 991 printer sticker (`printer.lbx` / `stasjon.lbx` layout):
- * name on top, QR under it. Byte-mode ECC M, like Brother's QR object.
+ * Sticker art is pre-rotated to the portrait page (angle="0"). Put its pixels
+ * back into reading orientation: page x runs up the landscape canvas.
+ */
+function drawPageBitmap(
+  ctx: CanvasRenderingContext2D,
+  bitmap: ReturnType<typeof decodeBmp>,
+  frame: PtRect,
+) {
+  const rect = landscapeRect(frame)
+  const scaleX = bitmap.width / rect.height
+  const scaleY = bitmap.height / rect.width
+  const left = Math.round(rect.x)
+  const bottom = Math.round(rect.y + rect.height)
+  for (let u = 0; u < Math.round(rect.width); u++) {
+    for (let v = 0; v < Math.round(rect.height); v++) {
+      const col = Math.min(bitmap.width - 1, Math.floor(v * scaleX))
+      const row = Math.min(bitmap.height - 1, Math.floor(u * scaleY))
+      if (bitmap.black[row * bitmap.width + col]) ctx.fillRect(left + u, bottom - 1 - v, 1, 1)
+    }
+  }
+}
+
+/**
+ * Landscape printer sticker (`printer.lbx` / `stasjon.lbx`), drawn from the
+ * template itself so USB and Smooth Print cannot drift: its text frames
+ * (angle="90"; `NAME` gets `name`), its bitmaps and its QR frame.
+ * Byte-mode ECC M, like Brother's QR object.
  */
 export async function renderSticker(input: {
   name: string
   qr: string
+  templateFile: string
 }): Promise<HTMLCanvasElement> {
-  const { canvas, ctx } = blankLabel(BADGE_DOTS.across, BADGE_DOTS.along)
+  const { unzipSync, strFromU8 } = await import("fflate")
+  const response = await fetch(assetUrl(`/templates/${input.templateFile}`), { cache: "no-store" })
+  if (!response.ok) throw new Error("template fetch failed")
+  const entries = unzipSync(new Uint8Array(await response.arrayBuffer()))
+  const labelXml = entries["label.xml"]
+  if (!labelXml) throw new Error("lbx_entry_not_found")
+  const doc = new DOMParser().parseFromString(strFromU8(labelXml), "application/xml")
+
+  const { canvas, ctx } = blankLabel(BADGE_DOTS.along, BADGE_DOTS.across)
   await document.fonts.ready
-  drawFittedText(ctx, input.name, portraitRect(STICKER_NAME_FRAME), STICKER_NAME_FONT)
+
+  for (const text of Array.from(doc.getElementsByTagName("text:text"))) {
+    const objectName = text.getElementsByTagName("pt:expanded")[0]?.getAttribute("objectName")
+    const data = text.getElementsByTagName("pt:data")[0]?.textContent ?? ""
+    const fontExt = text.getElementsByTagName("text:fontExt")[0]
+    const logFont = text.getElementsByTagName("text:logFont")[0]
+    const align = text
+      .getElementsByTagName("text:textAlign")[0]
+      ?.getAttribute("horizontalAlignment")
+    drawFittedText(
+      ctx,
+      objectName === "NAME" ? input.name : data,
+      landscapeRect(objectFrame(text)),
+      {
+        sizePt: Number.parseFloat(fontExt?.getAttribute("size") ?? "10"),
+        weight: Number(logFont?.getAttribute("weight") ?? 400),
+      },
+      align === "LEFT" || align === "RIGHT" ? align : "CENTER",
+    )
+  }
   threshold(ctx, canvas.width, canvas.height)
 
-  const qr = QRCode.create([{ data: new TextEncoder().encode(input.qr), mode: "byte" }], {
-    errorCorrectionLevel: "M",
-  })
-  const count = qr.modules.size
-  const cell = Math.floor(STICKER_QR_MAX_DOTS / count)
-  const left = Math.round((BADGE_DOTS.across - cell * count) / 2)
-  const top = Math.round(ptToDots(STICKER_QR_TOP_PT - PAGE_MARGIN_PT.top))
-  for (let row = 0; row < count; row++) {
-    for (let col = 0; col < count; col++) {
-      if (qr.modules.get(row, col)) ctx.fillRect(left + col * cell, top + row * cell, cell, cell)
+  for (const image of Array.from(doc.getElementsByTagName("image:image"))) {
+    const file = image.getElementsByTagName("image:imageStyle")[0]?.getAttribute("fileName")
+    const bytes = file ? entries[file] : undefined
+    if (bytes) drawPageBitmap(ctx, decodeBmp(bytes), objectFrame(image))
+  }
+
+  const barcode = doc.getElementsByTagName("barcode:barcode")[0]
+  if (barcode) {
+    const frame = landscapeRect(objectFrame(barcode))
+    const qr = QRCode.create([{ data: new TextEncoder().encode(input.qr), mode: "byte" }], {
+      errorCorrectionLevel: "M",
+    })
+    const count = qr.modules.size
+    const cell = Math.floor(Math.min(STICKER_QR_MAX_DOTS, frame.width) / count)
+    const size = cell * count
+    // Horizontally where the template puts it; vertically centred on the 38 mm edge
+    // (the template's frame carries a Smooth Print offset that raster does not need).
+    const left = Math.round(frame.x + (frame.width - size) / 2)
+    const top = Math.round((BADGE_DOTS.across - size) / 2)
+    for (let row = 0; row < count; row++) {
+      for (let col = 0; col < count; col++) {
+        if (qr.modules.get(row, col)) ctx.fillRect(left + col * cell, top + row * cell, cell, cell)
+      }
     }
   }
   return canvas
-}
-
-/** Portrait canvas → head image as-is (the sticker is laid out in print orientation). */
-export function portraitPrintImage(portrait: HTMLCanvasElement): {
-  width: number
-  height: number
-  data: Uint8Array
-} {
-  const ctx = portrait.getContext("2d", { willReadFrequently: true })
-  if (!ctx) throw new Error("canvas unavailable")
-  const { data, width, height } = ctx.getImageData(0, 0, portrait.width, portrait.height)
-  return { width, height, data: new Uint8Array(data.buffer) }
 }

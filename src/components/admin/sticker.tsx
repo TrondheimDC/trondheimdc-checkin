@@ -174,8 +174,8 @@ export function PrintStickerButton({
     setUsbError(null)
     setBusy(true)
     try {
-      // Drawn in the browser, so no LBX cellSize fitting — the QR is sized to the label.
-      await printStickerUsb({ name, qr: url })
+      // Drawn in the browser from the same template, so no LBX cellSize fitting.
+      await printStickerUsb({ name, qr: url, templateFile })
       toast.success("Etiketten er sendt til printeren.")
     } catch (caught) {
       setUsbError(caught instanceof UsbPrintError ? caught.message : "Klarte ikke å skrive ut.")
