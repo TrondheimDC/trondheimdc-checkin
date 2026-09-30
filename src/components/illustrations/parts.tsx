@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 export const ink = "#0f0f0f"
 export const paper = "#fefefe"
 export const brand = "#9bf7a9"
+export const danger = "#f1422a"
 export const lcdFill = "#56605a"
 export const lcdText = "#dfe9e1"
 

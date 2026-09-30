@@ -577,6 +577,43 @@ button.checkin-btn.checkin-btn--checked:hover {
   animation: app-loading-label 1.6s ease-in-out infinite;
 }
 
+@keyframes error-label-feed {
+  from {
+    transform: translateY(-116px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes error-lcd-blink {
+  0%,
+  55%,
+  100% {
+    opacity: 1;
+  }
+  65%,
+  90% {
+    opacity: 0.15;
+  }
+}
+
+.error-reveal {
+  animation: auth-card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.error-label-feed {
+  animation: error-label-feed 1.4s cubic-bezier(0.45, 0, 0.2, 1) 0.45s both;
+}
+
+.error-lcd-blink {
+  animation: error-lcd-blink 1.4s steps(1, end) infinite;
+}
+
+.error-glow-danger {
+  --color-fg-brand: var(--color-bg-danger);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btn-press {
     transition: none;
@@ -607,7 +644,10 @@ button.checkin-btn.checkin-btn--checked:hover {
   }
 
   .auth-card,
-  .auth-mark {
+  .auth-mark,
+  .error-reveal,
+  .error-label-feed,
+  .error-lcd-blink {
     animation: none;
     opacity: 1;
     transform: none;

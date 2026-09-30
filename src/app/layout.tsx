@@ -1,28 +1,10 @@
 import type { Metadata, Viewport } from "next"
-import { IBM_Plex_Sans, Space_Grotesk, Space_Mono } from "next/font/google"
+import { fontVariables } from "./fonts"
 import { Providers } from "./providers"
 import "./globals.css"
 
 // SQLite-backed app — never prerender pages against an empty build-time DB.
 export const dynamic = "force-dynamic"
-
-const plex = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-plex",
-})
-
-const grotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-grotesk",
-})
-
-const mono = Space_Mono({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-mono",
-})
 
 export const metadata: Metadata = {
   applicationName: "TDC Innsjekk",
@@ -69,7 +51,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nb" className={`${plex.variable} ${grotesk.variable} ${mono.variable}`}>
+    <html lang="nb" className={fontVariables}>
       <body>
         <Providers>{children}</Providers>
       </body>

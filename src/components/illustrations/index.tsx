@@ -5,6 +5,7 @@ import {
   AppWindow,
   BluetoothGlyph,
   brand,
+  danger,
   ink,
   Laptop,
   lcdText,
@@ -472,6 +473,136 @@ export function LinuxUdevIllustration({ className }: ArtProps) {
         </g>
         <rect x="14" y={26 + 4 * 26 - 8} width="6" height="10" fill={brand} />
       </AppWindow>
+    </Scene>
+  )
+}
+
+/** Torn-off label: flat top, zigzag bottom, in local units. */
+function tornLabel(w: number, h: number, tooth = 7) {
+  let d = `M0 0H${w}V${h}`
+  for (let x = w; x > 0; x -= tooth) {
+    d += `L${x - tooth / 2} ${h - 4}L${Math.max(x - tooth, 0)} ${h}`
+  }
+  return `${d}Z`
+}
+
+/** 404: the printer feeds out a label that reads 404. */
+export function LabelNotFoundIllustration({ className }: ArtProps) {
+  return (
+    <Scene label="Printeren skriver ut en etikett med 404" className={className}>
+      <defs>
+        <clipPath id="label-feed-clip">
+          <rect x="0" y="127" width="170" height="130" />
+        </clipPath>
+      </defs>
+      <QlPrinter x={75} y={4} scale={0.95} lcd={<LcdIdle />}>
+        <g clipPath="url(#label-feed-clip)">
+          <g className="error-label-feed">
+            <g transform="translate(43 124)">
+              <path d={tornLabel(84, 116)} fill={paper} />
+              <text
+                x="42"
+                y="46"
+                textAnchor="middle"
+                fill={ink}
+                fontSize="34"
+                fontWeight="700"
+                className="font-display"
+              >
+                404
+              </text>
+              <text
+                x="42"
+                y="62"
+                textAnchor="middle"
+                fill={ink}
+                fontSize="7"
+                fontWeight="700"
+                letterSpacing="1.4"
+                className="font-mono"
+              >
+                IKKE FUNNET
+              </text>
+              {Array.from({ length: 18 }, (_, i) => (
+                <rect
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
+                  key={i}
+                  x={12 + i * 3.4}
+                  y="74"
+                  width={i % 3 === 0 ? 2 : i % 2 === 0 ? 1.4 : 0.9}
+                  height="22"
+                  fill={ink}
+                />
+              ))}
+            </g>
+          </g>
+        </g>
+      </QlPrinter>
+    </Scene>
+  )
+}
+
+/** Error: the printer screen warns and the label jams in the exit. */
+export function PrinterErrorIllustration({ className }: ArtProps) {
+  // Accordion-folded label: left and right edges, one fold per segment.
+  const left = [
+    [48, 124],
+    [58, 146],
+    [42, 166],
+    [56, 188],
+  ]
+  const right = [
+    [122, 124],
+    [130, 144],
+    [116, 166],
+    [128, 186],
+  ]
+  return (
+    <Scene label="Printerskjermen viser feil og etiketten har satt seg fast" className={className}>
+      <QlPrinter
+        x={62}
+        y={34}
+        scale={0.95}
+        lcd={
+          <>
+            <g className="error-lcd-blink">
+              <path d="M7 27 16 8l9 19z" fill={danger} />
+              <rect x="15" y="14" width="2" height="7" rx="1" fill={ink} />
+              <circle cx="16" cy="24" r="1.2" fill={ink} />
+            </g>
+            <rect x="32" y="11" width="52" height="5" rx="2" fill={lcdText} opacity="0.85" />
+            <rect x="32" y="20" width="34" height="4" rx="2" fill={lcdText} opacity="0.5" />
+          </>
+        }
+      >
+        {left.slice(0, -1).map(([lx, ly], i) => {
+          const [nlx, nly] = left[i + 1]
+          const [rx, ry] = right[i]
+          const [nrx, nry] = right[i + 1]
+          return (
+            <path
+              key={`${lx}-${ly}`}
+              d={`M${lx} ${ly}L${rx} ${ry}L${nrx} ${nry}L${nlx} ${nly}Z`}
+              fill={i % 2 === 0 ? paper : "#d6d6d6"}
+              stroke="#bdbdbd"
+              strokeWidth="0.8"
+              strokeLinejoin="round"
+            />
+          )
+        })}
+        {/* Half-printed lines, skewed with each fold */}
+        <g fill={ink} opacity="0.7">
+          <rect x="66" y="152" width="34" height="3.5" rx="1.5" transform="rotate(-2 66 152)" />
+          <rect x="66" y="158" width="20" height="3.5" rx="1.5" transform="rotate(-2 66 158)" />
+          <rect x="60" y="173" width="40" height="3.5" rx="1.5" />
+          <rect x="60" y="179" width="26" height="3.5" rx="1.5" />
+        </g>
+      </QlPrinter>
+
+      <path d="M192 74L250 52" stroke={danger} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="274" cy="44" r="26" fill="#1d1d1d" stroke={danger} strokeWidth="2.5" />
+      <rect x="271" y="29" width="6" height="21" rx="3" fill={danger} />
+      <circle cx="274" cy="58" r="3.4" fill={danger} />
     </Scene>
   )
 }
