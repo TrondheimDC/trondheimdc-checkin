@@ -4,7 +4,7 @@ import { type QueryClient, useMutation, useQueryClient } from "@tanstack/react-q
 import { type Attendee, attendeeResponseSchema } from "@/lib/db/schema"
 import { apiPath } from "@/lib/utils"
 
-type AttendeeStats = { total: number; checkedIn: number }
+type AttendeeStats = { total: number; checkedIn: number; corrected: number }
 
 function applyCheckedInToSearchCaches(
   queryClient: QueryClient,

@@ -15,6 +15,12 @@ export const attendees = sqliteTable("attendees", {
   checkedInAt: text("checked_in_at"),
   /** Soft-delete when missing from a later import. Null while active. */
   deletedAt: text("deleted_at"),
+  /** Door corrections. Null = use the imported value; a re-import never touches these. */
+  nameOverride: text("name_override"),
+  companyOverride: text("company_override"),
+  roleOverride: text("role_override"),
+  /** ISO timestamp of the latest correction. Null when the badge prints as imported. */
+  correctedAt: text("corrected_at"),
 })
 
 export const checkEvents = sqliteTable(
@@ -24,8 +30,10 @@ export const checkEvents = sqliteTable(
     attendeeId: text("attendee_id")
       .notNull()
       .references(() => attendees.id),
-    action: text("action", { enum: ["in", "out"] }).notNull(),
+    action: text("action", { enum: ["in", "out", "correct"] }).notNull(),
     createdAt: text("created_at").notNull(),
+    /** JSON `{ from, to }` of name/company/role for `correct` events. */
+    detail: text("detail"),
     /** better-auth user id (printer door account or admin) that performed the action. */
     actorUserId: text("actor_user_id"),
     /** Denormalized actor name for readable history. */
@@ -37,8 +45,15 @@ export const checkEvents = sqliteTable(
   }),
 )
 
-export const attendeeSchema = createSelectSchema(attendees)
+/** What the door sees: name/company/role already carry any correction. */
+export const attendeeSchema = createSelectSchema(attendees).omit({
+  nameOverride: true,
+  companyOverride: true,
+  roleOverride: true,
+})
 export type Attendee = z.infer<typeof attendeeSchema>
+/** A row from the Checkin CSV — corrections are never part of an import. */
+export type ImportedAttendee = Omit<Attendee, "correctedAt">
 
 export const attendeesSearchResponseSchema = z.object({
   attendees: z.array(attendeeSchema),
@@ -56,11 +71,21 @@ export const attendeesSearchQuerySchema = z.object({
 export const attendeeStatsSchema = z.object({
   total: z.number().int().nonnegative(),
   checkedIn: z.number().int().nonnegative(),
+  /** Badges printed with a door correction. */
+  corrected: z.number().int().nonnegative(),
 })
 
 export const setCheckedInBodySchema = z.object({
   checkedIn: z.boolean(),
 })
+
+/** Door correction form + PUT body. Company and role may be blanked on purpose. */
+export const correctAttendeeBodySchema = z.object({
+  name: z.string().trim().min(1, "Skriv inn et navn.").max(200),
+  company: z.string().trim().max(200),
+  role: z.string().trim().max(200),
+})
+export type CorrectAttendeeBody = z.infer<typeof correctAttendeeBodySchema>
 
 export const printers = sqliteTable("printers", {
   id: text("id").primaryKey(),

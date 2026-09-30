@@ -1,12 +1,19 @@
 import { and, count, eq, inArray, isNull, like, or, sql } from "drizzle-orm"
 import { db } from "./db"
-import { type Attendee, attendees, checkEvents } from "./db/schema"
+import {
+  type Attendee,
+  attendees,
+  type CorrectAttendeeBody,
+  checkEvents,
+  type ImportedAttendee,
+} from "./db/schema"
 
 export type { Attendee }
 
 export interface AttendeeStats {
   total: number
   checkedIn: number
+  corrected: number
 }
 
 export interface ImportSyncResult {
@@ -26,7 +33,12 @@ export interface AttendeeRepository {
     checkedIn: boolean,
     actor?: { userId: string; name: string } | null,
   ): Promise<Attendee | null>
-  replaceAll(next: Attendee[], deactivateIds?: string[]): Promise<ImportSyncResult>
+  correct(
+    id: string,
+    correction: CorrectAttendeeBody,
+    actor?: { userId: string; name: string } | null,
+  ): Promise<Attendee | null>
+  replaceAll(next: ImportedAttendee[], deactivateIds?: string[]): Promise<ImportSyncResult>
 }
 
 function likePattern(query: string): string {
@@ -36,6 +48,22 @@ function likePattern(query: string): string {
 
 const active = isNull(attendees.deletedAt)
 
+type AttendeeRow = typeof attendees.$inferSelect
+
+/** Fold a door correction over the imported values; the client only sees the result. */
+function effective(row: AttendeeRow): Attendee {
+  const { nameOverride, companyOverride, roleOverride, ...rest } = row
+  return {
+    ...rest,
+    name: nameOverride ?? row.name,
+    company: companyOverride ?? row.company,
+    role: roleOverride ?? row.role,
+  }
+}
+
+const effectiveName = sql`coalesce(${attendees.nameOverride}, ${attendees.name})`
+const effectiveCompany = sql`coalesce(${attendees.companyOverride}, ${attendees.company})`
+
 export const attendeeRepository: AttendeeRepository = {
   async getById(id) {
     const rows = await db
@@ -43,7 +71,7 @@ export const attendeeRepository: AttendeeRepository = {
       .from(attendees)
       .where(and(eq(attendees.id, id), active))
       .limit(1)
-    return rows[0] ?? null
+    return rows[0] ? effective(rows[0]) : null
   },
 
   async search(query, { includeCheckedIn }) {
@@ -51,18 +79,21 @@ export const attendeeRepository: AttendeeRepository = {
     const conditions = [active]
     if (needle) {
       const pattern = likePattern(needle)
-      conditions.push(or(like(attendees.name, pattern), like(attendees.company, pattern))!)
+      conditions.push(
+        or(sql`${effectiveName} like ${pattern}`, sql`${effectiveCompany} like ${pattern}`)!,
+      )
     }
     if (!includeCheckedIn) conditions.push(isNull(attendees.checkedInAt))
     // No query yet: browsing the roster, not narrowing a search — allow more rows,
     // since staff are scanning the whole list rather than picking from a short match.
     const limit = needle ? 20 : 200
-    return db
+    const rows = await db
       .select()
       .from(attendees)
       .where(and(...conditions))
-      .orderBy(attendees.name)
+      .orderBy(effectiveName)
       .limit(limit)
+    return rows.map(effective)
   },
 
   async stats() {
@@ -70,12 +101,14 @@ export const attendeeRepository: AttendeeRepository = {
       .select({
         total: count(),
         checkedIn: sql<number>`coalesce(sum(case when ${attendees.checkedInAt} is not null then 1 else 0 end), 0)`,
+        corrected: sql<number>`coalesce(sum(case when ${attendees.correctedAt} is not null then 1 else 0 end), 0)`,
       })
       .from(attendees)
       .where(active)
     return {
       total: Number(row?.total ?? 0),
       checkedIn: Number(row?.checkedIn ?? 0),
+      corrected: Number(row?.corrected ?? 0),
     }
   },
 
@@ -96,7 +129,58 @@ export const attendeeRepository: AttendeeRepository = {
         actorUserId: actor?.userId ?? null,
         actorName: actor?.name ?? null,
       })
-      return attendee
+      return effective(attendee)
+    })
+  },
+
+  async correct(id, correction, actor) {
+    const now = new Date().toISOString()
+    return db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(attendees)
+        .where(and(eq(attendees.id, id), active))
+        .limit(1)
+      if (!row) return null
+
+      const current = effective(row)
+      const from = { name: current.name, company: current.company, role: current.role }
+      if (
+        from.name === correction.name &&
+        from.company === correction.company &&
+        from.role === correction.role
+      ) {
+        return current
+      }
+
+      // Back to what was imported: drop the override instead of storing a copy of it.
+      const asImported =
+        row.name === correction.name &&
+        row.company === correction.company &&
+        row.role === correction.role
+      const [updated] = await tx
+        .update(attendees)
+        .set(
+          asImported
+            ? { nameOverride: null, companyOverride: null, roleOverride: null, correctedAt: null }
+            : {
+                nameOverride: correction.name,
+                companyOverride: correction.company,
+                roleOverride: correction.role,
+                correctedAt: now,
+              },
+        )
+        .where(eq(attendees.id, id))
+        .returning()
+      await tx.insert(checkEvents).values({
+        attendeeId: id,
+        action: "correct",
+        createdAt: now,
+        detail: JSON.stringify({ from, to: correction }),
+        actorUserId: actor?.userId ?? null,
+        actorName: actor?.name ?? null,
+      })
+      return effective(updated!)
     })
   },
 

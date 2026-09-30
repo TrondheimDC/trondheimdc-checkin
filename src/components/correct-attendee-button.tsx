@@ -1,0 +1,142 @@
+"use client"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { LoaderCircle, Pencil } from "lucide-react"
+import { useId, useState } from "react"
+import { useForm } from "react-hook-form"
+import { BadgePreview } from "@/components/badge-preview"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { useCorrectAttendee } from "@/hooks/use-correct-attendee"
+import { type Attendee, type CorrectAttendeeBody, correctAttendeeBodySchema } from "@/lib/db/schema"
+import { labelLine } from "@/lib/label-line"
+import { cn } from "@/lib/utils"
+
+const fieldClass =
+  "h-12 w-full rounded-xl border border-white/15 bg-[var(--color-bg-base)] px-4 text-base text-[var(--color-fg-base)] outline-none focus-visible:border-[var(--color-fg-brand)] focus-visible:ring-2 focus-visible:ring-[var(--color-fg-brand)]/40"
+
+/**
+ * Overlay for a `relative` card: the whole card opens the dialog, with a small
+ * pencil in the corner that takes no layout space.
+ * Fix faulty registration data at the door. Saves as an override that a later
+ * re-import leaves alone; the badge then prints from the corrected values.
+ */
+export function CorrectAttendeeButton({
+  attendee,
+  onCorrected,
+  className,
+}: {
+  attendee: Attendee
+  onCorrected?: (attendee: Attendee) => void
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const nameId = useId()
+  const companyId = useId()
+  const roleId = useId()
+  const correct = useCorrectAttendee(attendee.id)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<CorrectAttendeeBody>({
+    resolver: zodResolver(correctAttendeeBodySchema),
+    defaultValues: { name: attendee.name, company: attendee.company, role: attendee.role },
+  })
+
+  const [name, company, role] = watch(["name", "company", "role"])
+
+  async function onSubmit(values: CorrectAttendeeBody) {
+    setError(null)
+    try {
+      const next = await correct.mutateAsync(values)
+      setOpen(false)
+      onCorrected?.(next)
+    } catch {
+      setError("Klarte ikke å lagre rettelsen. Prøv igjen.")
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Rett opp navneskilt"
+        className={cn(
+          // Not btn-press: its unlayered `position: relative` beats `absolute`.
+          "absolute inset-0 z-10 cursor-pointer touch-manipulation rounded-[inherit] transition-colors duration-150 ease-out hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-fg-brand)] active:bg-white/10",
+          className,
+        )}
+        onClick={() => {
+          reset({ name: attendee.name, company: attendee.company, role: attendee.role })
+          setError(null)
+          setOpen(true)
+        }}
+      >
+        <Pencil className="absolute top-3 right-3 size-4 opacity-60" aria-hidden />
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogTitle>Rett opp navneskilt</DialogTitle>
+
+          <form
+            className="mt-4 flex flex-col gap-4"
+            onSubmit={(event) => {
+              void handleSubmit(onSubmit)(event)
+            }}
+          >
+            <BadgePreview name={name} line2={labelLine(company, role)} />
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor={nameId} className="text-sm font-medium opacity-80">
+                Navn
+              </label>
+              <input id={nameId} className={fieldClass} autoComplete="off" {...register("name")} />
+              {errors.name ? (
+                <p className="text-sm text-[var(--color-bg-danger)]">{errors.name.message}</p>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor={companyId} className="text-sm font-medium opacity-80">
+                Bedrift
+              </label>
+              <input
+                id={companyId}
+                className={fieldClass}
+                autoComplete="off"
+                {...register("company")}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor={roleId} className="text-sm font-medium opacity-80">
+                Stilling
+              </label>
+              <input id={roleId} className={fieldClass} autoComplete="off" {...register("role")} />
+            </div>
+
+            {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
+
+            <div className="flex flex-col gap-3">
+              <Button type="submit" size="lg" disabled={correct.isPending}>
+                {correct.isPending ? (
+                  <LoaderCircle className="size-5 animate-spin" aria-hidden />
+                ) : null}
+                Lagre
+              </Button>
+              <DialogClose asChild>
+                <Button type="button" variant="surface" size="lg">
+                  Avbryt
+                </Button>
+              </DialogClose>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}

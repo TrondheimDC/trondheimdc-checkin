@@ -78,6 +78,13 @@
       "when": 1790718697334,
       "tag": "0010_remove-seed-attendees",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1790805719150,
+      "tag": "0011_attendee-corrections",
+      "breakpoints": true
     }
   ]
 }

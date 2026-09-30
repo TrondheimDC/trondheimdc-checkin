@@ -5,6 +5,7 @@ import { ScanLine, Search } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { CheckInButton } from "@/components/check-in-button"
+import { CorrectAttendeeButton } from "@/components/correct-attendee-button"
 import { PrintButton } from "@/components/print-button"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
@@ -116,10 +117,11 @@ export function AttendeeScreen({ id }: { id: string }) {
       <div className="relative pt-4">
         <TdcLogo className="search-item-in" />
 
-        <div className="attendee-badge mt-6 flex min-h-[9.5rem] flex-col justify-center rounded-2xl bg-[var(--color-black-3)] px-6 py-7">
-          <h1 className="text-4xl leading-tight sm:text-5xl">{attendee.name}</h1>
+        <div className="attendee-badge relative mt-6 flex min-h-[9.5rem] flex-col justify-center rounded-2xl bg-[var(--color-black-3)] px-6 py-7">
+          <h1 className="pr-6 text-4xl leading-tight sm:text-5xl">{attendee.name}</h1>
           {line2 ? <p className="mt-3 text-xl opacity-80">{line2}</p> : null}
           <p className="mt-5 font-mono text-xs tracking-wide break-all opacity-45">{attendee.id}</p>
+          <CorrectAttendeeButton attendee={attendee} />
         </div>
       </div>
 

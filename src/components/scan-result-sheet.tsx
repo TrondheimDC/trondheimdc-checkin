@@ -3,6 +3,7 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { CheckInButton } from "@/components/check-in-button"
+import { CorrectAttendeeButton } from "@/components/correct-attendee-button"
 import { PrintButton } from "@/components/print-button"
 import { Button } from "@/components/ui/button"
 import { useSetCheckedIn } from "@/hooks/use-set-checked-in"
@@ -57,11 +58,16 @@ export function ScanResultSheet({
       }}
     >
       <div className="attendee-reveal max-h-full w-full max-w-sm overflow-y-auto rounded-2xl bg-[var(--color-black-3)]/95 p-5 shadow-lg ring-1 ring-white/10 backdrop-blur-md">
-        <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">
-          {checkedIn ? "Allerede innsjekket" : "Ny innsjekk"}
-        </p>
-        <h2 className="font-display mt-0.5 truncate text-2xl leading-tight">{current.name}</h2>
-        {line2 ? <p className="mt-1 truncate text-base opacity-75">{line2}</p> : null}
+        <div className="relative -m-2 rounded-xl p-2">
+          <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">
+            {checkedIn ? "Allerede innsjekket" : "Ny innsjekk"}
+          </p>
+          <h2 className="font-display mt-0.5 truncate pr-6 text-2xl leading-tight">
+            {current.name}
+          </h2>
+          {line2 ? <p className="mt-1 truncate pr-6 text-base opacity-75">{line2}</p> : null}
+          <CorrectAttendeeButton attendee={current} onCorrected={setLocal} />
+        </div>
 
         <div className="mt-4 flex flex-col gap-2">
           {overrideError ? (

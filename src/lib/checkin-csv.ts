@@ -1,6 +1,6 @@
 import Papa from "papaparse"
 import { z } from "zod"
-import type { Attendee } from "./db/schema"
+import type { ImportedAttendee } from "./db/schema"
 
 /** Rows we cannot act on (not soft-deleted, not upserted). */
 export type ImportIgnoreReason = "no-barcode" | "no-name" | "duplicate"
@@ -11,7 +11,7 @@ export type ImportIgnore = {
 }
 
 export type ParsedCheckinCsv = {
-  attendees: Attendee[]
+  attendees: ImportedAttendee[]
   /** Barcodes marked cancelled / waitlist / refunded — soft-delete if present. */
   deactivateIds: string[]
   ignored: ImportIgnore[]
@@ -121,7 +121,7 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
     warnings.push("Fant ikke Stillingstittel/Job title/Billettype.")
   }
 
-  const attendees: Attendee[] = []
+  const attendees: ImportedAttendee[] = []
   const deactivateIds: string[] = []
   const deactivateSeen = new Set<string>()
   const ignored: ImportIgnore[] = []
