@@ -193,21 +193,49 @@ This project prints DK-11208.
 - How-to: [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md).
 - GraphQL API (`allEventOrderUsers` / `user.id`) is used by `tdc-sales` for sales sync; for badge print MVP the total report may be enough if barcode matches scan text. Confirm by scanning a real ticket.
 
-## Desktop printing (WebUSB) — not implemented
+## Desktop printing (WebUSB)
 
 **Decision:** desktop = **WebUSB** in Chrome/Edge over the QL’s USB-B cable. No print agent, no server→`:9100`, no system print dialog — too much operational pain.
 
-Phone path stays Smooth Print + LBX. Desktop encodes a Brother raster in-page (e.g. [`@thermal-label/brother-ql-web`](https://thermal-label.github.io/brother-ql/web)).
+Phone path stays Smooth Print + LBX. Desktop draws the badge on a canvas (`src/lib/badge-render.ts`, layout copied from `badge.lbx`) and sends Brother raster via [`@thermal-label/brother-ql-web`](https://www.npmjs.com/package/@thermal-label/brother-ql-web) (`src/lib/usb-printer.ts`). `PrintButton`, `/admin/testutskrift` and `/oppsett` pick USB when the platform is not iOS/Android.
 
-### QL-820NWBc ports (Brother specs)
+### Why not Bluetooth from PC/Mac
 
-- **USB host** (scanner on the printer): **N/A on NWBc** — desktop ticket input is PC webcam / USB HID / paste.
-- **USB device** (Type-B → PC): **yes** — WebUSB target.
-- Wi-Fi / Ethernet / Bluetooth exist but are **out of scope** for this desktop path.
+The QL-820NWB speaks **Bluetooth Classic** (SPP; MFi on iOS). Web Bluetooth only does BLE/GATT, so a web page cannot reach it. Chrome’s Web Serial can open an OS-paired RFCOMM port on Windows/Linux, but macOS dropped classic SPP serial ports — so it would not cover Mac. USB it is.
 
-Unsupported browsers (Firefox / Safari): staff copy **«Bruk en nettleser som støtter WebUSB»**, with a note that only Chromium-based browsers support it today — link [caniuse.com/webusb](https://caniuse.com/webusb).
+### Drivers
 
-Tracked under [docs/TODO.md → Desktop printing](docs/TODO.md#desktop-printing-webusb). Unverified: DK-11208 over WebUSB, desktop UI.
+- **macOS:** none. Close P-touch Editor / anything else holding the printer.
+- **Windows:** Chrome only opens USB devices bound to **WinUSB**. Windows binds the QL to its printer class driver, so staff swap it with [Zadig](https://zadig.akeo.ie/) (Options → List All Devices → QL-820NWB → WinUSB → Replace Driver). Brother’s driver / P-touch Editor lose USB access until it is rolled back in Device Manager. **Not verified on our hardware.**
+- **Linux:** udev rule for `04f9:209d` (`TAG+="uaccess"`); if the claim fails, unload `usblp`. **Not verified on our hardware.**
+- **All:** Editor Lite must be **off** (lamp off) — with it on the QL enumerates as mass storage. One tab at a time can hold the interface.
+
+Staff copy for all of this lives at `/oppsett/usb`.
+
+### Library notes (brother-ql-core 0.6.3)
+
+- QL-820NWB/NWBc = PID `0x209d`, listed as verified over USB.
+- 38 × 90 die-cut is media **id 272** (413 × 991 dots). The registry labels it “DK-11218” — wrong SKU; DK-11208 is the 38 × 90 label. Look it up by id.
+- **Registry gap:** id 272 has `leftMarginPins: 0, rightMarginPins: 0`, which encodes 413-pin rows for a 720-pin head. `printBadgeUsb` overrides to **12 / 295** (same as the library’s 38 mm continuous entry and Brother’s pin table). Most other die-cut entries have the same 0/0 gap.
+- `print()` resolves when the bytes are written. We check status (lid, media, wrong roll) **before** check-in and before sending; there is no post-print confirmation yet.
+
+### Stickers and serial check
+
+- Setup / login stickers print over USB too (`renderSticker`): name on top, QR under it, same frames as `printer.lbx` / `stasjon.lbx`. The QR is drawn in the browser (byte mode, ECC M, whole dots per module, ~2 mm quiet zone), so the LBX `cellSize` fitting is not needed.
+- Door pages pass the login’s printer (name + stored serial) to the USB store. When the USB device’s serial clearly differs, staff see «Dette ser ikke ut som printeren for …». Match rule: normalized suffix match, or equal last 9 (`C6G972070`). Unknown/short serials never warn. Warning only — never blocks printing.
+
+### Verified without hardware (2026-09-29)
+
+Headless Chromium with a fake `navigator.usb` QL: restore via `getDevices()`, status preflight, wrong roll (62 × 100) refused with no check-in, DK-11208 job = raster mode, media `38/90 die-cut`, 991 rows × 90 bytes, ink within pins 12–425. Sticker job decoded back to an image reads with ZXing as the exact setup URL. Door login with a foreign USB serial shows the mismatch warning; the last-9 form of its own serial does not.
+
+### Not verified on hardware
+
+- That the print lands on the label (margin side 12 vs 295) and reads the same way up as the phone badge. If it prints off the label, swap the margin pins; if upside down, rotate `badgePrintImage` 180°.
+- Windows Zadig and Linux udev steps.
+- What `USBDevice.serialNumber` reports vs `printers.serial` (the serial check assumes it is the barcode serial or its last 9).
+- Font match: canvas uses Helvetica/Arial for P-touch “Helsinki”.
+
+Unsupported browsers (Firefox / Safari): **«Bruk en nettleser som støtter WebUSB (Chrome eller Edge)»**, link [caniuse.com/webusb](https://caniuse.com/webusb).
 
 ## iOS field test (2026-09-26, real QL-820NWBc + iPhone Safari; onboarding + print reconfirmed 2026-09-28)
 

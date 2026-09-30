@@ -62,6 +62,7 @@ Keep the address bar in sync with the wizard so staff can refresh and deeplink.
 - Sticker QRs use `printerSetupPath` → `path=qr&step=connect` plus printer fields (skips in-app scan).
 - Happy path: install → printer Bluetooth on → **Skann QR** (Start kamera) → Smooth Print `connect` → test print. **iOS inserts OS Bluetooth pair before connect** (MFi). Fallback from scan: **Manuelt oppsett** → OS Bluetooth pair → select in Smooth Print → test print.
 - Android connect `serialnum`/`model` use the stored barcode serial and `QL-820NWBc`. iOS connect uses last-9 serial and `QL-820NWB` (matches Smooth Print’s paired list).
+- PC/Mac (not iOS/Android) get the USB wizard instead: `step` = `usb` | `connect` | `test-print`. WebUSB in Chrome/Edge; no Smooth Print. Driver help at `/oppsett/usb`.
 - Android: after install, press Ferdig — do **not** open Smooth Print. A cold start on connect asks for permissions/terms, then returns to the browser. Force-close only before test print so the overlay dialog appears.
 
 ## Interactive controls

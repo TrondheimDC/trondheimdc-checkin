@@ -5,7 +5,8 @@ import { type ConnectType, DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
 import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
 import { apiPath } from "@/lib/utils"
-import { SetupFlow, type SetupStepId } from "./setup-flow"
+import { SetupEntry } from "./setup-entry"
+import type { SetupStepId } from "./setup-flow"
 
 const STEP_IDS = new Set<SetupStepId>([
   "install",
@@ -60,7 +61,8 @@ export default async function SetupPage({
   return (
     <>
       <link rel="preload" as="image" href="/oppsett/smooth-print.jpg" />
-      <SetupFlow
+      <SetupEntry
+        rawStep={query.step ?? null}
         androidUrl={androidUrl}
         initialPlatform={initialPlatform}
         initialPath={initialPath}

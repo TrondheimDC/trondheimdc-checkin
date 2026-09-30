@@ -145,12 +145,17 @@ Secure context + user gesture for the device picker. Confirm **DK-11208** media 
 
 Tasks:
 
-- [ ] Spike: WebUSB print one DK-11208 badge from Chrome to QL-820NWBc; note media id, orientation, margins vs phone LBX
-- [ ] Design `/oppsett/desktop` — Chromium + USB connect + test print
-- [ ] Decide UI: adapt screens vs explicit desktop mode; ticket input without phone camera
-- [ ] Wire attendee confirm → WebUSB print; keep Smooth Print for phones
-- [ ] Document Chrome/Edge-only and USB topology in [RESEARCH.md](../RESEARCH.md)
-- [ ] Decide: ship for a later conference, or park after spike
+- [x] Canvas badge renderer from the LBX layout (`src/lib/badge-render.ts`) + live preview in `/admin/testutskrift`
+- [x] WebUSB connection store (`src/lib/usb-printer.ts`): picker, silent reconnect via `getDevices()`, status preflight, Norwegian errors
+- [x] `/oppsett` on PC/Mac → USB wizard (`usb` → `connect` → `test-print`); driver help at `/oppsett/usb`
+- [x] Wire attendee confirm → WebUSB print (`PrintButton`); check-in only after the printer checks out; phones keep Smooth Print
+- [x] Document Chrome/Edge-only, drivers and library gaps in [RESEARCH.md](../RESEARCH.md#desktop-printing-webusb)
+- [ ] **Hardware:** print one badge from Chrome on Mac — lands on the label (margin pins 12/295), same way up as phone, font looks right
+- [ ] **Hardware:** Windows (Zadig → WinUSB) and Linux (udev) connect
+- [x] Printer stickers (`admin/sticker.tsx`) over USB — setup + login QR drawn in the browser (`renderSticker`)
+- [x] Warn when the USB serial does not match this door login’s printer (`/oppsett` connect step + print buttons; warning only)
+- [ ] **Hardware:** what the QL reports as `USBDevice.serialNumber` — confirm the serial check does not false-alarm
+- [ ] **Hardware:** scan a USB-printed sticker QR with a phone
 
 ### Own P-touch / template editor
 

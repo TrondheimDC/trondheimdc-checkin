@@ -4,8 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { LoaderCircle, Printer } from "lucide-react"
 import { useId, useState } from "react"
 import { useForm } from "react-hook-form"
+import { BadgePreview } from "@/components/badge-preview"
 import { Button } from "@/components/ui/button"
+import {
+  UsbConnectButton,
+  UsbPrintMessage,
+  usbBlocksPrint,
+  usbNeedsConnect,
+} from "@/components/usb-connect"
 import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
+import { currentPrintMethod, type PrintMethod, usePrintMethod } from "@/lib/print-method"
 import {
   getPrintSample,
   PRINT_SAMPLES,
@@ -18,17 +26,20 @@ import {
   DEFAULT_PAPER_SIZE_ID,
   loadTemplateBase64,
 } from "@/lib/print-url"
+import { printBadgeUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
 import { apiPath, cn } from "@/lib/utils"
 
 const fieldClass =
   "h-12 w-full rounded-xl border border-white/15 bg-[var(--color-bg-base)] px-4 text-base text-[var(--color-fg-base)] outline-none focus-visible:border-[var(--color-fg-brand)] focus-visible:ring-2 focus-visible:ring-[var(--color-fg-brand)]/40"
 
-export function TestPrintForm() {
+export function TestPrintForm({ initialPrintMethod }: { initialPrintMethod: PrintMethod }) {
   const sampleIdField = useId()
   const nameId = useId()
   const line2Id = useId()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const usbMode = usePrintMethod(initialPrintMethod) === "usb"
+  const usb = useUsbPrinter()
 
   const {
     register,
@@ -45,6 +56,8 @@ export function TestPrintForm() {
   })
 
   const sampleId = watch("sampleId")
+  const name = watch("name")
+  const line2 = watch("line2")
   const sample = getPrintSample(sampleId) ?? PRINT_SAMPLES[0]!
 
   async function onSubmit(values: TestPrintFormValues) {
@@ -53,6 +66,16 @@ export function TestPrintForm() {
 
     setError(null)
     setBusy(true)
+    if (currentPrintMethod() === "usb") {
+      try {
+        await printBadgeUsb({ name: values.name, line2: values.line2, template: chosen.template })
+      } catch (caught) {
+        setError(caught instanceof UsbPrintError ? caught.message : "Klarte ikke å skrive ut.")
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
     try {
       const fileBase64 = await loadTemplateBase64(chosen.template)
       const input = {
@@ -111,7 +134,9 @@ export function TestPrintForm() {
       </div>
 
       <div className="flex min-h-[9.5rem] flex-col items-center justify-center gap-3 rounded-2xl bg-[var(--color-bg-surface)] px-6 py-6 text-center">
-        {sample.preview ? (
+        {usbMode ? (
+          <BadgePreview name={name} line2={line2} template={sample.template} />
+        ) : sample.preview ? (
           // eslint-disable-next-line @next/next/no-img-element -- static badge preview asset
           <img
             src={apiPath(sample.preview)}
@@ -150,16 +175,24 @@ export function TestPrintForm() {
         </div>
       </div>
 
-      {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
+      {usbMode ? (
+        <UsbPrintMessage usb={usb} error={error} />
+      ) : error ? (
+        <p className="text-base text-[var(--color-bg-danger)]">{error}</p>
+      ) : null}
 
-      <Button type="submit" size="lg" disabled={busy}>
-        {busy ? (
-          <LoaderCircle className="size-5 animate-spin" aria-hidden />
-        ) : (
-          <Printer className="size-5" aria-hidden />
-        )}
-        {busy ? "Henter mal…" : "Skriv ut prøve"}
-      </Button>
+      {usbMode && usbNeedsConnect(usb) ? (
+        <UsbConnectButton />
+      ) : (
+        <Button type="submit" size="lg" disabled={busy || (usbMode && usbBlocksPrint(usb))}>
+          {busy ? (
+            <LoaderCircle className="size-5 animate-spin" aria-hidden />
+          ) : (
+            <Printer className="size-5" aria-hidden />
+          )}
+          {busy ? (usbMode ? "Skriver ut…" : "Henter mal…") : "Skriv ut prøve"}
+        </Button>
+      )}
     </form>
   )
 }

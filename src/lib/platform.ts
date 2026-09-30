@@ -40,3 +40,10 @@ export function supportsAndroidIntent(
   if (!/android/i.test(ua) || /firefox|fxios/i.test(ua)) return false
   return /chrome|edga|edg\/|samsungbrowser|opr\//i.test(ua)
 }
+
+/** Phones print through Smooth Print; PC/Mac print over USB (WebUSB). */
+export type PrintMethod = "smooth-print" | "usb"
+
+export function printMethodFor(platform: PhonePlatform): PrintMethod {
+  return platform === "other" ? "usb" : "smooth-print"
+}

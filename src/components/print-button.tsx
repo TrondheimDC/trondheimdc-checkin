@@ -10,7 +10,14 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  UsbConnectButton,
+  UsbPrintMessage,
+  usbBlocksPrint,
+  usbNeedsConnect,
+} from "@/components/usb-connect"
 import { type PhonePlatform, refinePlatform, supportsAndroidIntent } from "@/lib/platform"
+import { currentPrintMethod, usePrintMethod } from "@/lib/print-method"
 import { consumePrintOutcome, primeForIosTabReuse } from "@/lib/print-outcome"
 import {
   buildAndroidPrintIntent,
@@ -19,6 +26,7 @@ import {
   loadTemplateBase64,
   type PrintCallback,
 } from "@/lib/print-url"
+import { printBadgeUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
 import { apiPath } from "@/lib/utils"
 
 /**
@@ -72,6 +80,10 @@ export function PrintButton({
   const platform = refinePlatform(platformProp)
   const alreadyPrinted = checkedIn || printed
   const autoPrintStarted = useRef(false)
+  const method = usePrintMethod()
+  const usb = useUsbPrinter()
+  const usbMode = method === "usb"
+  const usbReady = usb.kind === "ready"
 
   useEffect(() => {
     const result = consumePrintOutcome(platform)
@@ -107,7 +119,34 @@ export function PrintButton({
     }
   }
 
+  async function printUsb({ checkIn }: { checkIn: boolean }) {
+    setError(null)
+    setBusy(true)
+    try {
+      await printBadgeUsb(
+        { name, line2 },
+        { beforeSend: checkIn && onCheckIn ? onCheckIn : undefined },
+      )
+      setPrinted(true)
+      onPrinted?.()
+    } catch (caught) {
+      setError(
+        caught instanceof UsbPrintError
+          ? caught.message
+          : checkIn
+            ? "Klarte ikke å sjekke inn. Prøv igjen."
+            : "Klarte ikke å skrive ut. Prøv igjen.",
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function print({ checkIn }: { checkIn: boolean }) {
+    if (currentPrintMethod() === "usb") {
+      await printUsb({ checkIn })
+      return
+    }
     setError(null)
     setBusy(true)
     try {
@@ -129,30 +168,47 @@ export function PrintButton({
 
   useEffect(() => {
     if (autoPrint !== true || checkedIn || alreadyPrinted || autoPrintStarted.current) return
+    if (method === null) return
+    // USB can only auto-print to a printer that is already open (the picker needs a tap).
+    if (method === "usb" && !usbReady) return
     autoPrintStarted.current = true
     void print({ checkIn: Boolean(onCheckIn) })
     // Intentionally once per mount when autoPrint is explicitly true.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPrint, checkedIn])
+  }, [autoPrint, checkedIn, method, usbReady])
 
   return (
     <div className="flex flex-col gap-3">
-      {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
-      <Button
-        size="lg"
-        disabled={busy}
-        onClick={() => {
-          if (alreadyPrinted) setConfirmOpen(true)
-          else void print({ checkIn: Boolean(onCheckIn) })
-        }}
-      >
-        {busy ? (
-          <LoaderCircle className="size-5 animate-spin" aria-hidden />
-        ) : (
-          <Printer className="size-5" aria-hidden />
-        )}
-        {busy ? "Henter mal…" : alreadyPrinted ? doneLabel : idleLabel}
-      </Button>
+      {usbMode ? (
+        <UsbPrintMessage usb={usb} error={error} />
+      ) : error ? (
+        <p className="text-base text-[var(--color-bg-danger)]">{error}</p>
+      ) : null}
+      {usbMode && usbNeedsConnect(usb) ? (
+        <UsbConnectButton />
+      ) : (
+        <Button
+          size="lg"
+          disabled={busy || (usbMode && usbBlocksPrint(usb))}
+          onClick={() => {
+            if (alreadyPrinted) setConfirmOpen(true)
+            else void print({ checkIn: Boolean(onCheckIn) })
+          }}
+        >
+          {busy ? (
+            <LoaderCircle className="size-5 animate-spin" aria-hidden />
+          ) : (
+            <Printer className="size-5" aria-hidden />
+          )}
+          {busy
+            ? usbMode
+              ? "Skriver ut…"
+              : "Henter mal…"
+            : alreadyPrinted
+              ? doneLabel
+              : idleLabel}
+        </Button>
+      )}
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>

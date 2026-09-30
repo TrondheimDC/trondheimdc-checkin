@@ -11,8 +11,15 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  UsbConnectButton,
+  UsbPrintMessage,
+  usbBlocksPrint,
+  usbNeedsConnect,
+} from "@/components/usb-connect"
 import { fitStickerQrCellSize } from "@/lib/lbx-patch"
 import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
+import { currentPrintMethod, usePrintMethod } from "@/lib/print-method"
 import {
   buildAndroidStickerIntent,
   buildStickerPrintUrl,
@@ -20,6 +27,7 @@ import {
   loadTemplateBase64,
 } from "@/lib/print-url"
 import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
+import { printStickerUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
 import { apiPath } from "@/lib/utils"
 
 export function StickerPreview({ name, url }: { name: string; url: string }) {
@@ -126,8 +134,29 @@ export function PrintStickerButton({
   templateFile?: string
 }) {
   const [busy, setBusy] = useState(false)
+  const [usbError, setUsbError] = useState<string | null>(null)
+  const usbMode = usePrintMethod() === "usb"
+  const usb = useUsbPrinter()
+
+  async function printUsb() {
+    setUsbError(null)
+    setBusy(true)
+    try {
+      // Drawn in the browser, so no LBX cellSize fitting — the QR is sized to the label.
+      await printStickerUsb({ name, qr: url })
+      toast.success("Etiketten er sendt til printeren.")
+    } catch (caught) {
+      setUsbError(caught instanceof UsbPrintError ? caught.message : "Klarte ikke å skrive ut.")
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function print() {
+    if (currentPrintMethod() === "usb") {
+      await printUsb()
+      return
+    }
     setBusy(true)
     try {
       let fileBase64 = await loadTemplateBase64(templateFile)
@@ -156,14 +185,30 @@ export function PrintStickerButton({
     }
   }
 
+  const button =
+    usbMode && usbNeedsConnect(usb) ? (
+      <UsbConnectButton />
+    ) : (
+      <Button
+        type="button"
+        size="lg"
+        disabled={busy || !name || !url || (usbMode && usbBlocksPrint(usb))}
+        onClick={() => void print()}
+      >
+        {busy ? (
+          <LoaderCircle className="size-5 animate-spin" aria-hidden />
+        ) : (
+          <Printer className="size-5" aria-hidden />
+        )}
+        Skriv ut etikett
+      </Button>
+    )
+
+  if (!usbMode) return button
   return (
-    <Button type="button" size="lg" disabled={busy || !name || !url} onClick={() => void print()}>
-      {busy ? (
-        <LoaderCircle className="size-5 animate-spin" aria-hidden />
-      ) : (
-        <Printer className="size-5" aria-hidden />
-      )}
-      Skriv ut etikett
-    </Button>
+    <div className="flex w-full flex-col gap-2">
+      <UsbPrintMessage usb={usb} error={usbError} />
+      {button}
+    </div>
   )
 }
