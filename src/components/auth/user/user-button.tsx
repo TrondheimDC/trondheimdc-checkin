@@ -110,14 +110,6 @@ export function UserButton({
     return [renderUserLink(link, navigate, `user-button-link-${index.toString()}`)]
   })
 
-  // Whether anything renders between the user info label and the
-  // sign-out item, so the leading separator isn't shown with nothing
-  // to separate (see #439).
-  const hasSessionMenuItems =
-    (userLinks?.length ?? 0) > 0 ||
-    !hideSettings ||
-    plugins.some((plugin) => (plugin.userMenuItems?.length ?? 0) > 0)
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -150,7 +142,7 @@ export function UserButton({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="min-w-40 md:min-w-56 max-w-[48svw]"
+        className="min-w-40 max-w-[48svw] rounded-xl border-white/10 p-1.5 outline-none md:min-w-56"
         side={side}
         sideOffset={sideOffset}
         align={align}
@@ -163,7 +155,7 @@ export function UserButton({
               </DropdownMenuLabel>
             </DropdownMenuGroup>
 
-            {hasSessionMenuItems && <DropdownMenuSeparator />}
+            <DropdownMenuSeparator />
           </>
         )}
 
@@ -191,9 +183,8 @@ export function UserButton({
               )),
             )}
 
-            <DropdownMenuSeparator />
-
             <DropdownMenuItem
+              className="cursor-pointer py-2.5"
               onClick={() =>
                 navigate({
                   to: `${basePaths.auth}/${viewPaths.auth.signOut}`,

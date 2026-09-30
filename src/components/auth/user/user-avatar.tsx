@@ -46,13 +46,13 @@ export function UserAvatar({ className, user, isPending, fallback }: UserAvatarP
     .toUpperCase()
 
   return (
-    <Avatar className={cn("size-8 bg-muted text-foreground text-sm rounded-full", className)}>
+    <Avatar className={cn("size-8 rounded-full bg-[var(--color-fg-brand)] text-sm", className)}>
       <AvatarImage
         src={resolvedUser?.image ?? undefined}
         alt={resolvedUser?.displayUsername || resolvedUser?.name || resolvedUser?.email}
       />
 
-      <AvatarFallback className="text-muted-foreground!">
+      <AvatarFallback className="bg-[var(--color-fg-brand)] font-semibold text-[var(--color-fg-always-dark)]">
         {fallback || initials || <User2 className="size-4" />}
       </AvatarFallback>
     </Avatar>
