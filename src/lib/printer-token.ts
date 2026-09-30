@@ -57,7 +57,7 @@ export function normalizePrinterTokenBodyInput(raw: string): string {
 }
 
 /**
- * Normalize pasted Slack text, full login URL, raw `prt_…`, or body-only
+ * Normalize pasted text, full login URL, raw `prt_…`, or body-only
  * into the canonical external token (`prt_` + body). Returns null if invalid.
  */
 export function parsePrinterTokenInput(raw: string): PrinterToken | null {

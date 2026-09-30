@@ -158,7 +158,8 @@ export function EnrollPrinter({ origin }: { origin: string }) {
       <header className="pt-2">
         <h1 className="text-4xl">Ny printer</h1>
         <p className="mt-2 max-w-xl text-base opacity-70">
-          Les av printeren, lagre, skriv ut oppsett-QR og innloggings-QR. Del PIN på Slack.
+          Les av printeren, lagre, skriv ut oppsett-QR og innloggings-QR. Del PIN-en med de som skal
+          bruke printeren.
         </p>
       </header>
 
@@ -192,7 +193,7 @@ export function EnrollPrinter({ origin }: { origin: string }) {
             />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <p className="text-sm opacity-70">PIN (Slack)</p>
+            <p className="text-sm opacity-70">PIN</p>
             <p className="font-mono text-3xl tracking-[0.35em] tabular-nums">{saved.pin}</p>
           </div>
           <Button asChild variant="surface">

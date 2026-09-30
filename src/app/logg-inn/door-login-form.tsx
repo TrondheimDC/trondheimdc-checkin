@@ -160,7 +160,7 @@ export function DoorLoginForm() {
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Innsjekk</h1>
           <p className="text-sm text-[var(--color-fg-base)]/70">
-            Skann QR under printeren, eller lim inn kode/lenke fra Slack. Deretter PIN fra Slack.
+            Skann QR under printeren, eller lim inn kode eller lenke. Deretter PIN.
           </p>
         </div>
 
@@ -254,9 +254,7 @@ export function DoorLoginForm() {
       <form onSubmit={onSubmitPin} className="mx-auto flex w-full max-w-sm flex-col gap-6">
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Innsjekk</h1>
-          <p className="text-sm text-[var(--color-fg-base)]/70">
-            Angi PIN fra Slack for å logge inn.
-          </p>
+          <p className="text-sm text-[var(--color-fg-base)]/70">Angi PIN for å logge inn.</p>
           <p className="font-mono text-xs opacity-50">
             <span className="opacity-60">{PRINTER_TOKEN_PREFIX_LABEL}</span>
             {printerTokenBody(token)}

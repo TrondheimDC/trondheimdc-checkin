@@ -453,8 +453,8 @@ function RotatePinButton({
         <DialogContent>
           <DialogTitle>Rotere PIN?</DialogTitle>
           <DialogDescription>
-            Den gamle PIN-en for {name} slutter å virke. Innloggings-QR er uendret. Del ny PIN på
-            Slack.
+            Den gamle PIN-en for {name} slutter å virke. Innloggings-QR er uendret. Del den nye
+            PIN-en.
           </DialogDescription>
           <div className="mt-6 flex flex-col gap-3">
             <Button size="lg" disabled={rotate.isPending} onClick={() => rotate.mutate()}>
@@ -623,7 +623,7 @@ export function PrinterInventory({
         <div>
           <h1 className="text-4xl">Printere</h1>
           <p className="mt-2 max-w-xl text-base opacity-70">
-            Oppsett-QR synlig på printeren. Innloggings-QR under. PIN på Slack.
+            Oppsett-QR synlig på printeren. Innloggings-QR under.
           </p>
         </div>
         <Button asChild>
@@ -638,7 +638,7 @@ export function PrinterInventory({
           </div>
           <h2 className="text-2xl">Ingen printere</h2>
           <p className="max-w-sm text-base opacity-70">
-            Legg inn en printer, skriv ut klistremerkene, del PIN på Slack.
+            Legg inn en printer, skriv ut klistremerkene og del PIN-en.
           </p>
           <Button asChild>
             <Link href="/admin/printers/ny">Ny printer</Link>
