@@ -33,13 +33,8 @@ export const metadata: Metadata = {
     title: "TDC Innsjekk",
     description: "Skann QR, sjekk inn og skriv ut navneskilt for TDC.",
   },
-  icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", type: "image/png" },
-    ],
-    apple: [{ url: "/apple-touch-icon.png" }],
-  },
+  // Staff tool — keep login pages out of search results.
+  robots: { index: false, follow: false },
 }
 
 export const viewport: Viewport = {

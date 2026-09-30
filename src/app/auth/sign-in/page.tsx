@@ -1,5 +1,8 @@
+import type { Metadata } from "next"
 import { Auth } from "@/components/auth/auth"
 import { TdcLogo } from "@/components/tdc-logo"
+
+export const metadata: Metadata = { title: "Logg inn som admin" }
 
 export default function AdminSignInPage() {
   return (

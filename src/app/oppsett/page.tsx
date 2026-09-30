@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { userAgent } from "next/server"
 import { desktopOsFromName, platformFromOsName } from "@/lib/platform"
@@ -7,6 +8,8 @@ import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
 import { apiPath } from "@/lib/utils"
 import { SetupEntry } from "./setup-entry"
 import type { SetupStepId } from "./setup-flow"
+
+export const metadata: Metadata = { title: "Oppsett" }
 
 const STEP_IDS = new Set<SetupStepId>([
   "install",

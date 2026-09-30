@@ -1,4 +1,7 @@
+import type { Metadata } from "next"
 import { AndroidInstallFlow } from "./android-install-flow"
+
+export const metadata: Metadata = { title: "Installer Smooth Print" }
 
 export default function AndroidInstallPage() {
   return (

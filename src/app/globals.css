@@ -3,6 +3,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Native controls, scrollbars and autofill follow the dark UI. */
+  color-scheme: dark;
   --color-white-1: #fefefe;
   --color-white-2: #f4f4f4;
   --color-black: #0f0f0f;
@@ -99,6 +101,13 @@ body {
   min-height: 100%;
   /* Kill sideways rubber-band without blocking pull-to-refresh. */
   overscroll-behavior-x: none;
+  /* Buttons draw their own press state (btn-press). */
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--color-fg-brand);
+  color: var(--color-fg-always-dark);
 }
 
 body {
@@ -747,15 +756,4 @@ button.checkin-btn.checkin-btn--checked:hover {
     0 24px 60px -20px color-mix(in srgb, black 70%, transparent),
     0 0 48px -12px color-mix(in srgb, var(--color-fg-brand) 25%, transparent);
   animation: auth-card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
-}
-
-.dark {
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }

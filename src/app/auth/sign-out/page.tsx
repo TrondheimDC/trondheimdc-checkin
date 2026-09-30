@@ -1,4 +1,7 @@
+import type { Metadata } from "next"
 import { Auth } from "@/components/auth/auth"
+
+export const metadata: Metadata = { title: "Logg ut" }
 
 export default function AdminSignOutPage() {
   return (

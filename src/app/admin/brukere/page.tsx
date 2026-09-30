@@ -1,4 +1,7 @@
+import type { Metadata } from "next"
 import { Admin } from "@/components/auth/admin/admin"
+
+export const metadata: Metadata = { title: "Brukere" }
 
 export default function AdminBrukerePage() {
   return (

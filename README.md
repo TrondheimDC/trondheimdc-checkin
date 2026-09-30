@@ -57,7 +57,7 @@ docker build -t innsjekk:latest .
 docker compose up -d   # needs a .env next to compose; serves 127.0.0.1:3010
 ```
 
-Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` at build time and point nginx at the container. Auth is in-app (better-auth: admins + innsjekkstasjoner) — do not put HTTP basic auth in front of the whole app (breaks phones, APK download, and setup deep links). See [docs/auth-stasjoner.md](docs/auth-stasjoner.md).
+Serve at `/`, or set `NEXT_PUBLIC_BASE_PATH` at build time and point nginx at the container. Auth is in-app (better-auth: admins + innsjekkstasjoner) — do not put HTTP basic auth in front of the whole app (breaks phones, APK download, and setup deep links). See [docs/auth-printers.md](docs/auth-printers.md).
 
 Optional one-shot seed (same as boot):
 
@@ -109,7 +109,7 @@ The browser cannot see whether the printer is connected — staff confirm that i
 |---|---|
 | [docs/deploy.md](docs/deploy.md) | Production deploy: Docker save/load, Compose, server bootstrap |
 | [docs/checkin-totalrapport.md](docs/checkin-totalrapport.md) | Export attendees from Checkin and import them |
-| [docs/auth-stasjoner.md](docs/auth-stasjoner.md) | Decided auth: better-auth, admins, innsjekkstasjoner, stickers |
+| [docs/auth-printers.md](docs/auth-printers.md) | Decided auth: better-auth, admins, innsjekkstasjoner, stickers |
 | [docs/usb-printing.md](docs/usb-printing.md) | Desktop printing over USB: setup for Mac, Windows (Zadig) and Linux, troubleshooting |
 | [docs/MVP-verification.md](docs/MVP-verification.md) | Hardware QA checklist before calling MVP done |
 | [docs/TODO.md](docs/TODO.md) | Remaining work (MVP polish, Checkin API, pairing, templates) |

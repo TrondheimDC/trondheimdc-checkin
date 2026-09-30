@@ -1,6 +1,9 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { apiPath } from "@/lib/utils"
+
+export const metadata: Metadata = { title: "Bluetooth-hjelp" }
 
 export default function BluetoothPairHelpPage() {
   return (
