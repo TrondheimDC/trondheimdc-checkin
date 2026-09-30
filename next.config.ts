@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
+  // proxy.ts runs on /api/smooth-print/apks; Next buffers the body and cuts it at 10 MB by default.
+  experimental: {
+    proxyClientMaxBodySize: "300mb",
+  },
   // Keep Drizzle SQL migrations in the standalone trace (also copied in Dockerfile).
   outputFileTracingIncludes: {
     "/*": ["./drizzle/**/*"],

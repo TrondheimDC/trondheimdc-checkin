@@ -171,7 +171,7 @@ sudo certbot --nginx -d innsjekk.trondheimdc.no
 After certbot edits the file, in the **`listen 443`** server block set (keep certbot’s `ssl_certificate*` lines):
 
 ```nginx
-    client_max_body_size 100m;
+    client_max_body_size 300m;
 
     location / {
         proxy_pass http://127.0.0.1:3010;

@@ -158,7 +158,7 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
 
     # Smooth Print APK upload
-    client_max_body_size 100m;
+    client_max_body_size 300m;
 
     location / {
         proxy_pass http://127.0.0.1:$PORT;
