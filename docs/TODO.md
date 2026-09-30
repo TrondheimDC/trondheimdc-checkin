@@ -35,7 +35,7 @@ Tasks:
 - [x] Retest on iOS: tab-reuse pre-set works — Safari reuses the tab. But it still does a **full reload** (not caused by our own `replaceState` calls, confirmed — see [RESEARCH.md](../RESEARCH.md)), which flashes the whole app + attendee loading skeletons on every print
 - [x] Android badge print: omit `successCallback`/`failureCallback` — Chrome always opened a new tab per callback (worse than Smooth Print's dialog on the same tab). Dialog only works if Smooth Print is **not** already in the background; otherwise print switches into the app. iOS keeps the callback + address-bar pre-set. See [RESEARCH.md → Android omit](../RESEARCH.md#android-omit-print-callbacks--decision-2026-09-27)
 - [x] Faster turnaround idea (navigate to `/` via `visibilitychange` as soon as the tab regains focus after Smooth Print, instead of waiting on the callback's reload): tried, found a bug before it ever reached hardware (flag never clears on a successful print since a reload never fires `visibilitychange`, so the next unrelated app-switch would misfire a navigation), reverted — see [RESEARCH.md](../RESEARCH.md). Worth another idea for turnaround speed, but not this one as-is
-- [ ] Attendee list at 900 people: decide whether `/sok` should show everyone by default when the search box is empty (currently only searches once you type). Full virtualization is real integration work, not cheap — `cmdk`'s keyboard nav (arrow keys / Home / End) queries the live DOM for all rendered items, so a windowed subset breaks it unless carefully coordinated. Cheaper path: cap the default list (e.g. first ~150) or paginate/"load more", not true virtualization; needs a persisted setting too if we keep the current empty-state (`useLocalFlag`, same pattern as "Vis innsjekkede")
+- [x] Attendee list at 900 people (fine at ~700 on real use, so no cap or pagination): decide whether `/sok` should show everyone by default when the search box is empty (currently only searches once you type). Full virtualization is real integration work, not cheap — `cmdk`'s keyboard nav (arrow keys / Home / End) queries the live DOM for all rendered items, so a windowed subset breaks it unless carefully coordinated. Cheaper path: cap the default list (e.g. first ~150) or paginate/"load more", not true virtualization; needs a persisted setting too if we keep the current empty-state (`useLocalFlag`, same pattern as "Vis innsjekkede")
 
 ## Before the conference (MVP polish)
 
@@ -74,7 +74,7 @@ better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer als
 - [ ] Confirm the generated `printer.lbx` QR actually prints on the QL (template is hand-built, not from P-touch Editor)
 - [x] Guide illustrations share one SVG kit (`src/components/illustrations`) drawn after the real QL-820NWBc: `/oppsett` Bluetooth, pair, scan (sticker on the front); `/logg-inn` (underside → printer); enroll + empty inventory
 - [x] Login sticker says «Logg inn · {name}» so it can’t be mixed up with the setup sticker (bare name). Stickers printed before this still work — reprint only if you want the new text (same token)
-- [ ] **Blocker:** `/oppsett` confirm step (`step=confirm`, manual path) needs a real Smooth Print screenshot — portrait, printer selected. Shows the app icon as a placeholder until then. Capture on a paired phone, drop it in `public/oppsett/`, point `CONFIRM_IOS` / `CONFIRM_ANDROID` at it, and drop the icon styling for that step in `setup-flow.tsx`
+- [x] `/oppsett` confirm step (`step=confirm`, manual path) uses real Smooth Print screenshots
 - [x] Replace attendee list via API; show import counts / skipped rows
 - [x] Keep CLI import as a fallback ([checkin-totalrapport.md](./checkin-totalrapport.md))
 
@@ -85,7 +85,7 @@ better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer als
 - [x] Smoke-test print on **iOS Safari** (2026-09-28; badge print OK — see [RESEARCH.md](../RESEARCH.md))
 - [ ] Re-import totalrapport near the event (and morning-of) so late signups / cancellations are in
 - [x] Phone↔printer topology: **one phone per printer** (agreed; Brother does not document whether a second phone can steal Bluetooth while the first is still paired)
-- [ ] **Deploy:** HTTPS + base path / nginx on the conference host (camera + custom schemes need secure context; no basic auth in front — app sessions). Biggest remaining MVP gap.
+- [x] **Deploy:** HTTPS + base path / nginx on the conference host (camera + custom schemes need secure context; no basic auth in front — app sessions). Live; nginx `client_max_body_size` raised to 300m for APK uploads.
 
 ## Beyond MVP
 
@@ -150,12 +150,12 @@ Tasks:
 - [x] `/oppsett` on PC/Mac → USB wizard (`usb` → `driver` (Windows/Linux only) → `connect` → `test-print`)
 - [x] Wire attendee confirm → WebUSB print (`PrintButton`); check-in only after the printer checks out; phones keep Smooth Print
 - [x] Document Chrome/Edge-only, drivers and library gaps in [RESEARCH.md](../RESEARCH.md#desktop-printing-webusb)
-- [ ] **Hardware:** print one badge from Chrome on Mac — lands on the label (margin pins 12/295), same way up as phone, font looks right
+- [x] **Hardware:** print one badge from Chrome on Mac — lands on the label (margin pins 12/295), same way up as phone, font looks right
 - [x] **Hardware:** Mac and Windows (Zadig → WinUSB) connect
 - [ ] **Hardware:** Linux (udev) connect
 - [x] Printer stickers (`admin/sticker.tsx`) over USB — setup + login QR drawn in the browser (`renderSticker`)
 - [x] Warn when the USB serial does not match this door login’s printer (`/oppsett` connect step + print buttons; warning only)
-- [ ] **Hardware:** what the QL reports as `USBDevice.serialNumber` — confirm the serial check does not false-alarm
+- [ ] **Hardware:** the QL's `USBDevice.serialNumber` does **not** match the serial on the device (seen on hardware, exact value not recorded). `usbSerialMatches` will then warn on every correct printer. Log the real value, then fix the match or drop the warning
 - [ ] **Hardware:** scan a USB-printed sticker QR with a phone
 
 ### Own P-touch / template editor
