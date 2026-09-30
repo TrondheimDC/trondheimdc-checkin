@@ -3,6 +3,7 @@
 import { LoaderCircle, Printer, QrCode } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -27,10 +28,25 @@ import {
   loadTemplateBase64,
 } from "@/lib/print-url"
 import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
+import { setupStickerText } from "@/lib/public-app-url"
 import { printStickerUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
 import { apiPath } from "@/lib/utils"
 
-export function StickerPreview({ name, url }: { name: string; url: string }) {
+/**
+ * On-screen stand-in for the landscape DK-11208 sticker (90 × 38 mm): QR on the
+ * left, name and TDC art on the right. Mirrors printer.lbx / stasjon.lbx, which
+ * scripts/build-sticker-templates.py generates.
+ */
+export function StickerPreview({
+  name,
+  url,
+  variant = "setup",
+}: {
+  name: string
+  url: string
+  /** `login` is the stasjon.lbx sticker that covers the printer's model label. */
+  variant?: "setup" | "login"
+}) {
   const [src, setSrc] = useState<string | null>(null)
 
   useEffect(() => {
@@ -43,20 +59,38 @@ export function StickerPreview({ name, url }: { name: string; url: string }) {
     }
   }, [url])
 
+  const login = variant === "login"
+
   return (
-    <div className="mx-auto flex w-40 flex-col items-center rounded-2xl bg-[var(--color-white-1)] px-3 py-4 text-[var(--color-black)]">
-      <p
-        className={`w-full truncate text-center font-display font-bold ${
-          name.length > 14 ? "text-sm" : name.length > 10 ? "text-base" : "text-lg"
-        }`}
-      >
-        {name || "Navn"}
-      </p>
+    <div className="mx-auto flex aspect-[90/38] w-80 max-w-full gap-[4%] rounded-xl bg-[var(--color-white-1)] p-[3%] text-[var(--color-black)]">
       {src ? (
-        <img src={src} alt="" className="mt-2 size-32" />
+        <img src={src} alt="" className="aspect-square h-full" />
       ) : (
-        <div className="mt-2 size-32 bg-black/10" />
+        <div className="aspect-square h-full bg-black/10" />
       )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <p className="h-2 self-end text-[0.5rem] font-bold leading-none">
+          {login ? "Model QL-820NWBc" : null}
+        </p>
+        <p
+          className={`mt-1 truncate font-bold leading-tight ${
+            name.length > 24 ? "text-xs" : name.length > 18 ? "text-sm" : "text-base"
+          }`}
+        >
+          {name || "Navn"}
+        </p>
+        <div className="mt-auto flex items-end justify-between gap-2 [--color-fg-brand:var(--color-black)]">
+          <img
+            src={apiPath("/badge/8bit-duck-dither.png")}
+            alt=""
+            className="size-12 [image-rendering:pixelated]"
+          />
+          <div className="flex flex-col items-end gap-1">
+            <p className="text-[0.5rem] leading-none">innsjekk.trondheimdc.no</p>
+            <TdcLogo className="h-3 gap-[0.105rem]" />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -92,9 +126,9 @@ export function ShowStickerQrButton({
           <DialogTitle>QR for {name}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
           <div className="mt-4 flex flex-col items-center gap-3">
-            <StickerPreview name={name} url={url} />
+            <StickerPreview name={setupStickerText(name)} url={url} />
             <PrintStickerButton
-              name={name}
+              name={setupStickerText(name)}
               url={url}
               fallbackPath={fallbackPath}
               templateFile={templateFile}
@@ -124,12 +158,10 @@ export function PrintStickerButton({
   /** Path for Android intent fallback when Smooth Print is missing. */
   fallbackPath?: string
   /**
-   * `printer.lbx` prints the /oppsett setup URL as-is (known good). Any
-   * other template gets its QR cellSize fitted to the actual data length
-   * before printing — `printer.lbx`'s QR cell size is a fixed pt value, but
-   * QR version (module count) scales with data length, so the same cell
-   * size renders a much smaller QR for a short printer login token than for
-   * the long setup URL. `stasjon.lbx` uses this path.
+   * `printer.lbx` (front, setup) or `stasjon.lbx` (login). Both get their QR
+   * cellSize fitted to the data length before printing: a template's cell
+   * size is a fixed pt value, but QR version (module count) scales with data
+   * length, so a fixed size prints a short URL smaller than a long one.
    */
   templateFile?: string
 }) {
@@ -159,10 +191,7 @@ export function PrintStickerButton({
     }
     setBusy(true)
     try {
-      let fileBase64 = await loadTemplateBase64(templateFile)
-      if (templateFile !== "printer.lbx") {
-        fileBase64 = await fitStickerQrCellSize(fileBase64, url)
-      }
+      const fileBase64 = await fitStickerQrCellSize(await loadTemplateBase64(templateFile), url)
       const input = {
         fileBase64,
         paperSizeId: DEFAULT_PAPER_SIZE_ID,

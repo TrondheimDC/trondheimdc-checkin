@@ -22,10 +22,14 @@ export function printerLoginUrl(origin: string, token: string): string {
 }
 
 /**
- * Text above the QR on the under-printer login sticker. The setup sticker on
- * the front carries the bare printer name; this one says what it is for, so the
- * two cannot be mixed up. The template's text frame shrinks to fit.
+ * Sticker titles. Each says what its QR is for — connect on the front, log in
+ * on the one over the model label — so the two cannot be mixed up. The
+ * template's text frame shrinks to fit.
  */
+export function setupStickerText(printerName: string): string {
+  return `Koble til · ${printerName}`
+}
+
 export function loginStickerText(printerName: string): string {
   return `Logg inn · ${printerName}`
 }

@@ -19,7 +19,7 @@ import {
 import { type Attendee, attendeeResponseSchema, attendeeStatsSchema } from "@/lib/db/schema"
 import { platformFromNavigator, refinePlatform } from "@/lib/platform"
 import { consumePrintOutcome } from "@/lib/print-outcome"
-import { parsePrinterSetupUrl, printerSetupPath } from "@/lib/printer-setup"
+import { parsePrinterSetupUrl, printerStickerPath } from "@/lib/printer-setup"
 import {
   SCAN_AUTO_PRINT_DEFAULT,
   SCAN_AUTO_PRINT_KEY,
@@ -82,9 +82,9 @@ export function Scanner({ printerName }: { printerName?: string }) {
   }, [])
 
   const handleDecoded = useEffectEvent(async (text: string) => {
-    const printer = parsePrinterSetupUrl(text)
-    if (printer) {
-      router.push(printerSetupPath(printer))
+    const sticker = parsePrinterSetupUrl(text)
+    if (sticker) {
+      router.push(printerStickerPath(sticker))
       return
     }
 

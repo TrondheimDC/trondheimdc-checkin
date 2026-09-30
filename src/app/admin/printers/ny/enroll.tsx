@@ -36,7 +36,7 @@ import {
 import { DEFAULT_PRINTER_MODEL, PRINTER_MODELS, type PrinterModelId } from "@/lib/printer-models"
 import { createPrinter, printersQueryKey } from "@/lib/printer-queries"
 import { printerSetupPath } from "@/lib/printer-setup"
-import { loginStickerText, printerLoginUrl } from "@/lib/public-app-url"
+import { loginStickerText, printerLoginUrl, setupStickerText } from "@/lib/public-app-url"
 import { apiPath, cn } from "@/lib/utils"
 
 type PrinterFormValues = z.input<typeof printerBodySchema>
@@ -67,6 +67,8 @@ const enrollControlClass =
   "h-14 px-4 text-lg text-[var(--color-fg-base)] placeholder:text-[var(--color-fg-base)]/40 md:text-lg"
 
 const enrollMonoControlClass = `${enrollControlClass} font-mono uppercase`
+
+const PREVIEW_PRINTER_ID = "00000000-0000-0000-0000-000000000000"
 
 function upperOnChange(registerOnChange: (event: ChangeEvent<HTMLInputElement>) => void) {
   return (event: ChangeEvent<HTMLInputElement>) => {
@@ -143,14 +145,10 @@ export function EnrollPrinter({ origin }: { origin: string }) {
   })
 
   const mac = formatBluetoothMac(address)
-  const previewPath = printerSetupPath({
-    address: isCompleteBluetoothMac(mac) ? mac : "00:00:00:00:00:00",
-    serial,
-    model,
-    connectType: "BT",
-  })
+  // Same length as a real printer id (UUID), so the preview QR has the printed module count.
+  const previewPath = printerSetupPath(PREVIEW_PRINTER_ID)
   const previewUrl = origin ? `${origin}${apiPath(previewPath)}` : previewPath
-  const setupUrl = saved && origin ? `${origin}${apiPath(printerSetupPath(saved.printer))}` : ""
+  const setupUrl = saved && origin ? `${origin}${apiPath(printerSetupPath(saved.printer.id))}` : ""
   const loginUrl = saved && origin ? printerLoginUrl(origin, saved.token) : ""
 
   return (
@@ -179,12 +177,16 @@ export function EnrollPrinter({ origin }: { origin: string }) {
           <h2 className="text-2xl">{saved.printer.name} er klar</h2>
           <div className="flex w-full max-w-sm flex-col items-center gap-3">
             <p className="text-sm opacity-70">Oppsett-QR (synlig på printeren)</p>
-            <StickerPreview name={saved.printer.name} url={setupUrl} />
-            <PrintStickerButton name={saved.printer.name} url={setupUrl} />
+            <StickerPreview name={setupStickerText(saved.printer.name)} url={setupUrl} />
+            <PrintStickerButton name={setupStickerText(saved.printer.name)} url={setupUrl} />
           </div>
           <div className="flex w-full max-w-sm flex-col items-center gap-3">
-            <p className="text-sm opacity-70">Innloggings-QR (under printeren)</p>
-            <StickerPreview name={loginStickerText(saved.printer.name)} url={loginUrl} />
+            <p className="text-sm opacity-70">Innloggings-QR (over modell-etiketten)</p>
+            <StickerPreview
+              name={loginStickerText(saved.printer.name)}
+              url={loginUrl}
+              variant="login"
+            />
             <PrintStickerButton
               name={loginStickerText(saved.printer.name)}
               url={loginUrl}
@@ -442,7 +444,7 @@ export function EnrollPrinter({ origin }: { origin: string }) {
               Lagre i inventaret
             </Button>
           </FieldGroup>
-          <StickerPreview name={name} url={previewUrl} />
+          <StickerPreview name={setupStickerText(name)} url={previewUrl} />
         </form>
       )}
     </main>

@@ -1,8 +1,10 @@
+import { cn } from "@/lib/utils"
+
 /** TDC wordmark from trondheimdc.no (green letterforms). */
 export function TdcLogo({ className }: { className?: string }) {
   return (
     <span
-      className={`inline-flex h-[1.625rem] items-center gap-[0.2275rem] ${className ?? ""}`}
+      className={cn("inline-flex h-[1.625rem] items-center gap-[0.2275rem]", className)}
       role="img"
       aria-label="TDC"
     >

@@ -229,8 +229,10 @@ function pathStepIndex(
 }
 
 function firstPathStepId(path: SetupPath, omitScan: boolean, platform: PhonePlatform): Step["id"] {
-  if (path === "qr") return omitScan ? "connect" : "scan"
-  return platform === "android" ? "select" : "pair"
+  if (path !== "qr") return platform === "android" ? "select" : "pair"
+  if (!omitScan) return "scan"
+  // iOS pairs in OS Bluetooth before Smooth Print can connect (MFi).
+  return platform === "ios" ? "pair" : "connect"
 }
 
 export type SetupStepId = Step["id"]
@@ -300,7 +302,8 @@ function resolveEntry(input: {
     if (path) {
       const at = pathStepIndex(path, stepId, input.platform, omitScan)
       if (at >= 0) {
-        // Fresh sticker deeplink (`step=connect`) must still walk install → BT-on.
+        // Fresh sticker deeplink (`step=connect`) must still walk install → BT-on,
+        // then continue right after the skipped scan (iOS: pair first).
         // Once primed, refresh/deeplink resumes at the real step.
         if (input.initialPrinter && !input.initialPrimed) {
           return {
@@ -308,7 +311,7 @@ function resolveEntry(input: {
             preludeStep: 0,
             step: 0,
             connected: false,
-            pendingResume: { path, stepId },
+            pendingResume: { path, stepId: firstPathStepId(path, omitScan, input.platform) },
           }
         }
         return { path, preludeStep: 0, step: at, connected: false, pendingResume: null }
@@ -322,12 +325,18 @@ function resolveEntry(input: {
   }
 
   if (input.initialPath) {
-    const at = pathStepIndex(
-      input.initialPath,
-      firstPathStepId(input.initialPath, omitScan, input.platform),
-      input.platform,
-      omitScan,
-    )
+    const first = firstPathStepId(input.initialPath, omitScan, input.platform)
+    // Fresh id sticker (`?printer=` only): prelude first, then skip the scan.
+    if (input.initialPrinter && !input.initialPrimed) {
+      return {
+        path: null,
+        preludeStep: 0,
+        step: 0,
+        connected: false,
+        pendingResume: { path: input.initialPath, stepId: first },
+      }
+    }
+    const at = pathStepIndex(input.initialPath, first, input.platform, omitScan)
     return {
       path: input.initialPath,
       preludeStep: 0,
@@ -354,7 +363,9 @@ function buildSetupSearch(input: {
   // primed=1: this session already passed the install/BT-on prelude, so a refresh
   // may resume at `step`. Without it, a sticker URL with step=connect starts at install.
   if (input.path) params.set("primed", "1")
-  if (input.printer) {
+  if (input.printer?.id) {
+    params.set("printer", input.printer.id)
+  } else if (input.printer) {
     params.set("address", input.printer.address)
     if (input.printer.serial) params.set("serial", input.printer.serial)
     params.set("model", input.printer.model)

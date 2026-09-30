@@ -1,5 +1,6 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { NextRequest, NextResponse } from "next/server"
+import { DOOR_PATH_HEADER, doorLoginPath } from "@/lib/login-next"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
 
@@ -38,6 +39,7 @@ function isDoorPath(pathname: string): boolean {
   if (p.startsWith("/koble")) return true
   if (p.startsWith("/api/attendees")) return true
   if (p === "/api/smooth-print/apk") return true
+  if (p.startsWith("/api/oppsett")) return true
   return false
 }
 
@@ -51,14 +53,26 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
+  const p =
+    basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || "/" : pathname
+  // Pages come back here after login (e.g. a front sticker → setup for that printer).
+  const next = p.startsWith("/api") ? null : `${p}${request.nextUrl.search}`
+
   const sessionCookie = getSessionCookie(request)
   if (!sessionCookie) {
     if (isAdminPath(pathname)) {
       return NextResponse.redirect(new URL(withBase("/auth/sign-in"), request.url))
     }
     if (isDoorPath(pathname)) {
-      return NextResponse.redirect(new URL(withBase("/logg-inn"), request.url))
+      return NextResponse.redirect(new URL(withBase(doorLoginPath(next)), request.url))
     }
+  }
+
+  if (next && isDoorPath(pathname)) {
+    // A cookie that turns out stale is caught by requireDoorSession, which has no URL of its own.
+    const headers = new Headers(request.headers)
+    headers.set(DOOR_PATH_HEADER, next)
+    return NextResponse.next({ request: { headers } })
   }
 
   return NextResponse.next()

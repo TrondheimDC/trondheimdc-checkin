@@ -1,8 +1,8 @@
 import { headers } from "next/headers"
 import { userAgent } from "next/server"
 import { desktopOsFromName, platformFromOsName } from "@/lib/platform"
-import { type ConnectType, DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
-import type { PrinterSetupParams } from "@/lib/printer-setup"
+import { type PrinterSetupParams, printerSetupParamsFromSearch } from "@/lib/printer-setup"
+import { printerRepository } from "@/lib/printers"
 import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
 import { apiPath } from "@/lib/utils"
 import { SetupEntry } from "./setup-entry"
@@ -40,19 +40,17 @@ export default async function SetupPage({
     result?: string
     primed?: string
     connectdebug?: string
+    printer?: string
   }>
 }) {
   const query = await searchParams
-  const address = (query.address || query.mac || "").trim()
-  const connectType: ConnectType = query.type === "WiFi" ? "WiFi" : "BT"
-  const initialPrinter: PrinterSetupParams | null = address
-    ? {
-        address,
-        serial: (query.serial || "").trim(),
-        model: (query.model || DEFAULT_PRINTER_MODEL).trim() || DEFAULT_PRINTER_MODEL,
-        connectType,
-      }
-    : null
+  const printerId = query.printer?.trim() || ""
+  // Front stickers carry only the inventory id; the fields come from the database.
+  const initialPrinter: PrinterSetupParams | null = printerId
+    ? await loadInventoryPrinter(printerId)
+    : printerSetupParamsFromSearch({
+        get: (name) => (query as Record<string, string | undefined>)[name] ?? null,
+      })
   const initialPath =
     query.path === "qr" || query.path === "manual" ? query.path : initialPrinter ? "qr" : null
   const androidUrl = await resolveAndroidDownloadUrl(apiPath)
@@ -80,4 +78,16 @@ export default async function SetupPage({
       />
     </>
   )
+}
+
+async function loadInventoryPrinter(printerId: string): Promise<PrinterSetupParams | null> {
+  const printer = await printerRepository.getById(printerId)
+  if (!printer) return null
+  return {
+    id: printer.id,
+    address: printer.address,
+    serial: printer.serial,
+    model: printer.model,
+    connectType: printer.connectType,
+  }
 }

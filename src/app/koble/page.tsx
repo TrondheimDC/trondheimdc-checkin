@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { type ConnectType, DEFAULT_PRINTER_MODEL } from "@/lib/print-url"
-import { printerSetupPath } from "@/lib/printer-setup"
+import { printerSetupParamsPath } from "@/lib/printer-setup"
 
 /** Sticker QRs historically pointed here — fold into /oppsett. */
 export default async function KoblePage({
@@ -21,7 +21,7 @@ export default async function KoblePage({
     redirect("/oppsett")
   }
   redirect(
-    printerSetupPath({
+    printerSetupParamsPath({
       address,
       serial: query.serial || "",
       model: query.model || DEFAULT_PRINTER_MODEL,

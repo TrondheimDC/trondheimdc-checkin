@@ -22,6 +22,7 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
+import { safeNextPath } from "@/lib/login-next"
 import {
   normalizePrinterTokenBodyInput,
   PRINTER_TOKEN_BODY_LENGTH,
@@ -49,6 +50,8 @@ export function DoorLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const urlToken = searchParams.get("token")?.trim() || ""
+  const next = safeNextPath(searchParams.get("next"))
+  const fromSetup = next?.startsWith("/oppsett") ?? false
   const [token, setToken] = useState(() => parsePrinterTokenInput(urlToken) ?? "")
   const [acquireMode, setAcquireMode] = useState<AcquireMode>("choose")
   const [manualDraft, setManualDraft] = useState("")
@@ -110,7 +113,7 @@ export function DoorLoginForm() {
       setPin("")
       return
     }
-    router.replace(apiPath("/"))
+    router.replace(apiPath(next ?? "/"))
     router.refresh()
   }
 
@@ -158,9 +161,13 @@ export function DoorLoginForm() {
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col gap-5">
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Innsjekk</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {fromSetup ? "Logg inn først" : "Innsjekk"}
+          </h1>
           <p className="text-sm text-[var(--color-fg-base)]/70">
-            Skann QR under printeren, eller lim inn kode eller lenke. Deretter PIN.
+            {fromSetup
+              ? "Skann QR under printeren og skriv PIN. Så fortsetter oppsettet."
+              : "Skann QR under printeren, eller lim inn kode eller lenke. Deretter PIN."}
           </p>
         </div>
 

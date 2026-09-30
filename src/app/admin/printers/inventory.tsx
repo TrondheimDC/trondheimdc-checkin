@@ -166,7 +166,7 @@ function LoginSecretsButton({
             {secrets?.pin ? <RevealPin pin={secrets.pin} /> : null}
             {loginUrl ? (
               <>
-                <StickerPreview name={loginStickerText(name)} url={loginUrl} />
+                <StickerPreview name={loginStickerText(name)} url={loginUrl} variant="login" />
                 <PrintStickerButton
                   name={loginStickerText(name)}
                   url={loginUrl}
@@ -196,7 +196,7 @@ function PrinterCardActions({
   onSecrets: (result: { pin?: string; token?: string }) => void
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
-  const setupUrl = `${origin}${apiPath(printerSetupPath(printer))}`
+  const setupUrl = `${origin}${apiPath(printerSetupPath(printer.id))}`
   const banned = Boolean(printer.banned)
   const dayOfButtonClass =
     "h-auto min-h-14 w-full flex-col gap-1 bg-black/25 py-3 text-base whitespace-normal"

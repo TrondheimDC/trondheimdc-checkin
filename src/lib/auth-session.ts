@@ -2,6 +2,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth, canAccessAdmin, canAccessDoor, type Session } from "@/lib/auth"
 import { gateSession } from "@/lib/auth-session-gate"
+import { DOOR_PATH_HEADER, doorLoginPath } from "@/lib/login-next"
 import { apiPath } from "@/lib/utils"
 
 export async function getSession(): Promise<Session | null> {
@@ -12,7 +13,7 @@ export async function getSession(): Promise<Session | null> {
 export async function requireDoorSession(): Promise<Session> {
   const session = await getSession()
   if (!session || !canAccessDoor(session.user.role)) {
-    redirect(apiPath("/logg-inn"))
+    redirect(apiPath(doorLoginPath((await headers()).get(DOOR_PATH_HEADER))))
   }
   return session
 }

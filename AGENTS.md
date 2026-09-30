@@ -55,11 +55,12 @@ The first paint of a screen is the real screen.
 
 Keep the address bar in sync with the wizard so staff can refresh and deeplink.
 
-- Query: `step` (`install` | `camera` (iOS) | `bt-on` | `scan` | `connect` | `pair` (iOS) | `select` (Android) | `confirm` | `test-print`), optional `path` (`qr` | `manual`), `primed=1` after the prelude, printer fields (`address`, `serial`, `model`, `type`). No connect callbacks (`connectcallback` omitted). Optional `connectdebug=1` while testing to attach `connectcallback` and surface `result=`.
+- Query: `step` (`install` | `camera` (iOS) | `bt-on` | `scan` | `connect` | `pair` (iOS) | `select` (Android) | `confirm` | `test-print`), optional `path` (`qr` | `manual`), `primed=1` after the prelude, `printer` (inventory id; older stickers: `address`, `serial`, `model`, `type`). No connect callbacks (`connectcallback` omitted). Optional `connectdebug=1` while testing to attach `connectcallback` and surface `result=`.
 - Update with `history.replaceState` (not `router.replace`) so each step change does not remount the client flow.
 - Help subpages link back to a concrete step (`/oppsett?step=pair&primed=1`, `/oppsett?step=install&primed=1`) — not `history.back()`.
 - Resume: honor `step` when present; a fresh sticker deeplink (`step=connect` / later without `primed`) still starts at install → BT-on, then resumes.
-- Sticker QRs use `printerSetupPath` → `path=qr&step=connect` plus printer fields (skips in-app scan).
+- Front sticker QRs use `printerSetupPath(id)` → `/oppsett?printer=<id>` only; `/oppsett` looks up the fields, so a sticker survives address / connection changes. No `step` on an id sticker means `path=qr&step=connect` (skips in-app scan). Keep parsing the older field stickers.
+- A logged-out scan goes to `/logg-inn?next=…` (proxy, or `requireDoorSession` via the `x-door-path` header) and returns there after the in-app QR scan + PIN.
 - Happy path: install → printer Bluetooth on → **Skann QR** (Start kamera) → Smooth Print `connect` → test print. **iOS inserts OS Bluetooth pair before connect** (MFi). Fallback from scan: **Manuelt oppsett** → iOS: OS Bluetooth pair → select in Smooth Print; Android: connect via Bluetooth inside Smooth Print (no OS pair) → confirm against a screenshot of the connected state → test print.
 - Android connect `serialnum`/`model` use the stored barcode serial and `QL-820NWBc`. iOS connect uses last-9 serial and `QL-820NWB` (matches Smooth Print’s paired list).
 - PC/Mac (not iOS/Android) get the USB wizard instead: `step` = `usb` | `driver` | `connect` | `test-print`. The OS comes from the UA: `driver` is Zadig on Windows, a udev rule on Linux, and skipped on Mac. WebUSB in Chrome/Edge; no Smooth Print.
