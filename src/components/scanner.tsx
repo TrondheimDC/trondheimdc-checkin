@@ -19,6 +19,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react"
 import { ScanResultSheet } from "@/components/scan-result-sheet"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   applyTorch,
   cameraKind,
@@ -46,6 +47,12 @@ import { apiPath } from "@/lib/utils"
 const SETUP_KEY = "tdc-checkin-printer-seen"
 /** Ignore the same barcode for a moment so one hold does not re-fire. */
 const SAME_CODE_COOLDOWN_MS = 2500
+
+// HUD messages stay one line so the panel never changes height; longer guidance goes in the frame.
+const CAMERA_ERROR = "Ingen tilgang til kamera"
+const UNKNOWN_QR_HINT = "Ukjent QR — skann på nytt"
+const LOOKUP_FAILED_HINT = "Fikk ikke hentet deltaker"
+const IDLE_MESSAGE = "Hold QR-koden innenfor rammen"
 
 const iconButtonClass =
   "scan-icon-btn flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
@@ -77,6 +84,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
   const scanInlineFlag = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
   const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
   const [error, setError] = useState<string | null>(null)
+  const [cameraLive, setCameraLive] = useState(false)
   const [scanHint, setScanHint] = useState<string | null>(null)
   // Markup does not depend on deviceId until `ready` (client-only), so reading storage here is hydration-safe.
   const [deviceId, setDeviceId] = useState<string | undefined>(() =>
@@ -119,9 +127,9 @@ export function Scanner({ printerName }: { printerName?: string }) {
       const response = await fetch(apiPath(`/api/attendees/${encodeURIComponent(text)}`))
       if (response.status === 404) {
         lastAcceptedRef.current = { text, at: Date.now() }
-        setScanHint("Ukjent QR — skann på nytt")
+        setScanHint(UNKNOWN_QR_HINT)
         window.setTimeout(
-          () => setScanHint((current) => (current?.startsWith("Ukjent") ? null : current)),
+          () => setScanHint((current) => (current === UNKNOWN_QR_HINT ? null : current)),
           2000,
         )
         return
@@ -140,9 +148,9 @@ export function Scanner({ printerName }: { printerName?: string }) {
 
       router.push(`/deltaker/${encodeURIComponent(body.attendee.id)}`)
     } catch {
-      setScanHint("Kunne ikke hente deltaker. Prøv igjen.")
+      setScanHint(LOOKUP_FAILED_HINT)
       window.setTimeout(
-        () => setScanHint((current) => (current?.startsWith("Kunne") ? null : current)),
+        () => setScanHint((current) => (current === LOOKUP_FAILED_HINT ? null : current)),
         2000,
       )
     } finally {
@@ -159,6 +167,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
     const torchPolls: number[] = []
     setTorchOn(false)
     setTorchSupported(false)
+    setCameraLive(false)
     controlsRef.current = null
     trackRef.current = null
 
@@ -196,6 +205,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
           return
         }
         controlsRef.current = controls
+        setCameraLive(true)
         refreshTorch()
         const track = trackRef.current
         if (track) void applyTorch(track, false).catch(() => undefined)
@@ -214,7 +224,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
       })
       .catch((error: unknown) => {
         if (stopped || (error instanceof Error && error.message === "stopped")) return
-        setError("Ingen tilgang til kamera. Tillat kamera i nettleseren, eller søk etter navn.")
+        setError(CAMERA_ERROR)
       })
 
     return () => {
@@ -244,8 +254,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
     return <main className="h-dvh bg-black" />
   }
 
-  const hudMessage = error ?? scanHint
-  const hudLabel = error ? "Kamera" : scanHint ? "Skann" : "Skanner"
+  const hudLabel = !error && scanHint ? "Skann" : "Skanner"
 
   return (
     <main className="relative flex h-dvh flex-col overflow-hidden bg-black">
@@ -322,33 +331,48 @@ export function Scanner({ printerName }: { printerName?: string }) {
           <span className="scan-reticle-corner tr" />
           <span className="scan-reticle-corner bl" />
           <span className="scan-reticle-corner br" />
-          {!error ? <span className="scan-reticle-line" /> : null}
+          {cameraLive && !error ? <span className="scan-reticle-line" /> : null}
         </div>
+        {error ? (
+          <p className="absolute inset-0 flex items-center justify-center p-12 text-center text-lg leading-snug text-white/80">
+            Tillat kamera i nettleseren, eller søk etter navn.
+          </p>
+        ) : null}
       </div>
 
       <div className="scan-hud relative z-10 flex shrink-0 flex-col gap-3 bg-gradient-to-t from-black via-black/85 to-transparent p-4 pt-16 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
-          {!hudMessage ? (
+          {error ? (
+            <span className="size-2.5 rounded-full bg-[var(--color-bg-danger)]" aria-hidden />
+          ) : !cameraLive ? (
+            <span className="size-2.5 rounded-full bg-white/40" aria-hidden />
+          ) : scanHint ? (
+            <span className="size-2.5 rounded-full bg-[var(--color-bg-danger)]" aria-hidden />
+          ) : (
             <span
               className="scan-live-dot size-2.5 rounded-full bg-[var(--color-fg-brand)]"
               aria-hidden
             />
-          ) : null}
+          )}
           <p
             className={`text-sm tracking-wide ${
-              scanHint && !error ? "text-[var(--color-bg-danger)]" : "text-[var(--color-fg-brand)]"
+              error || scanHint
+                ? "text-[var(--color-bg-danger)]"
+                : cameraLive
+                  ? "text-[var(--color-fg-brand)]"
+                  : "text-white/60"
             }`}
           >
             {hudLabel}
           </p>
         </div>
-        {error ? (
-          <p className="text-lg leading-snug">{error}</p>
-        ) : scanHint ? (
-          <p className="text-xl leading-snug">{scanHint}</p>
-        ) : (
-          <p className="text-xl leading-snug">Hold QR-koden innenfor rammen</p>
-        )}
+        <div className="flex h-[1lh] items-center text-xl leading-snug">
+          {cameraLive || error ? (
+            <p className="truncate">{error ?? scanHint ?? IDLE_MESSAGE}</p>
+          ) : (
+            <Skeleton className="h-[0.8lh] w-3/4 rounded-lg bg-white/15" />
+          )}
+        </div>
 
         {!sheetAttendee ? (
           <>
