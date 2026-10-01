@@ -213,14 +213,14 @@ export function Scanner({ printerName }: { printerName?: string }) {
   }
 
   if (!ready) {
-    return <main className="min-h-dvh bg-black" />
+    return <main className="h-dvh bg-black" />
   }
 
   const hudMessage = error ?? scanHint
   const hudLabel = error ? "Kamera" : scanHint ? "Skann" : "Skanner"
 
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-black">
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-black">
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
@@ -289,7 +289,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
         </div>
       ) : null}
 
-      <div className="relative z-10 flex flex-1 items-center justify-center px-7">
+      <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-7 py-2">
         <div className="scan-reticle" aria-hidden>
           <span className="scan-reticle-corner tl" />
           <span className="scan-reticle-corner tr" />

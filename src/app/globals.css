@@ -430,20 +430,23 @@ h2 {
 }
 
 .scan-reticle {
+  --reticle-radius: 1.25rem;
+  /* Brackets straddle the cutout edge by 2px, so their radius grows by 2px to stay concentric. */
+  --corner-radius: calc(var(--reticle-radius) + 2px);
   position: relative;
   width: 100%;
-  max-width: 26rem;
-  height: 13rem;
-  max-height: 100%;
+  height: 100%;
+  max-width: 30rem;
+  max-height: 30rem;
   pointer-events: none;
   box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.48);
-  border-radius: 1.25rem;
+  border-radius: var(--reticle-radius);
 }
 
 .scan-reticle-corner {
   position: absolute;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-color: var(--color-fg-brand);
   border-style: solid;
   animation: scan-corner-pulse 2.2s ease-in-out infinite;
@@ -453,28 +456,28 @@ h2 {
   top: -2px;
   left: -2px;
   border-width: 4px 0 0 4px;
-  border-radius: 10px 0 0 0;
+  border-radius: var(--corner-radius) 0 0 0;
 }
 
 .scan-reticle-corner.tr {
   top: -2px;
   right: -2px;
   border-width: 4px 4px 0 0;
-  border-radius: 0 10px 0 0;
+  border-radius: 0 var(--corner-radius) 0 0;
 }
 
 .scan-reticle-corner.bl {
   bottom: -2px;
   left: -2px;
   border-width: 0 0 4px 4px;
-  border-radius: 0 0 0 10px;
+  border-radius: 0 0 0 var(--corner-radius);
 }
 
 .scan-reticle-corner.br {
   bottom: -2px;
   right: -2px;
   border-width: 0 4px 4px 0;
-  border-radius: 0 0 10px 0;
+  border-radius: 0 0 var(--corner-radius) 0;
 }
 
 .scan-reticle-line {
