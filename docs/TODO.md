@@ -154,9 +154,17 @@ Tasks:
 - [x] **Hardware:** Mac and Windows (Zadig → WinUSB) connect
 - [ ] **Hardware:** Linux (udev) connect
 - [x] Printer stickers (`admin/sticker.tsx`) over USB — setup + login QR drawn in the browser (`renderSticker`)
-- [x] Warn when the USB serial does not match this door login’s printer (`/oppsett` connect step + print buttons; warning only)
-- [ ] **Hardware:** the QL's `USBDevice.serialNumber` does **not** match the serial on the device (seen on hardware, exact value not recorded). `usbSerialMatches` will then warn on every correct printer. Log the real value, then fix the match or drop the warning
 - [ ] **Hardware:** scan a USB-printed sticker QR with a phone
+
+### Check-in dashboard and replay
+
+See and replay the day afterwards: how check-in went, how long it took, and how arrivals were spread over time.
+
+- [ ] Chart of checked-in attendees over time (cumulative and per-interval, e.g. per 5 / 15 minutes), built from `check_events` timestamps
+- [ ] Replay the day: scrub or play a timeline and watch the count build up
+- [ ] Key numbers: first and last check-in, peak arrival rate, time to reach 50 / 90 %, share of attendees who never checked in
+- [ ] Optional breakdown per door / printer (events already carry the acting printer or user)
+- [ ] Decide where it lives (admin page vs. the existing stats on search) and whether it updates live during the day
 
 ### Own P-touch / template editor
 
@@ -174,7 +182,6 @@ Supported platforms (for staff phones): iOS 14.1+, Android 8.0+; Bluetooth Class
 
 ### Postponed (not this conference)
 
-- [ ] Spike: iOS AirPrint for DK-11208 on Wi-Fi printers (skip Smooth Print). See [RESEARCH.md → AirPrint](../RESEARCH.md#airprint--possible-way-to-skip-smooth-print-on-ios-entirely-postponed). Bluetooth still needs Smooth Print.
 - [ ] Compare **`fileattach` (base64)** vs **`filename=<https://…/badge.lbx>`** on iOS and Android — reliability, speed, template updates ([RESEARCH.md](../RESEARCH.md)). Current `fileattach` path is fine for day-of.
 
 ## Nice to have
