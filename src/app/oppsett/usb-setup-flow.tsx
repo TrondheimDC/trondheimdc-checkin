@@ -19,7 +19,7 @@ import {
   usbNeedsConnect,
 } from "@/components/usb-connect"
 import { type DesktopOs, desktopOsFromNavigator } from "@/lib/platform"
-import { connectUsbPrinter, printBadgeUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
+import { printBadgeUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
 import { apiPath } from "@/lib/utils"
 
 const SETUP_KEY = "tdc-checkin-printer-seen"
@@ -257,15 +257,6 @@ export function UsbSetupFlow({
             <UsbPrintMessage usb={usb} error={null} />
             {usbNeedsConnect(usb) ? (
               <UsbConnectButton size="default" className="h-12 w-full text-base" />
-            ) : null}
-            {usb.kind === "ready" && usb.mismatch ? (
-              <Button
-                variant="surface"
-                className="h-12 w-full text-base"
-                onClick={() => void connectUsbPrinter()}
-              >
-                Velg en annen printer
-              </Button>
             ) : null}
             <Button
               className="h-12 w-full text-base"

@@ -19,12 +19,7 @@ export type UsbPrinterState =
   | { kind: "unsupported" }
   | { kind: "idle" }
   | { kind: "connecting" }
-  | {
-      kind: "ready"
-      serial: string | null
-      /** Name of this door login's printer when the USB serial says it is a different one. */
-      mismatch: string | null
-    }
+  | { kind: "ready"; serial: string | null }
   | { kind: "error"; message: string; driverHelp: boolean }
 
 export class UsbPrintError extends Error {
@@ -41,8 +36,6 @@ let state: UsbPrinterState = { kind: "connecting" }
 let printer: WebBrotherQLPrinter | null = null
 let opening: Promise<void> | null = null
 let restoreStarted = false
-/** The printer this door login belongs to (set by door pages; admins have none). */
-let expected: { name: string; serial: string } | null = null
 const listeners = new Set<() => void>()
 
 function setState(next: UsbPrinterState) {
@@ -52,37 +45,6 @@ function setState(next: UsbPrinterState) {
 
 export function usbSupported(): boolean {
   return typeof navigator !== "undefined" && "usb" in navigator
-}
-
-function normalizeSerial(value: string): string {
-  return value.toUpperCase().replace(/[^0-9A-Z]/g, "")
-}
-
-/**
- * `null` when we cannot tell. The stored serial is the 15-char barcode
- * (`E82696C6G972070`); the printer may report all of it or the last 9
- * (`C6G972070`, what Smooth Print shows on iOS). What the QL puts in its USB
- * descriptor is not verified on hardware yet, so this only ever warns.
- */
-export function usbSerialMatches(usbSerial: string | null, stored: string): boolean | null {
-  const a = normalizeSerial(usbSerial ?? "")
-  const b = normalizeSerial(stored)
-  if (a.length < 6 || b.length < 6) return null
-  if (a.endsWith(b) || b.endsWith(a)) return true
-  if (a.length >= 9 && b.length >= 9 && a.slice(-9) === b.slice(-9)) return true
-  return false
-}
-
-function readyState(serial: string | null): UsbPrinterState {
-  const mismatch = expected && usbSerialMatches(serial, expected.serial) === false
-  return { kind: "ready", serial, mismatch: mismatch && expected ? expected.name : null }
-}
-
-/** Door pages tell the store which printer this login belongs to. */
-export function setExpectedUsbPrinter(next: { name: string; serial: string } | null) {
-  if (expected?.name === next?.name && expected?.serial === next?.serial) return
-  expected = next
-  if (state.kind === "ready") setState(readyState(state.serial))
 }
 
 function isQl820(device: USBDevice): boolean {
@@ -112,7 +74,7 @@ function open(device: USBDevice): Promise<void> {
     try {
       const { fromUSBDevice } = await import("@thermal-label/brother-ql-web")
       printer = await fromUSBDevice(device)
-      setState(readyState(device.serialNumber ?? null))
+      setState({ kind: "ready", serial: device.serialNumber ?? null })
     } catch (error) {
       printer = null
       const failure = describeOpenError(error)

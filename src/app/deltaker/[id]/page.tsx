@@ -1,17 +1,11 @@
 import type { Metadata } from "next"
 import { AttendeeScreen } from "@/components/attendee-screen"
-import { DoorUsbPrinter } from "@/components/door-usb-printer"
 import { requireDoorSession } from "@/lib/auth-session"
 
 export const metadata: Metadata = { title: "Deltaker" }
 
 export default async function AttendeePage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await requireDoorSession()
+  await requireDoorSession()
   const { id } = await params
-  return (
-    <>
-      <DoorUsbPrinter session={session} />
-      <AttendeeScreen id={decodeURIComponent(id)} />
-    </>
-  )
+  return <AttendeeScreen id={decodeURIComponent(id)} />
 }

@@ -1,5 +1,4 @@
 import type { Viewport } from "next"
-import { DoorUsbPrinter } from "@/components/door-usb-printer"
 import { requireDoorSession } from "@/lib/auth-session"
 
 /**
@@ -12,11 +11,6 @@ export const viewport: Viewport = {
 }
 
 export default async function SokLayout({ children }: { children: React.ReactNode }) {
-  const session = await requireDoorSession()
-  return (
-    <>
-      <DoorUsbPrinter session={session} />
-      {children}
-    </>
-  )
+  await requireDoorSession()
+  return children
 }

@@ -219,20 +219,19 @@ Staff get the driver step for their OS in the `/oppsett` USB wizard (none on Mac
 - **Registry gap:** id 272 has `leftMarginPins: 0, rightMarginPins: 0`, which encodes 413-pin rows for a 720-pin head. `printBadgeUsb` overrides to **12 / 295** (same as the library’s 38 mm continuous entry and Brother’s pin table). Most other die-cut entries have the same 0/0 gap.
 - `print()` resolves when the bytes are written. We check status (lid, media, wrong roll) **before** check-in and before sending; there is no post-print confirmation yet.
 
-### Stickers and serial check
+### Stickers
 
 - Setup / login stickers print over USB too (`renderSticker`): name on top, QR under it, same frames as `printer.lbx` / `stasjon.lbx`. The QR is drawn in the browser (byte mode, ECC M, whole dots per module, ~2 mm quiet zone), so the LBX `cellSize` fitting is not needed.
-- Door pages pass the login’s printer (name + stored serial) to the USB store. When the USB device’s serial clearly differs, staff see «Dette ser ikke ut som printeren for …». Match rule: normalized suffix match, or equal last 9 (`C6G972070`). Unknown/short serials never warn. Warning only — never blocks printing.
+- There is no check that the USB printer is the one this door login belongs to: the QL’s `USBDevice.serialNumber` did not match the serial on the device, so the warning was dropped.
 
 ### Verified without hardware (2026-09-29)
 
-Headless Chromium with a fake `navigator.usb` QL: restore via `getDevices()`, status preflight, wrong roll (62 × 100) refused with no check-in, DK-11208 job = raster mode, media `38/90 die-cut`, 991 rows × 90 bytes, ink within pins 12–425. Sticker job decoded back to an image reads with ZXing as the exact setup URL. Door login with a foreign USB serial shows the mismatch warning; the last-9 form of its own serial does not.
+Headless Chromium with a fake `navigator.usb` QL: restore via `getDevices()`, status preflight, wrong roll (62 × 100) refused with no check-in, DK-11208 job = raster mode, media `38/90 die-cut`, 991 rows × 90 bytes, ink within pins 12–425. Sticker job decoded back to an image reads with ZXing as the exact setup URL.
 
 ### Not verified on hardware
 
 - That the print lands on the label (margin side 12 vs 295) and reads the same way up as the phone badge. If it prints off the label, swap the margin pins; if upside down, rotate `badgePrintImage` 180°.
 - Linux udev steps.
-- What `USBDevice.serialNumber` reports vs `printers.serial` (the serial check assumes it is the barcode serial or its last 9).
 - Font match: canvas uses Helvetica/Arial for P-touch “Helsinki”.
 
 Unsupported browsers (Firefox / Safari): **«Bruk en nettleser som støtter WebUSB (Chrome eller Edge)»**, link [caniuse.com/webusb](https://caniuse.com/webusb).

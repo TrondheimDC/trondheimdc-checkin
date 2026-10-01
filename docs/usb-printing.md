@@ -72,8 +72,6 @@ Two things can block it: permissions on the USB device, and the kernel's `usblp`
 
 Chrome remembers the permission per site. After that the app reconnects silently on every page load, and again when the cable is replugged. The picker only shows again if the permission was cleared or the printer was swapped.
 
-If a door login belongs to a specific printer, the app compares that printer's serial with the USB one and warns when they differ. It only warns; it never blocks printing.
-
 ## Troubleshooting
 
 | Message / symptom | Fix |
@@ -91,6 +89,6 @@ If a door login belongs to a specific printer, the app compares that printer's s
 
 Verified in a headless browser against a fake USB printer: the byte stream (row width, compression, cut), the check-in ordering, the refusal of wrong media and printer errors, and that sticker QR codes decode to the exact setup URL.
 
-**Not yet verified on a real QL-820NWBc:** that the print lands centred on the label (head margins 12 / 295 pins), badge orientation against the phone badge, that the font matches, what `serialNumber` the printer reports (the mismatch warning could give a false alarm), and the Linux steps above. Connecting on Mac and on Windows (with Zadig) has been checked. Print a single badge on real labels before the doors open, and please write down what you find in [docs/MVP-verification.md](MVP-verification.md).
+**Not yet verified on a real QL-820NWBc:** that the print lands centred on the label (head margins 12 / 295 pins), badge orientation against the phone badge, that the font matches, and the Linux steps above. Connecting on Mac and on Windows (with Zadig) has been checked. Print a single badge on real labels before the doors open, and please write down what you find in [docs/MVP-verification.md](MVP-verification.md).
 
 Background on the protocol, the library and why Bluetooth is out: the *Desktop printing (WebUSB)* section in [RESEARCH.md](../RESEARCH.md).

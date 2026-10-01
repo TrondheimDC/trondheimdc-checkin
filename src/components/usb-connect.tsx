@@ -28,14 +28,7 @@ export function UsbPrintMessage({ usb, error }: { usb: UsbPrinterState; error: s
   const message =
     error ??
     (usb.kind === "unsupported" ? USB_UNSUPPORTED_COPY : usb.kind === "error" ? usb.message : null)
-  if (!message) {
-    if (usb.kind !== "ready" || !usb.mismatch) return null
-    return (
-      <p className="text-base text-[var(--color-bg-danger)]">
-        Dette ser ikke ut som printeren for {usb.mismatch}. Sjekk at riktig printer er koblet til.
-      </p>
-    )
-  }
+  if (!message) return null
   // Mac has no driver step; there «in use» just means another tab.
   const os = typeof navigator === "undefined" ? "other" : desktopOsFromNavigator()
   const help =
