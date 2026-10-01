@@ -2,14 +2,27 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
-import { Camera, Flashlight, FlashlightOff, MapPin, Search, Settings } from "lucide-react"
+import {
+  Camera,
+  Check,
+  Flashlight,
+  FlashlightOff,
+  MapPin,
+  Search,
+  Settings,
+  UserRound,
+  Webcam,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
 import { ScanResultSheet } from "@/components/scan-result-sheet"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
   applyTorch,
+  cameraKind,
+  cameraLabel,
   openRearCamera,
   pickRearCamera,
   type TorchTrack,
@@ -23,6 +36,7 @@ import { parsePrinterSetupUrl, printerStickerPath } from "@/lib/printer-setup"
 import {
   SCAN_AUTO_PRINT_DEFAULT,
   SCAN_AUTO_PRINT_KEY,
+  SCAN_CAMERA_KEY,
   SCAN_INLINE_DEFAULT,
   SCAN_INLINE_KEY,
 } from "@/lib/scan-settings"
@@ -35,6 +49,13 @@ const SAME_CODE_COOLDOWN_MS = 2500
 
 const iconButtonClass =
   "scan-icon-btn flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
+
+const CAMERA_KIND_ICONS = { front: UserRound, rear: Camera, other: Webcam } as const
+
+function CameraKindIcon({ kind }: { kind: keyof typeof CAMERA_KIND_ICONS }) {
+  const Icon = CAMERA_KIND_ICONS[kind]
+  return <Icon className="size-6" aria-hidden />
+}
 
 export function Scanner({ printerName }: { printerName?: string }) {
   const stats = useQuery({
@@ -57,7 +78,12 @@ export function Scanner({ printerName }: { printerName?: string }) {
   const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
   const [error, setError] = useState<string | null>(null)
   const [scanHint, setScanHint] = useState<string | null>(null)
-  const [deviceId, setDeviceId] = useState<string | undefined>(undefined)
+  // Markup does not depend on deviceId until `ready` (client-only), so reading storage here is hydration-safe.
+  const [deviceId, setDeviceId] = useState<string | undefined>(() =>
+    typeof window === "undefined"
+      ? undefined
+      : (window.localStorage.getItem(SCAN_CAMERA_KEY) ?? undefined),
+  )
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [pickingCamera, setPickingCamera] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
@@ -178,7 +204,9 @@ export function Scanner({ printerName }: { printerName?: string }) {
         const devices = await BrowserQRCodeReader.listVideoInputDevices()
         if (stopped) return
         setCameras(devices)
-        if (!deviceId) {
+        const known = deviceId && devices.some((device) => device.deviceId === deviceId)
+        if (deviceId && !known) window.localStorage.removeItem(SCAN_CAMERA_KEY)
+        if (!known) {
           const picked = pickRearCamera(devices)
           const current = trackRef.current?.getSettings().deviceId
           if (picked && picked !== current) setDeviceId(picked)
@@ -237,8 +265,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
             className={iconButtonClass}
             style={{ animationDelay: "80ms" }}
             aria-label="Velg kamera"
-            aria-expanded={pickingCamera}
-            onClick={() => setPickingCamera((open) => !open)}
+            onClick={() => setPickingCamera(true)}
           >
             <Camera className="size-6" />
           </button>
@@ -323,32 +350,6 @@ export function Scanner({ printerName }: { printerName?: string }) {
           <p className="text-xl leading-snug">Hold QR-koden innenfor rammen</p>
         )}
 
-        {pickingCamera ? (
-          <div className="flex flex-col gap-2">
-            {cameras.map((camera, index) => {
-              const selected = camera.deviceId === deviceId
-              return (
-                <button
-                  key={camera.deviceId}
-                  type="button"
-                  onClick={() => {
-                    setDeviceId(camera.deviceId)
-                    setPickingCamera(false)
-                  }}
-                  className={`search-item-in h-14 truncate rounded-xl px-4 text-left text-lg font-semibold transition-transform active:scale-[0.98] ${
-                    selected
-                      ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)]"
-                      : "bg-[var(--color-bg-surface)] text-[var(--color-fg-base)]"
-                  }`}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  {camera.label || `Kamera ${index + 1}`}
-                </button>
-              )
-            })}
-          </div>
-        ) : null}
-
         {!sheetAttendee ? (
           <>
             <Button asChild variant="surface" size="lg">
@@ -382,6 +383,34 @@ export function Scanner({ printerName }: { printerName?: string }) {
           </>
         ) : null}
       </div>
+
+      <Dialog open={pickingCamera} onOpenChange={setPickingCamera}>
+        <DialogContent>
+          <DialogTitle>Velg kamera</DialogTitle>
+          <DialogDescription className="sr-only">
+            Velg hvilket kamera som skanner.
+          </DialogDescription>
+          <div className="mt-6 flex min-w-0 flex-col gap-3">
+            {cameras.map((camera, index) => (
+              <Button
+                key={camera.deviceId}
+                variant={camera.deviceId === deviceId ? "default" : "surface"}
+                size="lg"
+                className="h-auto min-h-16 justify-start py-3 text-left whitespace-normal [overflow-wrap:anywhere]"
+                onClick={() => {
+                  window.localStorage.setItem(SCAN_CAMERA_KEY, camera.deviceId)
+                  setDeviceId(camera.deviceId)
+                  setPickingCamera(false)
+                }}
+              >
+                <CameraKindIcon kind={cameraKind(camera)} />
+                <span className="min-w-0 flex-1">{cameraLabel(camera, index)}</span>
+                {camera.deviceId === deviceId ? <Check className="size-6" aria-hidden /> : null}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ScanResultSheet
         attendee={sheetAttendee}

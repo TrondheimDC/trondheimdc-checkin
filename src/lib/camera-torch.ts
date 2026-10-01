@@ -47,15 +47,18 @@ export function pickRearCamera(devices: MediaDeviceInfo[]) {
 }
 
 export async function openRearCamera(deviceId: string | undefined) {
+  const rear: MediaTrackConstraints[] = [
+    { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    { facingMode: "environment" },
+  ]
+  // A stored deviceId can go stale (camera unplugged, browser rotated ids) — fall back to rear.
   const attempts: MediaTrackConstraints[] = deviceId
     ? [
         { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
         { deviceId: { exact: deviceId } },
+        ...rear,
       ]
-    : [
-        { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        { facingMode: "environment" },
-      ]
+    : rear
   let lastError: unknown
   for (const video of attempts) {
     try {
@@ -65,4 +68,16 @@ export async function openRearCamera(deviceId: string | undefined) {
     }
   }
   throw lastError instanceof Error ? lastError : new Error("camera")
+}
+
+/** Chrome appends the USB vendor:product id, e.g. "HD Pro Webcam C920 (046d:082d)". */
+export function cameraLabel(device: MediaDeviceInfo, index: number) {
+  const label = device.label.replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, "").trim()
+  return label || `Kamera ${index + 1}`
+}
+
+export function cameraKind(device: MediaDeviceInfo): "front" | "rear" | "other" {
+  if (/front|user|selfie|fram/i.test(device.label)) return "front"
+  if (/back|rear|environment|bak/i.test(device.label)) return "rear"
+  return "other"
 }
