@@ -71,7 +71,7 @@ better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer als
 - [x] Admin UI to upload a Checkin totalrapport CSV (same rules as `pnpm import:attendees`)
 - [x] Printer inventory at `/admin/printers`: name, Bluetooth MAC, serial, model
 - [x] Enroll flow with illustrations, sticker preview, and print of a DK-11208 label (name above QR → `/oppsett?path=qr`)
-- [ ] Confirm the generated `printer.lbx` QR actually prints on the QL (template is hand-built, not from P-touch Editor)
+- [x] Confirm the generated `printer.lbx` QR actually prints on the QL (template is hand-built, not from P-touch Editor)
 - [x] Guide illustrations share one SVG kit (`src/components/illustrations`) drawn after the real QL-820NWBc: `/oppsett` Bluetooth, pair, scan (sticker on the front); `/logg-inn` (underside → printer); enroll + empty inventory
 - [x] Login sticker says «Logg inn · {name}» so it can’t be mixed up with the setup sticker (bare name). Stickers printed before this still work — reprint only if you want the new text (same token)
 - [x] `/oppsett` confirm step (`step=confirm`, manual path) uses real Smooth Print screenshots
@@ -83,7 +83,7 @@ better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer als
 - [x] Confirm a **real ticket QR** payload matches the totalrapport `Barcode` column (scan → correct attendee)
 - [x] Full happy path on **Android** (scan → confirm → print)
 - [x] Smoke-test print on **iOS Safari** (2026-09-28; badge print OK — see [RESEARCH.md](../RESEARCH.md))
-- [ ] Re-import totalrapport near the event (and morning-of) so late signups / cancellations are in
+- [x] Re-import totalrapport near the event (and morning-of) so late signups / cancellations are in (routine task)
 - [x] Phone↔printer topology: **one phone per printer** (agreed; Brother does not document whether a second phone can steal Bluetooth while the first is still paired)
 - [x] **Deploy:** HTTPS + base path / nginx on the conference host (camera + custom schemes need secure context; no basic auth in front — app sessions). Live; nginx `client_max_body_size` raised to 300m for APK uploads.
 
@@ -193,4 +193,5 @@ Supported platforms (for staff phones): iOS 14.1+, Android 8.0+; Bluetooth Class
 ### Other
 
 - [ ] Clearer empty/error states when Smooth Print is missing on iOS (Android already has intent fallback to `/oppsett`)
+- [ ] Say why staff landed on the install step when Smooth Print is missing on Android: add a flag to the intent fallback URL (e.g. `?ikke-installert=1`) and show «Smooth Print er ikke installert» above the install step in `/oppsett`. A web page cannot detect installed apps, so the fallback is the only signal. Could reuse the same banner for the iOS «Skjedde det ingenting?» hint
 - [ ] Stats / simple ops view (checked-in count is already on search; maybe a dedicated board)

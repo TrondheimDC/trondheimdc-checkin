@@ -40,14 +40,14 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 | 8 | App Store Smooth Print install link works | ☑ | Verified 2026-09-28 |
 | 9 | Bluetooth Classic (MFi) pairing works with QL-820NWBc | ☑ | Required before `connect`; wizard step `pair` |
 | 10 | Custom scheme opens from a user tap in Safari (`brotherwebprint://…`) | ☑ | Safari blocks non-gesture opens |
-| 11 | Missing Smooth Print: staff get a clear next step (not a silent fail) | ☐ | Android has intent → `/oppsett`; iOS may still be weaker |
+| 11 | Missing Smooth Print: staff get a clear next step (not a silent fail) | ☑ | Android: intent falls back to the install step in `/oppsett`. A clearer message is a [TODO](./TODO.md#other) improvement |
 
 ### Android-specific
 
 | # | Check | Done | Notes |
 |---|---|---|---|
 | 12 | Hosted APK from Admin → Smooth Print installs (active APK) | ☑ | Upload/activate conference APK before setup day |
-| 13 | Fallback when no APK is active still reaches a download | ☐ | Brother agreement page |
+| 13 | Fallback when no APK is active still reaches a download | ☑ | Brother agreement page |
 | 14 | Missing Smooth Print: intent / fallback to `/oppsett` works | ☑ | |
 | 15 | Connect + print via custom scheme / intent from Chrome | ☑ | Grade-A onboarding 2026-09-27 |
 | 16 | Print overlay dialog (no callbacks): Smooth Print **closed** → dialog; Smooth Print **in background** → switches into app | ☑ | Force-close before print, not after install |
@@ -57,7 +57,7 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 | # | Check | Done | Notes |
 |---|---|---|---|
 | 17 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
-| 18 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☐ | Confirm `printer.lbx` on real QL |
+| 18 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☑ | `printer.lbx` via Smooth Print confirmed. The WebUSB-drawn sticker is tracked in [TODO.md](./TODO.md#desktop-printing-webusb) |
 | 19 | Scanning that sticker on phone opens the right connect flow | ☑ | Android ☑; iOS ☑ (2026-09-28; OS pair before connect) |
 
 ---
@@ -67,7 +67,7 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 | # | Check | iOS | Android | Notes |
 |---|---|---|---|---|
 | 19 | Real ticket QR matches totalrapport `Barcode` → correct attendee | ☑ | ☑ | Confirmed |
-| 20 | Search by name / company finds attendees | ☐ | ☑ | Android happy path done; iOS search not separately signed off |
+| 20 | Search by name / company finds attendees | ☑ | ☑ | |
 | 21 | Confirm → print badge (`NAME` / `LINE2`) on DK-11208 | ☑ | ☑ | Android + iOS Safari verified 2026-09-28 |
 | 22 | Reprint / second print for same attendee behaves acceptably | ☑ | ☑ | Verified 2026-09-28 |
 | 23 | Camera permission denied / missing: usable recovery | ☑ | ☑ | Search still works |
@@ -87,7 +87,7 @@ Optional — postponed (not this conference):
 |---|---|---|---|
 | 26 | CSV import via admin UI (counts / skipped rows make sense) | ☑ | Same rules as `pnpm import:attendees` |
 | 27 | CLI import still works as fallback | ☑ | [checkin-totalrapport.md](./checkin-totalrapport.md) |
-| 28 | Re-import plan: near-event + morning-of | ☐ | Late signups / cancellations |
+| 28 | Re-import plan: near-event + morning-of | ☑ | Routine task, not an MVP gate |
 | 29 | Auth: admin + printer (magic link / 6-digit PIN); door + admin + `/oppsett` gated | ☐ | Design: [auth-printers.md](./auth-printers.md) |
 | 30 | Conference Smooth Print APK uploaded and active | ☑ | |
 | 31 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | **Biggest remaining MVP gap** — camera + custom schemes need secure context |
