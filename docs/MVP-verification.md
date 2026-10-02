@@ -56,7 +56,7 @@ Run the full setup on **one iPhone (Safari)** and **one Android phone (Chrome)**
 
 | # | Check | Done | Notes |
 |---|---|---|---|
-| 17 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☐ | |
+| 17 | Enroll printer in `/admin/printers` (name, MAC, serial, model) | ☑ | |
 | 18 | Sticker print (DK-11208): name + QR to `/oppsett?path=qr&…` | ☑ | `printer.lbx` via Smooth Print confirmed. The WebUSB-drawn sticker is tracked in [TODO.md](./TODO.md#desktop-printing-webusb) |
 | 19 | Scanning that sticker on phone opens the right connect flow | ☑ | Android ☑; iOS ☑ (2026-09-28; OS pair before connect) |
 
@@ -90,7 +90,7 @@ Optional — postponed (not this conference):
 | 28 | Re-import plan: near-event + morning-of | ☑ | Routine task, not an MVP gate |
 | 29 | Auth: admin + printer (magic link / 6-digit PIN); door + admin + `/oppsett` gated | ☐ | Design: [auth-printers.md](./auth-printers.md) |
 | 30 | Conference Smooth Print APK uploaded and active | ☑ | |
-| 31 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☐ | **Biggest remaining MVP gap** — camera + custom schemes need secure context |
+| 31 | Deploy: HTTPS, base path / nginx (no basic auth in front — app sessions) | ☑ | Live; camera + custom schemes need the secure context |
 
 ---
 

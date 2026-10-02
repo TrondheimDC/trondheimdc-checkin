@@ -42,7 +42,7 @@ One phone ↔ one printer ↔ one door login. The login is a better-auth shadow 
 ## Sign-in
 
 - Door `/logg-inn`: skann QR or paste code/URL, then PIN.
-- Endpoint: `POST /api/auth/printer/sign-in`.
+- Endpoint: `POST /api/auth/sign-in/printer` — under `/sign-in` so better-auth's default sign-in rate limit (3 per 10 s) applies.
 - Rotate PIN alone for a new event; rotate token only when reprinting the under-printer sticker.
 
 ## Admin UX

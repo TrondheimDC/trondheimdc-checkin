@@ -99,7 +99,7 @@ export function DoorLoginForm() {
     pendingRef.current = true
     setPending(true)
     setError(null)
-    const response = await fetch(apiPath("/api/auth/printer/sign-in"), {
+    const response = await fetch(apiPath("/api/auth/sign-in/printer"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token, pin: nextPin }),
@@ -109,7 +109,11 @@ export function DoorLoginForm() {
     if (!response.ok) {
       // input-otp is one hidden input — mid-slot edit is awkward on mobile.
       // Clear so staff can retype from the start.
-      setError("Ugyldig QR eller PIN")
+      setError(
+        response.status === 429
+          ? "For mange forsøk. Vent litt og prøv igjen."
+          : "Ugyldig QR eller PIN",
+      )
       setPin("")
       return
     }

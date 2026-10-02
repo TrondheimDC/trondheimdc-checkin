@@ -22,6 +22,8 @@ export const auth = betterAuth({
     .map((origin) => origin.trim())
     .filter(Boolean),
   secret: getAuthSecret(),
+  // Door logins have no self-service: username is the printed token and the PIN is rotated by admins.
+  disabledPaths: ["/update-user", "/change-password"],
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,

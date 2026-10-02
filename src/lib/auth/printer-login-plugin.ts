@@ -18,13 +18,16 @@ const signInBodySchema = z.object({
  * - password is the 6-digit PIN
  *
  * Neither factor alone creates a session.
+ *
+ * The path lives under `/sign-in` on purpose: better-auth's built-in rate limit (3 attempts
+ * per 10 s) matches that prefix, and a 6-digit PIN needs it.
  */
 export function printerLoginPlugin(): BetterAuthPlugin {
   return {
     id: "printer-login",
     endpoints: {
       signInPrinter: createAuthEndpoint(
-        "/printer/sign-in",
+        "/sign-in/printer",
         {
           method: "POST",
           body: signInBodySchema,
