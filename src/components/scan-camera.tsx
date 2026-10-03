@@ -10,7 +10,6 @@ import { useEffect, useEffectEvent, useRef, useState } from "react"
 import {
   applyTorch,
   openRearCamera,
-  pickRearCamera,
   type TorchTrack,
   trackSupportsTorch,
   videoTrackFrom,
@@ -47,7 +46,6 @@ export function ScanCamera<T>({
   const videoRef = useRef<HTMLVideoElement>(null)
   const trackRef = useRef<TorchTrack | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [deviceId, setDeviceId] = useState<string | undefined>(undefined)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
 
@@ -76,7 +74,7 @@ export function ScanCamera<T>({
       setTorchSupported(trackSupportsTorch(track))
     }
 
-    const controlsPromise = openRearCamera(deviceId).then((stream) => {
+    const controlsPromise = openRearCamera(undefined).then((stream) => {
       const track = stream.getVideoTracks()[0] as TorchTrack | undefined
       trackRef.current = track ?? null
       if (stopped) {
@@ -99,7 +97,7 @@ export function ScanCamera<T>({
     })
 
     controlsPromise
-      .then(async (controls) => {
+      .then((controls) => {
         if (stopped) {
           controls.stop()
           return
@@ -109,17 +107,6 @@ export function ScanCamera<T>({
         const track = trackRef.current
         if (track) void applyTorch(track, false).catch(() => undefined)
         torchPolls.push(window.setTimeout(refreshTorch, 400), window.setTimeout(refreshTorch, 1200))
-
-        const devices =
-          mode === "multi"
-            ? await BrowserMultiFormatReader.listVideoInputDevices()
-            : await BrowserQRCodeReader.listVideoInputDevices()
-        if (stopped) return
-        if (!deviceId) {
-          const picked = pickRearCamera(devices)
-          const current = trackRef.current?.getSettings().deviceId
-          if (picked && picked !== current) setDeviceId(picked)
-        }
       })
       .catch((err: unknown) => {
         if (stopped || (err instanceof Error && err.message === "stopped")) return
@@ -135,7 +122,7 @@ export function ScanCamera<T>({
       trackRef.current = null
       void controlsPromise.then((c) => c.stop()).catch(() => undefined)
     }
-  }, [cameraError, deviceId, invalidMessage, mode])
+  }, [cameraError, invalidMessage, mode])
 
   async function toggleTorch() {
     if (!torchSupported) return

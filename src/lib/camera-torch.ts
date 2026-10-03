@@ -47,6 +47,12 @@ export function pickRearCamera(devices: MediaDeviceInfo[]) {
 }
 
 export async function openRearCamera(deviceId: string | undefined) {
+  // Pick before opening; re-picking after the stream is live means a second getUserMedia (flash).
+  // Labels are empty until permission is granted, so a first-ever open falls back to facingMode.
+  if (!deviceId) {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    deviceId = pickRearCamera(devices.filter((d) => d.kind === "videoinput" && d.label))
+  }
   const rear: MediaTrackConstraints[] = [
     { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
     { facingMode: "environment" },

@@ -25,7 +25,6 @@ import {
   cameraKind,
   cameraLabel,
   openRearCamera,
-  pickRearCamera,
   type TorchTrack,
   trackSupportsTorch,
   videoTrackFrom,
@@ -93,6 +92,8 @@ export function Scanner({ printerName }: { printerName?: string }) {
       : (window.localStorage.getItem(SCAN_CAMERA_KEY) ?? undefined),
   )
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
+  // What is actually streaming — equals deviceId unless it was auto-picked or went stale.
+  const [liveDeviceId, setLiveDeviceId] = useState<string | undefined>(undefined)
   const [pickingCamera, setPickingCamera] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
@@ -206,6 +207,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
         }
         controlsRef.current = controls
         setCameraLive(true)
+        setLiveDeviceId(trackRef.current?.getSettings().deviceId)
         refreshTorch()
         const track = trackRef.current
         if (track) void applyTorch(track, false).catch(() => undefined)
@@ -214,12 +216,8 @@ export function Scanner({ printerName }: { printerName?: string }) {
         const devices = await BrowserQRCodeReader.listVideoInputDevices()
         if (stopped) return
         setCameras(devices)
-        const known = deviceId && devices.some((device) => device.deviceId === deviceId)
-        if (deviceId && !known) window.localStorage.removeItem(SCAN_CAMERA_KEY)
-        if (!known) {
-          const picked = pickRearCamera(devices)
-          const current = trackRef.current?.getSettings().deviceId
-          if (picked && picked !== current) setDeviceId(picked)
+        if (deviceId && !devices.some((device) => device.deviceId === deviceId)) {
+          window.localStorage.removeItem(SCAN_CAMERA_KEY)
         }
       })
       .catch((error: unknown) => {
@@ -418,7 +416,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
             {cameras.map((camera, index) => (
               <Button
                 key={camera.deviceId}
-                variant={camera.deviceId === deviceId ? "default" : "surface"}
+                variant={camera.deviceId === liveDeviceId ? "default" : "surface"}
                 size="lg"
                 className="h-auto min-h-16 justify-start py-3 text-left whitespace-normal [overflow-wrap:anywhere]"
                 onClick={() => {
@@ -429,7 +427,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
               >
                 <CameraKindIcon kind={cameraKind(camera)} />
                 <span className="min-w-0 flex-1">{cameraLabel(camera, index)}</span>
-                {camera.deviceId === deviceId ? <Check className="size-6" aria-hidden /> : null}
+                {camera.deviceId === liveDeviceId ? <Check className="size-6" aria-hidden /> : null}
               </Button>
             ))}
           </div>
