@@ -24,6 +24,10 @@ export const auth = betterAuth({
   secret: getAuthSecret(),
   // Door logins have no self-service: username is the printed token and the PIN is rotated by admins.
   disabledPaths: ["/update-user", "/change-password"],
+  advanced: {
+    // nginx overwrites X-Real-IP with the connecting address, so clients cannot forge their rate-limit bucket.
+    ipAddress: { ipAddressHeaders: ["x-real-ip"] },
+  },
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,

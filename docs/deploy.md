@@ -189,6 +189,8 @@ After certbot edits the file, in the **`listen 443`** server block set (keep cer
     }
 ```
 
+`X-Real-IP` is required: better-auth rate-limits sign-in per client IP and reads only that header. Without it every client shares one bucket, and the app logs «Rate limiting could not determine a client IP» once after start.
+
 Remove any `root` / `try_files` / `index` from that HTTPS server. Reload:
 
 ```bash
