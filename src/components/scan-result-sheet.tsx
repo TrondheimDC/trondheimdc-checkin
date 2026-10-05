@@ -44,6 +44,19 @@ export function ScanResultSheet({
     setOverrideError(null)
   }, [attendee])
 
+  // Not a Dialog (the camera keeps running), so Escape is ours to handle. A dialog
+  // opened from the card (correction, print again) claims its Escape with preventDefault.
+  const open = current != null
+  useEffect(() => {
+    if (!open) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return
+      onDismiss()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [open, onDismiss])
+
   if (!current) return null
 
   const line2 = labelLine(current.company, current.role)
