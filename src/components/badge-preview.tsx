@@ -18,7 +18,7 @@ export function BadgePreview({
   template,
   className,
 }: {
-  name: string
+  name: string | null | undefined
   line2: string
   template?: string
   className?: string
@@ -27,7 +27,7 @@ export function BadgePreview({
 
   useEffect(() => {
     let cancelled = false
-    void renderBadge({ name, line2, template }).then((rendered) => {
+    void renderBadge({ name: name ?? null, line2, template }).then((rendered) => {
       const canvas = canvasRef.current
       const ctx = canvas?.getContext("2d")
       if (cancelled || !canvas || !ctx) return

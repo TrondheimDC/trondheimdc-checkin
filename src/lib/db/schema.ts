@@ -1,6 +1,7 @@
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 import { createSelectSchema } from "drizzle-zod"
 import { z } from "zod"
+import { nonEmptyText, optionalText, requiredText } from "@/lib/non-empty-string"
 import { formatBluetoothMac, isCompleteBluetoothMac } from "@/lib/printer-format"
 import { DEFAULT_PRINTER_MODEL, printerModelIdSchema } from "@/lib/printer-models"
 
@@ -8,17 +9,20 @@ export * from "./auth-schema"
 
 export const attendees = sqliteTable("attendees", {
   id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  company: text("company").notNull().default(""),
-  role: text("role").notNull().default(""),
+  /** Null until known: a ticket nobody filled out has no name; the door asks for it. */
+  name: nonEmptyText("name"),
+  company: nonEmptyText("company"),
+  role: nonEmptyText("role"),
+  /** Bedrift on a ticket nobody filled out: prefilled when the door types in the name. */
+  companySuggestion: nonEmptyText("company_suggestion"),
   /** ISO timestamp of the current check-in. Null when not checked in. */
   checkedInAt: text("checked_in_at"),
   /** Soft-delete when missing from a later import. Null while active. */
   deletedAt: text("deleted_at"),
-  /** Door corrections. Null = use the imported value; a re-import never touches these. */
-  nameOverride: text("name_override"),
-  companyOverride: text("company_override"),
-  roleOverride: text("role_override"),
+  /** Door corrections, used as-is while `correctedAt` is set; a re-import never touches these. */
+  nameOverride: nonEmptyText("name_override"),
+  companyOverride: nonEmptyText("company_override"),
+  roleOverride: nonEmptyText("role_override"),
   /** ISO timestamp of the latest correction. Null when the badge prints as imported. */
   correctedAt: text("corrected_at"),
 })
@@ -53,7 +57,10 @@ export const attendeeSchema = createSelectSchema(attendees).omit({
 })
 export type Attendee = z.infer<typeof attendeeSchema>
 /** A row from the Checkin CSV — corrections are never part of an import. */
-export type ImportedAttendee = Omit<Attendee, "correctedAt">
+export type ImportedAttendee = Pick<
+  typeof attendees.$inferInsert,
+  "id" | "name" | "company" | "companySuggestion" | "role" | "checkedInAt" | "deletedAt"
+>
 
 export const attendeesSearchResponseSchema = z.object({
   attendees: z.array(attendeeSchema),
@@ -81,11 +88,12 @@ export const setCheckedInBodySchema = z.object({
 
 /** Door correction form + PUT body. Company and role may be blanked on purpose. */
 export const correctAttendeeBodySchema = z.object({
-  name: z.string().trim().min(1, "Skriv inn et navn.").max(200),
-  company: z.string().trim().max(200),
-  role: z.string().trim().max(200),
+  name: requiredText({ max: 200, error: "Skriv inn et navn." }),
+  company: optionalText({ max: 200 }),
+  role: optionalText({ max: 200 }),
 })
-export type CorrectAttendeeBody = z.infer<typeof correctAttendeeBodySchema>
+export type CorrectAttendeeBody = z.output<typeof correctAttendeeBodySchema>
+export type CorrectAttendeeInput = z.input<typeof correctAttendeeBodySchema>
 
 export const printers = sqliteTable("printers", {
   id: text("id").primaryKey(),

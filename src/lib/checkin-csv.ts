@@ -1,9 +1,10 @@
 import Papa from "papaparse"
 import { z } from "zod"
 import type { ImportedAttendee } from "./db/schema"
+import { type NonEmptyString, nonEmptyString, optionalText } from "./non-empty-string"
 
 /** Rows we cannot act on (not soft-deleted, not upserted). */
-export type ImportIgnoreReason = "no-barcode" | "no-name" | "duplicate"
+export type ImportIgnoreReason = "no-barcode" | "duplicate"
 
 export type ImportIgnore = {
   line: number
@@ -48,22 +49,19 @@ const HEADER_ALIASES: Record<string, string> = {
   bedrift: "companyAlt",
 }
 
-const blank = z.preprocess((value) => {
-  if (value == null) return ""
-  return String(value).trim()
-}, z.string())
+const cell = optionalText()
 
 const checkinRowSchema = z.object({
-  barcode: blank,
-  name: blank,
-  firstName: blank,
-  lastName: blank,
-  company: blank,
-  companyAlt: blank,
-  role: blank,
-  ticket: blank,
-  cancelled: blank,
-  waiting: blank,
+  barcode: cell,
+  name: cell,
+  firstName: cell,
+  lastName: cell,
+  company: cell,
+  companyAlt: cell,
+  role: cell,
+  ticket: cell,
+  cancelled: cell,
+  waiting: cell,
 })
 
 function normalizeHeader(header: string): string {
@@ -79,15 +77,22 @@ function mapHeader(header: string): string {
   return HEADER_ALIASES[key] ?? key
 }
 
-function isYes(value: string): boolean {
-  return /^(ja|yes|true|1)$/i.test(value)
+function isYes(value: string | null): boolean {
+  return value != null && /^(ja|yes|true|1)$/i.test(value)
 }
 
 /** Ticket types that are not useful as badge "stilling". */
-function roleFromTicket(ticket: string): string {
-  if (!ticket) return ""
-  if (/^(deltakerbillett|participant(\s*ticket)?|ticket)$/i.test(ticket)) return ""
+function roleFromTicket(ticket: NonEmptyString | null): NonEmptyString | null {
+  if (ticket == null) return null
+  if (/^(deltakerbillett|participant(\s*ticket)?|ticket)$/i.test(ticket)) return null
   return ticket
+}
+
+/** Name, else First name + Last name. */
+function fullName(row: z.infer<typeof checkinRowSchema>): NonEmptyString | null {
+  if (row.name) return row.name
+  const joined = [row.firstName, row.lastName].filter(Boolean).join(" ")
+  return joined ? nonEmptyString().parse(joined) : null
 }
 
 export function parseCheckinCsv(text: string): ParsedCheckinCsv {
@@ -157,11 +162,12 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
 
     if (deactivateSeen.has(row.barcode)) return
 
-    const name = row.name || [row.firstName, row.lastName].filter(Boolean).join(" ")
-    if (!name) {
-      ignored.push({ line, reason: "no-name" })
-      return
-    }
+    // Checkin fills Name / First name / Last name (and Bedrift) from the buyer until
+    // the ticket is filled out, so only Firmanavn + Stillingstittel tell them apart.
+    // A ticket nobody filled out keeps none of the buyer's details; the door asks.
+    const filledOut = row.company != null || row.role != null
+    const name = filledOut ? fullName(row) : null
+    const company = filledOut ? (row.company ?? row.companyAlt) : null
 
     const previous = seen.get(row.barcode)
     if (previous !== undefined) {
@@ -173,8 +179,8 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
     attendees.push({
       id: row.barcode,
       name,
-      company: row.company || row.companyAlt,
-      role: row.role || roleFromTicket(row.ticket),
+      company,
+      role: row.role ?? roleFromTicket(row.ticket),
       checkedInAt: null,
       deletedAt: null,
     })

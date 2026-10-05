@@ -4,12 +4,14 @@ import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { CheckInButton } from "@/components/check-in-button"
 import { CorrectAttendeeButton } from "@/components/correct-attendee-button"
+import { MISSING_NAME_LABEL, MissingNameNotice } from "@/components/missing-name-notice"
 import { PrintButton } from "@/components/print-button"
 import { Button } from "@/components/ui/button"
 import { useSetCheckedIn } from "@/hooks/use-set-checked-in"
 import type { Attendee } from "@/lib/db/schema"
 import { labelLine } from "@/lib/label-line"
 import { type PhonePlatform, platformFromNavigator } from "@/lib/platform"
+import { cn } from "@/lib/utils"
 
 /**
  * Non-modal card centred over a live camera — next scan replaces the current
@@ -46,7 +48,7 @@ export function ScanResultSheet({
 
   const line2 = labelLine(current.company, current.role)
   const checkedIn = current.checkedInAt != null
-  const shouldAutoPrint = autoPrint === true && !checkedIn
+  const shouldAutoPrint = autoPrint === true && !checkedIn && Boolean(current.name)
 
   return (
     <div
@@ -62,8 +64,13 @@ export function ScanResultSheet({
           <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">
             {checkedIn ? "Allerede innsjekket" : "Ny innsjekk"}
           </p>
-          <h2 className="font-display mt-0.5 truncate pr-6 text-2xl leading-tight">
-            {current.name}
+          <h2
+            className={cn(
+              "font-display mt-0.5 truncate pr-6 text-2xl leading-tight",
+              !current.name && "text-[var(--color-bg-danger)]",
+            )}
+          >
+            {current.name ?? MISSING_NAME_LABEL}
           </h2>
           {line2 ? <p className="mt-1 truncate pr-6 text-base opacity-75">{line2}</p> : null}
           <CorrectAttendeeButton attendee={current} onCorrected={setLocal} />
@@ -73,19 +80,23 @@ export function ScanResultSheet({
           {overrideError ? (
             <p className="text-sm text-[var(--color-bg-danger)]">{overrideError}</p>
           ) : null}
-          <PrintButton
-            key={current.id}
-            name={current.name}
-            line2={line2}
-            platform={platform}
-            checkedIn={checkedIn}
-            autoPrint={shouldAutoPrint}
-            onPrinted={onPrinted}
-            onCheckIn={async () => {
-              const next = await setCheckedIn.mutateAsync(true)
-              setLocal(next)
-            }}
-          />
+          {current.name ? (
+            <PrintButton
+              key={current.id}
+              name={current.name}
+              line2={line2}
+              platform={platform}
+              checkedIn={checkedIn}
+              autoPrint={shouldAutoPrint}
+              onPrinted={onPrinted}
+              onCheckIn={async () => {
+                const next = await setCheckedIn.mutateAsync(true)
+                setLocal(next)
+              }}
+            />
+          ) : (
+            <MissingNameNotice key={current.id} attendee={current} onCorrected={setLocal} />
+          )}
           {!shouldAutoPrint ? (
             <CheckInButton
               checkedIn={checkedIn}

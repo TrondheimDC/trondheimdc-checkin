@@ -188,7 +188,8 @@ function blankLabel(width: number, height: number) {
 }
 
 export type BadgeInput = {
-  name: string
+  /** Null while the name is not typed in yet (correction preview); prints nothing there. */
+  name: string | null
   line2: string
   /** `.lbx` filename from `PRINT_SAMPLES`; defaults to the production badge. */
   template?: string
@@ -198,7 +199,7 @@ export type BadgeInput = {
 export async function renderBadge(input: BadgeInput): Promise<HTMLCanvasElement> {
   const { canvas, ctx } = blankLabel(BADGE_DOTS.along, BADGE_DOTS.across)
   await document.fonts.ready
-  drawFittedText(ctx, input.name, landscapeRect(NAME_FRAME), NAME_FONT)
+  if (input.name) drawFittedText(ctx, input.name, landscapeRect(NAME_FRAME), NAME_FONT)
   drawFittedText(ctx, input.line2, landscapeRect(LINE2_FRAME), LINE2_FONT)
   threshold(ctx, canvas.width, canvas.height)
 

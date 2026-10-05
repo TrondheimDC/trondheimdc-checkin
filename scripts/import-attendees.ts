@@ -1,7 +1,7 @@
 import { readFileSync } from "fs"
 import { attendeeRepository } from "../src/lib/attendees"
+import { type ImportIgnoreReason, parseCheckinCsv } from "../src/lib/checkin-csv"
 import { initDatabase } from "../src/lib/db"
-import { parseCheckinCsv, type ImportIgnoreReason } from "../src/lib/checkin-csv"
 
 const file = process.argv[2]
 if (!file) {
@@ -11,7 +11,6 @@ if (!file) {
 
 const labels: Record<ImportIgnoreReason, string> = {
   "no-barcode": "uten barcode",
-  "no-name": "uten navn",
   duplicate: "duplikat barcode (beholdt siste)",
 }
 
@@ -27,7 +26,11 @@ async function main() {
   console.log(
     `  ${sync.added} nye · ${sync.updated} oppdatert · ${sync.restored} gjenåpnet · ${sync.softDeleted} soft-slettet · ${parsed.ignored.length} ignorert`,
   )
-  console.log(`  ${parsed.deactivateIds.length} ugyldige barcode i CSV (avmeldt/venteliste/refundert)`)
+  console.log(
+    `  ${parsed.deactivateIds.length} ugyldige barcode i CSV (avmeldt/venteliste/refundert)`,
+  )
+  if (sync.missingName > 0)
+    console.log(`  ${sync.missingName} uten navn (spørres om navn ved skanning)`)
   for (const warning of parsed.warnings) console.warn(`  ! ${warning}`)
   for (const [reason, count] of counts) console.log(`  ${count} ${labels[reason]}`)
 }

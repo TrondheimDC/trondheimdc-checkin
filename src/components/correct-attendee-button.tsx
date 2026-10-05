@@ -2,13 +2,18 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { LoaderCircle, Pencil } from "lucide-react"
-import { useId, useState } from "react"
+import { useId, useLayoutEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { BadgePreview } from "@/components/badge-preview"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { useCorrectAttendee } from "@/hooks/use-correct-attendee"
-import { type Attendee, type CorrectAttendeeBody, correctAttendeeBodySchema } from "@/lib/db/schema"
+import {
+  type Attendee,
+  type CorrectAttendeeBody,
+  type CorrectAttendeeInput,
+  correctAttendeeBodySchema,
+} from "@/lib/db/schema"
 import { labelLine } from "@/lib/label-line"
 import { cn } from "@/lib/utils"
 
@@ -31,35 +36,6 @@ export function CorrectAttendeeButton({
   className?: string
 }) {
   const [open, setOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const nameId = useId()
-  const companyId = useId()
-  const roleId = useId()
-  const correct = useCorrectAttendee(attendee.id)
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors },
-  } = useForm<CorrectAttendeeBody>({
-    resolver: zodResolver(correctAttendeeBodySchema),
-    defaultValues: { name: attendee.name, company: attendee.company, role: attendee.role },
-  })
-
-  const [name, company, role] = watch(["name", "company", "role"])
-
-  async function onSubmit(values: CorrectAttendeeBody) {
-    setError(null)
-    try {
-      const next = await correct.mutateAsync(values)
-      setOpen(false)
-      onCorrected?.(next)
-    } catch {
-      setError("Klarte ikke å lagre rettelsen. Prøv igjen.")
-    }
-  }
 
   return (
     <>
@@ -71,72 +47,137 @@ export function CorrectAttendeeButton({
           "absolute inset-0 z-10 cursor-pointer touch-manipulation rounded-[inherit] transition-colors duration-150 ease-out hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-fg-brand)] active:bg-white/10",
           className,
         )}
-        onClick={() => {
-          reset({ name: attendee.name, company: attendee.company, role: attendee.role })
-          setError(null)
-          setOpen(true)
-        }}
+        onClick={() => setOpen(true)}
       >
         <Pencil className="absolute top-3 right-3 size-4 opacity-60" aria-hidden />
       </button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent aria-describedby={undefined}>
-          <DialogTitle>Rett opp navneskilt</DialogTitle>
-
-          <form
-            className="mt-4 flex flex-col gap-4"
-            onSubmit={(event) => {
-              void handleSubmit(onSubmit)(event)
-            }}
-          >
-            <BadgePreview name={name} line2={labelLine(company, role)} />
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor={nameId} className="text-sm font-medium opacity-80">
-                Navn
-              </label>
-              <input id={nameId} className={fieldClass} autoComplete="off" {...register("name")} />
-              {errors.name ? (
-                <p className="text-sm text-[var(--color-bg-danger)]">{errors.name.message}</p>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor={companyId} className="text-sm font-medium opacity-80">
-                Bedrift
-              </label>
-              <input
-                id={companyId}
-                className={fieldClass}
-                autoComplete="off"
-                {...register("company")}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor={roleId} className="text-sm font-medium opacity-80">
-                Stilling
-              </label>
-              <input id={roleId} className={fieldClass} autoComplete="off" {...register("role")} />
-            </div>
-
-            {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
-
-            <div className="flex flex-col gap-3">
-              <Button type="submit" size="lg" disabled={correct.isPending}>
-                {correct.isPending ? (
-                  <LoaderCircle className="size-5 animate-spin" aria-hidden />
-                ) : null}
-                Lagre
-              </Button>
-              <DialogClose asChild>
-                <Button type="button" variant="surface" size="lg">
-                  Avbryt
-                </Button>
-              </DialogClose>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CorrectAttendeeDialog
+        attendee={attendee}
+        open={open}
+        onOpenChange={setOpen}
+        onCorrected={onCorrected}
+      />
     </>
+  )
+}
+
+/** The correction form on its own, for callers that open it from their own control. */
+export function CorrectAttendeeDialog({
+  attendee,
+  open,
+  onOpenChange,
+  onCorrected,
+}: {
+  attendee: Attendee
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCorrected?: (attendee: Attendee) => void
+}) {
+  const [error, setError] = useState<string | null>(null)
+  const nameId = useId()
+  const companyId = useId()
+  const roleId = useId()
+  const correct = useCorrectAttendee(attendee.id)
+
+  const initial = { name: attendee.name, company: attendee.company, role: attendee.role }
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<CorrectAttendeeInput, unknown, CorrectAttendeeBody>({
+    resolver: zodResolver(correctAttendeeBodySchema),
+    defaultValues: initial,
+  })
+
+  const [name, company, role] = watch(["name", "company", "role"])
+  const missingName = !attendee.name
+
+  // Start from the current values each time it opens; not on every cache update while typing.
+  // Layout effect: reset before paint so the last attendee's values never flash.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the dialog opens
+  useLayoutEffect(() => {
+    if (!open) return
+    reset(initial)
+    setError(null)
+  }, [open])
+
+  async function onSubmit(values: CorrectAttendeeBody) {
+    setError(null)
+    try {
+      const next = await correct.mutateAsync(values)
+      onOpenChange(false)
+      onCorrected?.(next)
+    } catch {
+      setError("Klarte ikke å lagre rettelsen. Prøv igjen.")
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent aria-describedby={undefined}>
+        <DialogTitle>{missingName ? "Skriv inn navn" : "Rett opp navneskilt"}</DialogTitle>
+
+        <form
+          className="mt-4 flex flex-col gap-4"
+          onSubmit={(event) => {
+            void handleSubmit(onSubmit)(event)
+          }}
+        >
+          <BadgePreview name={name} line2={labelLine(company, role)} />
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor={nameId} className="text-sm font-medium opacity-80">
+              Navn
+            </label>
+            <input
+              id={nameId}
+              className={fieldClass}
+              autoComplete="off"
+              autoFocus={missingName}
+              {...register("name")}
+            />
+            {errors.name ? (
+              <p className="text-sm text-[var(--color-bg-danger)]">{errors.name.message}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor={companyId} className="text-sm font-medium opacity-80">
+              Bedrift
+            </label>
+            <input
+              id={companyId}
+              className={fieldClass}
+              autoComplete="off"
+              {...register("company")}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor={roleId} className="text-sm font-medium opacity-80">
+              Stilling
+            </label>
+            <input id={roleId} className={fieldClass} autoComplete="off" {...register("role")} />
+          </div>
+
+          {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
+
+          <div className="flex flex-col gap-3">
+            <Button type="submit" size="lg" disabled={correct.isPending}>
+              {correct.isPending ? (
+                <LoaderCircle className="size-5 animate-spin" aria-hidden />
+              ) : null}
+              Lagre
+            </Button>
+            <DialogClose asChild>
+              <Button type="button" variant="surface" size="lg">
+                Avbryt
+              </Button>
+            </DialogClose>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

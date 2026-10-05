@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { CheckInButton } from "@/components/check-in-button"
 import { CorrectAttendeeButton } from "@/components/correct-attendee-button"
+import { MISSING_NAME_LABEL, MissingNameNotice } from "@/components/missing-name-notice"
 import { PrintButton } from "@/components/print-button"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
@@ -15,7 +16,7 @@ import { labelLine } from "@/lib/label-line"
 import { type PhonePlatform, platformFromNavigator } from "@/lib/platform"
 import { SCAN_AUTO_PRINT_DEFAULT, SCAN_AUTO_PRINT_KEY } from "@/lib/scan-settings"
 import { useLocalFlag } from "@/lib/use-local-flag"
-import { apiPath } from "@/lib/utils"
+import { apiPath, cn } from "@/lib/utils"
 
 export function AttendeeScreen({ id }: { id: string }) {
   const queryClient = useQueryClient()
@@ -118,7 +119,14 @@ export function AttendeeScreen({ id }: { id: string }) {
         <TdcLogo className="search-item-in" />
 
         <div className="attendee-badge relative mt-6 flex min-h-[9.5rem] flex-col justify-center rounded-2xl bg-[var(--color-black-3)] px-6 py-7">
-          <h1 className="pr-6 text-4xl leading-tight sm:text-5xl">{attendee.name}</h1>
+          <h1
+            className={cn(
+              "pr-6 text-4xl leading-tight sm:text-5xl",
+              !attendee.name && "text-[var(--color-bg-danger)]",
+            )}
+          >
+            {attendee.name ?? MISSING_NAME_LABEL}
+          </h1>
           {line2 ? <p className="mt-3 text-xl opacity-80">{line2}</p> : null}
           <p className="mt-5 font-mono text-xs tracking-wide break-all opacity-45">{attendee.id}</p>
           <CorrectAttendeeButton attendee={attendee} />
@@ -129,17 +137,21 @@ export function AttendeeScreen({ id }: { id: string }) {
         {overrideError ? (
           <p className="text-base text-[var(--color-bg-danger)]">{overrideError}</p>
         ) : null}
-        <PrintButton
-          name={attendee.name}
-          line2={line2}
-          platform={platform}
-          checkedIn={checkedIn}
-          autoPrint={shouldAutoPrint}
-          onCheckIn={async () => {
-            const next = await setCheckedIn.mutateAsync(true)
-            queryClient.setQueryData(["attendee", id], next)
-          }}
-        />
+        {attendee.name ? (
+          <PrintButton
+            name={attendee.name}
+            line2={line2}
+            platform={platform}
+            checkedIn={checkedIn}
+            autoPrint={shouldAutoPrint}
+            onCheckIn={async () => {
+              const next = await setCheckedIn.mutateAsync(true)
+              queryClient.setQueryData(["attendee", id], next)
+            }}
+          />
+        ) : (
+          <MissingNameNotice attendee={attendee} />
+        )}
         <CheckInButton
           checkedIn={checkedIn}
           onToggle={async () => {

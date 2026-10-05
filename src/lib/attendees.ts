@@ -22,6 +22,8 @@ export interface ImportSyncResult {
   restored: number
   softDeleted: number
   total: number
+  /** Active attendees still without a name after the sync (door corrections count as named). */
+  missingName: number
 }
 
 export interface AttendeeRepository {
@@ -50,19 +52,19 @@ const active = isNull(attendees.deletedAt)
 
 type AttendeeRow = typeof attendees.$inferSelect
 
-/** Fold a door correction over the imported values; the client only sees the result. */
+/**
+ * Fold a door correction over the imported values; the client only sees the result.
+ * While corrected, the overrides win as a whole — a null company there was blanked on purpose.
+ */
 function effective(row: AttendeeRow): Attendee {
   const { nameOverride, companyOverride, roleOverride, ...rest } = row
-  return {
-    ...rest,
-    name: nameOverride ?? row.name,
-    company: companyOverride ?? row.company,
-    role: roleOverride ?? row.role,
-  }
+  if (row.correctedAt == null) return rest
+  return { ...rest, name: nameOverride, company: companyOverride, role: roleOverride }
 }
 
-const effectiveName = sql`coalesce(${attendees.nameOverride}, ${attendees.name})`
-const effectiveCompany = sql`coalesce(${attendees.companyOverride}, ${attendees.company})`
+const corrected = sql`${attendees.correctedAt} is not null`
+const effectiveName = sql`case when ${corrected} then ${attendees.nameOverride} else ${attendees.name} end`
+const effectiveCompany = sql`case when ${corrected} then ${attendees.companyOverride} else ${attendees.company} end`
 
 export const attendeeRepository: AttendeeRepository = {
   async getById(id) {
@@ -76,7 +78,8 @@ export const attendeeRepository: AttendeeRepository = {
 
   async search(query, { includeCheckedIn }) {
     const needle = query.trim()
-    const conditions = [active]
+    // No name yet: reached by scanning the ticket, not by searching for it.
+    const conditions = [active, sql`${effectiveName} is not null`]
     if (needle) {
       const pattern = likePattern(needle)
       conditions.push(
@@ -231,12 +234,18 @@ export const attendeeRepository: AttendeeRepository = {
           })
       }
 
+      const [unnamed] = await tx
+        .select({ count: count() })
+        .from(attendees)
+        .where(and(active, sql`${effectiveName} is null`))
+
       return {
         added,
         updated,
         restored,
         softDeleted: removedIds.length,
         total: next.length,
+        missingName: unnamed?.count ?? 0,
       }
     })
   },

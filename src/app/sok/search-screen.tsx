@@ -220,7 +220,9 @@ export function SearchScreen({ initialStats }: { initialStats: AttendeeStats }) 
                   <CommandItem
                     key={attendee.id}
                     value={attendee.id}
-                    keywords={[attendee.name, attendee.company ?? "", attendee.role ?? ""]}
+                    keywords={[attendee.name, attendee.company, attendee.role].filter(
+                      (keyword) => keyword != null,
+                    )}
                     onSelect={() => {
                       router.push(`/deltaker/${encodeURIComponent(attendee.id)}`)
                     }}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation } from "@tanstack/react-query"
-import { Ban, FileUp, UserMinus, UserPlus, UserRoundCheck, Users } from "lucide-react"
+import { Ban, FileUp, UserMinus, UserPlus, UserRoundCheck, UserRoundX, Users } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { z } from "zod"
 import { FileDropzone } from "@/components/admin/file-dropzone"
@@ -113,6 +113,13 @@ function ImportResultPanel({ result }: { result: ImportResult }) {
           hideWhenZero
         />
         <SyncStat
+          label="Mangler navn"
+          value={result.missingName}
+          icon={<UserRoundX className="size-5" />}
+          delayMs={360}
+          hideWhenZero
+        />
+        <SyncStat
           label="Ignorert"
           value={result.ignored}
           icon={<Ban className="size-5" />}
@@ -146,6 +153,7 @@ async function importAttendeesCsv(file: File): Promise<ImportResult> {
     restored: json.restored ?? 0,
     softDeleted: json.softDeleted ?? 0,
     ignored: json.ignored ?? 0,
+    missingName: json.missingName ?? 0,
     warnings: json.warnings ?? [],
     total: json.total ?? 0,
   }

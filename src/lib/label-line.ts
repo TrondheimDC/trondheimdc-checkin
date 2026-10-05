@@ -1,4 +1,6 @@
-export function labelLine(company: string, role: string): string {
-  const parts = [company.trim(), role.trim()].filter(Boolean)
-  return parts.join(" / ")
+export function labelLine(
+  company: string | null | undefined,
+  role: string | null | undefined,
+): string {
+  return [company?.trim(), role?.trim()].filter(Boolean).join(" / ")
 }

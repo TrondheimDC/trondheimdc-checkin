@@ -19,7 +19,7 @@ Filen lastes ned som Excel. I Excel: **Lagre som → CSV UTF-8**. Kolonnen **Bar
 pnpm import:attendees ./totalrapport.csv
 ```
 
-Kommandoen **synces** på barcode (`id`). Navn, firma og stilling oppdateres; innsjekk og `check_events` beholdes for barcode som fortsatt er aktive. Avmeldte, venteliste og refunderte (med barcode) soft-slettes. Rader uten barcode/navn telles som ignorert. E-post, telefon og adresse leses ikke inn.
+Kommandoen **synces** på barcode (`id`). Navn, firma og stilling oppdateres; innsjekk og `check_events` beholdes for barcode som fortsatt er aktive. Avmeldte, venteliste og refunderte (med barcode) soft-slettes. Rader uten barcode telles som ignorert. Billetter uten firmanavn og stillingstittel er ikke fylt ut (navnet er bestillerens): de importeres uten navn, vises ikke i søk, og innsjekk ber om navnet ved skanning. E-post, telefon og adresse leses ikke inn.
 
 ## Ikke bruk dette
 

@@ -85,6 +85,13 @@
       "when": 1790805719150,
       "tag": "0011_attendee-corrections",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791235460791,
+      "tag": "0012_attendee-nullable-text",
+      "breakpoints": true
     }
   ]
 }
