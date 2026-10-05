@@ -164,10 +164,12 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
 
     // Checkin fills Name / First name / Last name (and Bedrift) from the buyer until
     // the ticket is filled out, so only Firmanavn + Stillingstittel tell them apart.
-    // A ticket nobody filled out keeps none of the buyer's details; the door asks.
+    // A ticket nobody filled out keeps none of the buyer's details; the door asks,
+    // with Bedrift offered as a suggestion for the company.
     const filledOut = row.company != null || row.role != null
     const name = filledOut ? fullName(row) : null
     const company = filledOut ? (row.company ?? row.companyAlt) : null
+    const companySuggestion = filledOut ? null : row.companyAlt
 
     const previous = seen.get(row.barcode)
     if (previous !== undefined) {
@@ -180,6 +182,7 @@ export function parseCheckinCsv(text: string): ParsedCheckinCsv {
       id: row.barcode,
       name,
       company,
+      companySuggestion,
       role: row.role ?? roleFromTicket(row.ticket),
       checkedInAt: null,
       deletedAt: null,

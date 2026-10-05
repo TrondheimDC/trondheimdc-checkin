@@ -228,6 +228,7 @@ export const attendeeRepository: AttendeeRepository = {
             set: {
               name: sql`excluded.name`,
               company: sql`excluded.company`,
+              companySuggestion: sql`excluded.company_suggestion`,
               role: sql`excluded.role`,
               deletedAt: null,
             },

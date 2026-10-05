@@ -79,7 +79,13 @@ export function CorrectAttendeeDialog({
   const roleId = useId()
   const correct = useCorrectAttendee(attendee.id)
 
-  const initial = { name: attendee.name, company: attendee.company, role: attendee.role }
+  // Unfilled ticket: offer Bedrift, unless the door already blanked the company on purpose.
+  const suggestedCompany = attendee.correctedAt == null ? attendee.companySuggestion : null
+  const initial = {
+    name: attendee.name,
+    company: attendee.company ?? suggestedCompany,
+    role: attendee.role,
+  }
 
   const {
     register,
@@ -153,6 +159,11 @@ export function CorrectAttendeeDialog({
               autoComplete="off"
               {...register("company")}
             />
+            {suggestedCompany != null ? (
+              <p className={cn("text-sm opacity-60", company !== suggestedCompany && "invisible")}>
+                Forslag fra Checkin – sjekk med deltakeren.
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor={roleId} className="text-sm font-medium opacity-80">
