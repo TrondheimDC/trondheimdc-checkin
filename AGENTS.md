@@ -66,6 +66,10 @@ Keep the address bar in sync with the wizard so staff can refresh and deeplink.
 - PC/Mac (not iOS/Android) get the USB wizard instead: `step` = `usb` | `driver` | `connect` | `test-print`. The OS comes from the UA: `driver` is Zadig on Windows, a udev rule on Linux, and skipped on Mac. WebUSB in Chrome/Edge; no Smooth Print.
 - Android: after install, press Ferdig — do **not** open Smooth Print. A cold start on connect asks for permissions/terms, then returns to the browser. Force-close only before test print so the overlay dialog appears.
 
+## Browser defaults
+
+Do not switch off native browser behavior: swipe back/forward, pull-to-refresh, pinch zoom, text selection, scroll bounce. No `overscroll-behavior`, `touch-action: none`, `user-scalable=no`, or touch `preventDefault` on page-level elements. Fix the specific layout bug instead.
+
 ## Interactive controls
 
 Use the shared `Button` (`src/components/ui/button.tsx`) for anything staff should tap — including choice cards, not only primary CTAs.

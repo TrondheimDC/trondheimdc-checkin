@@ -99,8 +99,6 @@ body {
   color: var(--color-fg-base);
   font-family: var(--font-family-sans);
   min-height: 100%;
-  /* Kill sideways rubber-band without blocking pull-to-refresh. */
-  overscroll-behavior-x: none;
   /* Buttons draw their own press state (btn-press). */
   -webkit-tap-highlight-color: transparent;
 }
