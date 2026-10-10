@@ -5,14 +5,15 @@ import { LoaderCircle, Printer } from "lucide-react"
 import { useId, useState } from "react"
 import { useForm } from "react-hook-form"
 import { BadgePreview } from "@/components/badge-preview"
-import { Button } from "@/components/ui/button"
 import {
-  UsbConnectButton,
-  UsbPrintMessage,
-  usbBlocksPrint,
-  usbNeedsConnect,
-} from "@/components/usb-connect"
-import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
+  PrinterConnectButton,
+  PrinterMessage,
+  printerBlocksPrint,
+  printerNeedsConnect,
+} from "@/components/printer-connect"
+import { Button } from "@/components/ui/button"
+import { LabelPrintError, printBadge } from "@/lib/label-printer"
+import { platformFromNavigator, printsDirect, supportsAndroidIntent } from "@/lib/platform"
 import { currentPrintMethod, type PrintMethod, usePrintMethod } from "@/lib/print-method"
 import {
   getPrintSample,
@@ -26,7 +27,7 @@ import {
   DEFAULT_PAPER_SIZE_ID,
   loadTemplateBase64,
 } from "@/lib/print-url"
-import { printBadgeUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
+import { useLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath, cn } from "@/lib/utils"
 
 const fieldClass =
@@ -38,8 +39,8 @@ export function TestPrintForm({ initialPrintMethod }: { initialPrintMethod: Prin
   const line2Id = useId()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const usbMode = usePrintMethod(initialPrintMethod) === "usb"
-  const usb = useUsbPrinter()
+  const direct = printsDirect(usePrintMethod(initialPrintMethod))
+  const printer = useLabelPrinter()
 
   const {
     register,
@@ -66,11 +67,11 @@ export function TestPrintForm({ initialPrintMethod }: { initialPrintMethod: Prin
 
     setError(null)
     setBusy(true)
-    if (currentPrintMethod() === "usb") {
+    if (printsDirect(currentPrintMethod())) {
       try {
-        await printBadgeUsb({ name: values.name, line2: values.line2, template: chosen.template })
+        await printBadge({ name: values.name, line2: values.line2, template: chosen.template })
       } catch (caught) {
-        setError(caught instanceof UsbPrintError ? caught.message : "Klarte ikke å skrive ut.")
+        setError(caught instanceof LabelPrintError ? caught.message : "Klarte ikke å skrive ut.")
       } finally {
         setBusy(false)
       }
@@ -134,7 +135,7 @@ export function TestPrintForm({ initialPrintMethod }: { initialPrintMethod: Prin
       </div>
 
       <div className="flex min-h-[9.5rem] flex-col items-center justify-center gap-3 rounded-2xl bg-[var(--color-bg-surface)] px-6 py-6 text-center">
-        {usbMode ? (
+        {direct ? (
           <BadgePreview name={name} line2={line2} template={sample.template} />
         ) : sample.preview ? (
           // eslint-disable-next-line @next/next/no-img-element -- static badge preview asset
@@ -175,22 +176,22 @@ export function TestPrintForm({ initialPrintMethod }: { initialPrintMethod: Prin
         </div>
       </div>
 
-      {usbMode ? (
-        <UsbPrintMessage usb={usb} error={error} />
+      {direct ? (
+        <PrinterMessage printer={printer} error={error} />
       ) : error ? (
         <p className="text-base text-[var(--color-bg-danger)]">{error}</p>
       ) : null}
 
-      {usbMode && usbNeedsConnect(usb) ? (
-        <UsbConnectButton />
+      {direct && printerNeedsConnect(printer) ? (
+        <PrinterConnectButton />
       ) : (
-        <Button type="submit" size="lg" disabled={busy || (usbMode && usbBlocksPrint(usb))}>
+        <Button type="submit" size="lg" disabled={busy || (direct && printerBlocksPrint(printer))}>
           {busy ? (
             <LoaderCircle className="size-5 animate-spin" aria-hidden />
           ) : (
             <Printer className="size-5" aria-hidden />
           )}
-          {busy ? (usbMode ? "Skriver ut…" : "Henter mal…") : "Skriv ut prøve"}
+          {busy ? (direct ? "Skriver ut…" : "Henter mal…") : "Skriv ut prøve"}
         </Button>
       )}
     </form>

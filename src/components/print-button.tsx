@@ -2,6 +2,12 @@
 
 import { LoaderCircle, Printer } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import {
+  PrinterConnectButton,
+  PrinterMessage,
+  printerBlocksPrint,
+  printerNeedsConnect,
+} from "@/components/printer-connect"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,13 +16,13 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { LabelPrintError, printBadge } from "@/lib/label-printer"
 import {
-  UsbConnectButton,
-  UsbPrintMessage,
-  usbBlocksPrint,
-  usbNeedsConnect,
-} from "@/components/usb-connect"
-import { type PhonePlatform, refinePlatform, supportsAndroidIntent } from "@/lib/platform"
+  type PhonePlatform,
+  printsDirect,
+  refinePlatform,
+  supportsAndroidIntent,
+} from "@/lib/platform"
 import { currentPrintMethod, usePrintMethod } from "@/lib/print-method"
 import { consumePrintOutcome, primeForIosTabReuse } from "@/lib/print-outcome"
 import {
@@ -26,7 +32,7 @@ import {
   loadTemplateBase64,
   type PrintCallback,
 } from "@/lib/print-url"
-import { printBadgeUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
+import { useLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath } from "@/lib/utils"
 
 /**
@@ -81,9 +87,10 @@ export function PrintButton({
   const alreadyPrinted = checkedIn || printed
   const autoPrintStarted = useRef(false)
   const method = usePrintMethod()
-  const usb = useUsbPrinter()
-  const usbMode = method === "usb"
-  const usbReady = usb.kind === "ready"
+  const printer = useLabelPrinter()
+  /** PC/Mac (USB) and the Android app draw and send the badge themselves. */
+  const direct = printsDirect(method)
+  const printerReady = printer.kind === "ready"
 
   useEffect(() => {
     const result = consumePrintOutcome(platform)
@@ -119,11 +126,11 @@ export function PrintButton({
     }
   }
 
-  async function printUsb({ checkIn }: { checkIn: boolean }) {
+  async function printDirect({ checkIn }: { checkIn: boolean }) {
     setError(null)
     setBusy(true)
     try {
-      await printBadgeUsb(
+      await printBadge(
         { name, line2 },
         { beforeSend: checkIn && onCheckIn ? onCheckIn : undefined },
       )
@@ -131,7 +138,7 @@ export function PrintButton({
       onPrinted?.()
     } catch (caught) {
       setError(
-        caught instanceof UsbPrintError
+        caught instanceof LabelPrintError
           ? caught.message
           : checkIn
             ? "Klarte ikke å sjekke inn. Prøv igjen."
@@ -143,8 +150,8 @@ export function PrintButton({
   }
 
   async function print({ checkIn }: { checkIn: boolean }) {
-    if (currentPrintMethod() === "usb") {
-      await printUsb({ checkIn })
+    if (printsDirect(currentPrintMethod())) {
+      await printDirect({ checkIn })
       return
     }
     setError(null)
@@ -169,27 +176,27 @@ export function PrintButton({
   useEffect(() => {
     if (autoPrint !== true || checkedIn || alreadyPrinted || autoPrintStarted.current) return
     if (method === null) return
-    // USB can only auto-print to a printer that is already open (the picker needs a tap).
-    if (method === "usb" && !usbReady) return
+    // Direct printing can only auto-print to a printer that is already open (the picker needs a tap).
+    if (direct && !printerReady) return
     autoPrintStarted.current = true
     void print({ checkIn: Boolean(onCheckIn) })
     // Intentionally once per mount when autoPrint is explicitly true.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPrint, checkedIn, method, usbReady])
+  }, [autoPrint, checkedIn, method, printerReady])
 
   return (
     <div className="flex flex-col gap-3">
-      {usbMode ? (
-        <UsbPrintMessage usb={usb} error={error} />
+      {direct ? (
+        <PrinterMessage printer={printer} error={error} />
       ) : error ? (
         <p className="text-base text-[var(--color-bg-danger)]">{error}</p>
       ) : null}
-      {usbMode && usbNeedsConnect(usb) ? (
-        <UsbConnectButton />
+      {direct && printerNeedsConnect(printer) ? (
+        <PrinterConnectButton />
       ) : (
         <Button
           size="lg"
-          disabled={busy || (usbMode && usbBlocksPrint(usb))}
+          disabled={busy || (direct && printerBlocksPrint(printer))}
           onClick={() => {
             if (alreadyPrinted) setConfirmOpen(true)
             else void print({ checkIn: Boolean(onCheckIn) })
@@ -200,13 +207,7 @@ export function PrintButton({
           ) : (
             <Printer className="size-5" aria-hidden />
           )}
-          {busy
-            ? usbMode
-              ? "Skriver ut…"
-              : "Henter mal…"
-            : alreadyPrinted
-              ? doneLabel
-              : idleLabel}
+          {busy ? (direct ? "Skriver ut…" : "Henter mal…") : alreadyPrinted ? doneLabel : idleLabel}
         </Button>
       )}
 

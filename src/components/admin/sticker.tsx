@@ -3,6 +3,12 @@
 import { LoaderCircle, Printer, QrCode } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import {
+  PrinterConnectButton,
+  PrinterMessage,
+  printerBlocksPrint,
+  printerNeedsConnect,
+} from "@/components/printer-connect"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,14 +18,9 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  UsbConnectButton,
-  UsbPrintMessage,
-  usbBlocksPrint,
-  usbNeedsConnect,
-} from "@/components/usb-connect"
+import { LabelPrintError, printSticker } from "@/lib/label-printer"
 import { fitStickerQrCellSize } from "@/lib/lbx-patch"
-import { platformFromNavigator, supportsAndroidIntent } from "@/lib/platform"
+import { platformFromNavigator, printsDirect, supportsAndroidIntent } from "@/lib/platform"
 import { currentPrintMethod, usePrintMethod } from "@/lib/print-method"
 import {
   buildAndroidStickerIntent,
@@ -29,7 +30,7 @@ import {
 } from "@/lib/print-url"
 import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import { setupStickerText } from "@/lib/public-app-url"
-import { printStickerUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
+import { useLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath, cn } from "@/lib/utils"
 
 /** Label in reader orientation: 90 × 38 mm DK-11208, in template points. */
@@ -206,27 +207,29 @@ export function PrintStickerButton({
   templateFile?: string
 }) {
   const [busy, setBusy] = useState(false)
-  const [usbError, setUsbError] = useState<string | null>(null)
-  const usbMode = usePrintMethod() === "usb"
-  const usb = useUsbPrinter()
+  const [directError, setDirectError] = useState<string | null>(null)
+  const direct = printsDirect(usePrintMethod())
+  const printer = useLabelPrinter()
 
-  async function printUsb() {
-    setUsbError(null)
+  async function printDirect() {
+    setDirectError(null)
     setBusy(true)
     try {
       // Drawn in the browser from the same template, so no LBX cellSize fitting.
-      await printStickerUsb({ name, qr: url, templateFile })
+      await printSticker({ name, qr: url, templateFile })
       toast.success("Etiketten er sendt til printeren.")
     } catch (caught) {
-      setUsbError(caught instanceof UsbPrintError ? caught.message : "Klarte ikke å skrive ut.")
+      setDirectError(
+        caught instanceof LabelPrintError ? caught.message : "Klarte ikke å skrive ut.",
+      )
     } finally {
       setBusy(false)
     }
   }
 
   async function print() {
-    if (currentPrintMethod() === "usb") {
-      await printUsb()
+    if (printsDirect(currentPrintMethod())) {
+      await printDirect()
       return
     }
     setBusy(true)
@@ -255,13 +258,13 @@ export function PrintStickerButton({
   }
 
   const button =
-    usbMode && usbNeedsConnect(usb) ? (
-      <UsbConnectButton />
+    direct && printerNeedsConnect(printer) ? (
+      <PrinterConnectButton />
     ) : (
       <Button
         type="button"
         size="lg"
-        disabled={busy || !name || !url || (usbMode && usbBlocksPrint(usb))}
+        disabled={busy || !name || !url || (direct && printerBlocksPrint(printer))}
         onClick={() => void print()}
       >
         {busy ? (
@@ -273,10 +276,10 @@ export function PrintStickerButton({
       </Button>
     )
 
-  if (!usbMode) return button
+  if (!direct) return button
   return (
     <div className="flex w-full flex-col gap-2">
-      <UsbPrintMessage usb={usb} error={usbError} />
+      <PrinterMessage printer={printer} error={directError} />
       {button}
     </div>
   )

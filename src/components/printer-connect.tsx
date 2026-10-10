@@ -3,36 +3,47 @@
 import { Usb } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import type { LabelPrinterState } from "@/lib/label-printer"
 import { desktopOsFromNavigator } from "@/lib/platform"
-import { connectUsbPrinter, type UsbPrinterState } from "@/lib/usb-printer"
+import { connectLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath } from "@/lib/utils"
 
 export const USB_UNSUPPORTED_COPY =
   "Bruk en nettleser som støtter WebUSB (Chrome eller Edge) for å skrive ut fra PC/Mac."
 
 /** True when the print button should be replaced by «Koble til printer». */
-export function usbNeedsConnect(usb: UsbPrinterState): boolean {
-  return usb.kind === "idle" || usb.kind === "error"
+export function printerNeedsConnect(printer: LabelPrinterState): boolean {
+  return printer.kind === "idle" || printer.kind === "error"
 }
 
 /**
- * Print button stays in place but disabled: no WebUSB, or a remembered printer is
- * still re-opening on page load (so the button does not flip to «Koble til printer»).
+ * Print button stays in place but disabled: no way to print here, or a remembered
+ * printer is still re-opening on page load (so the button does not flip to «Koble til printer»).
  */
-export function usbBlocksPrint(usb: UsbPrinterState): boolean {
-  return usb.kind === "unsupported" || usb.kind === "connecting"
+export function printerBlocksPrint(printer: LabelPrinterState): boolean {
+  return printer.kind === "unsupported" || printer.kind === "connecting"
 }
 
-/** Error line for a USB printer state; `error` (from the last print) wins. */
-export function UsbPrintMessage({ usb, error }: { usb: UsbPrinterState; error: string | null }) {
+/** Error line for a printer state; `error` (from the last print) wins. */
+export function PrinterMessage({
+  printer,
+  error,
+}: {
+  printer: LabelPrinterState
+  error: string | null
+}) {
   const message =
     error ??
-    (usb.kind === "unsupported" ? USB_UNSUPPORTED_COPY : usb.kind === "error" ? usb.message : null)
+    (printer.kind === "unsupported"
+      ? USB_UNSUPPORTED_COPY
+      : printer.kind === "error"
+        ? printer.message
+        : null)
   if (!message) return null
   // Mac has no driver step; there «in use» just means another tab.
   const os = typeof navigator === "undefined" ? "other" : desktopOsFromNavigator()
   const help =
-    !error && usb.kind === "error" && usb.driverHelp && (os === "windows" || os === "linux")
+    !error && printer.kind === "error" && printer.driverHelp && (os === "windows" || os === "linux")
   return (
     <p className="text-base text-[var(--color-bg-danger)]">
       {message}{" "}
@@ -46,7 +57,7 @@ export function UsbPrintMessage({ usb, error }: { usb: UsbPrinterState; error: s
 }
 
 /** Opens Chrome's USB picker. Must be tapped — the browser refuses it otherwise. */
-export function UsbConnectButton({
+export function PrinterConnectButton({
   className,
   size = "lg",
 }: {
@@ -58,7 +69,7 @@ export function UsbConnectButton({
       type="button"
       size={size}
       className={className}
-      onClick={() => void connectUsbPrinter()}
+      onClick={() => void connectLabelPrinter()}
     >
       <Usb className="size-5" aria-hidden />
       Koble til printer

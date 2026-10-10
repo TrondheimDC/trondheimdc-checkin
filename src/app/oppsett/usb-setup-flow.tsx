@@ -11,15 +11,16 @@ import {
   UsbPickerIllustration,
   ZadigIllustration,
 } from "@/components/illustrations"
-import { Button } from "@/components/ui/button"
 import {
-  UsbConnectButton,
-  UsbPrintMessage,
-  usbBlocksPrint,
-  usbNeedsConnect,
-} from "@/components/usb-connect"
+  PrinterConnectButton,
+  PrinterMessage,
+  printerBlocksPrint,
+  printerNeedsConnect,
+} from "@/components/printer-connect"
+import { Button } from "@/components/ui/button"
+import { LabelPrintError, printBadge } from "@/lib/label-printer"
 import { type DesktopOs, desktopOsFromNavigator } from "@/lib/platform"
-import { printBadgeUsb, UsbPrintError, useUsbPrinter } from "@/lib/usb-printer"
+import { useLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath } from "@/lib/utils"
 
 const SETUP_KEY = "tdc-checkin-printer-seen"
@@ -85,7 +86,7 @@ export function UsbSetupFlow({
   initialOs: DesktopOs
 }) {
   const router = useRouter()
-  const usb = useUsbPrinter()
+  const usb = useLabelPrinter()
   const os = useSyncExternalStore(
     noopSubscribe,
     () => desktopOsFromNavigator(),
@@ -131,10 +132,10 @@ export function UsbSetupFlow({
     setPrintError(null)
     setBusy(true)
     try {
-      await printBadgeUsb({ name: TEST_NAME, line2: TEST_LINE2 })
+      await printBadge({ name: TEST_NAME, line2: TEST_LINE2 })
       setPrinted(true)
     } catch (caught) {
-      setPrintError(caught instanceof UsbPrintError ? caught.message : "Klarte ikke å skrive ut.")
+      setPrintError(caught instanceof LabelPrintError ? caught.message : "Klarte ikke å skrive ut.")
     } finally {
       setBusy(false)
     }
@@ -254,9 +255,9 @@ export function UsbSetupFlow({
 
         {stepId === "connect" ? (
           <>
-            <UsbPrintMessage usb={usb} error={null} />
-            {usbNeedsConnect(usb) ? (
-              <UsbConnectButton size="default" className="h-12 w-full text-base" />
+            <PrinterMessage printer={usb} error={null} />
+            {printerNeedsConnect(usb) ? (
+              <PrinterConnectButton size="default" className="h-12 w-full text-base" />
             ) : null}
             <Button
               className="h-12 w-full text-base"
@@ -270,14 +271,14 @@ export function UsbSetupFlow({
 
         {stepId === "test-print" ? (
           <>
-            <UsbPrintMessage usb={usb} error={printError} />
-            {usbNeedsConnect(usb) ? (
-              <UsbConnectButton size="default" className="h-12 w-full text-base" />
+            <PrinterMessage printer={usb} error={printError} />
+            {printerNeedsConnect(usb) ? (
+              <PrinterConnectButton size="default" className="h-12 w-full text-base" />
             ) : (
               <Button
                 variant={printed ? "surface" : "default"}
                 className="h-12 w-full text-base"
-                disabled={busy || usbBlocksPrint(usb)}
+                disabled={busy || printerBlocksPrint(usb)}
                 onClick={() => void printTest()}
               >
                 {busy ? (

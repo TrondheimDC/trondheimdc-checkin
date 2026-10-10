@@ -48,6 +48,11 @@ export function printMethodFor(platform: PhonePlatform): PrintMethod {
   return platform === "other" ? "usb" : "smooth-print"
 }
 
+/** The page draws the label and sends raster itself (no Smooth Print). */
+export function printsDirect(method: PrintMethod | null): boolean {
+  return method === "usb"
+}
+
 /** Which USB driver step a desktop needs: Windows (Zadig), Linux (udev), Mac (none). */
 export type DesktopOs = "windows" | "mac" | "linux" | "other"
 
