@@ -16,8 +16,8 @@ export const user = sqliteTable("user", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-  /** App: `prt_BODY` for door printers; SQLite: body only. Admin usernames pass through. */
-  username: objectId("username", "prt").unique(),
+  /** App: `lgn_BODY` for door printers; SQLite: body only. Admin usernames pass through. */
+  username: objectId("username", "lgn").unique(),
   displayUsername: text("display_username"),
   role: text("role"),
   banned: integer("banned", { mode: "boolean" }).default(false),
@@ -25,7 +25,7 @@ export const user = sqliteTable("user", {
   banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
   validFrom: text("valid_from"),
   validTo: text("valid_to"),
-  printerId: text("printer_id"),
+  printerId: objectId("printer_id", "prt"),
   /** Plaintext in the app; ciphertext in SQLite. Admins reveal this later. */
   pin: encryptedText("pin_encrypted"),
 })

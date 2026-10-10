@@ -4,6 +4,7 @@ import { z } from "zod"
 import { nonEmptyText, optionalText, requiredText } from "@/lib/non-empty-string"
 import { formatBluetoothMac, isCompleteBluetoothMac } from "@/lib/printer-format"
 import { DEFAULT_PRINTER_MODEL, printerModelIdSchema } from "@/lib/printer-models"
+import { objectId } from "./object-id"
 
 export * from "./auth-schema"
 
@@ -96,7 +97,8 @@ export type CorrectAttendeeBody = z.output<typeof correctAttendeeBodySchema>
 export type CorrectAttendeeInput = z.input<typeof correctAttendeeBodySchema>
 
 export const printers = sqliteTable("printers", {
-  id: text("id").primaryKey(),
+  /** App: `prt_BODY` (the setup sticker links to it); SQLite: body only. Older rows are UUIDs. */
+  id: objectId("id", "prt").primaryKey(),
   name: text("name").notNull(),
   /** Bluetooth MAC, or an IP when connectType is WiFi. */
   address: text("address").notNull(),

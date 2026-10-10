@@ -3,6 +3,7 @@ import { randomInt, randomUUID } from "crypto"
 import { and, desc, eq } from "drizzle-orm"
 import type { z } from "zod"
 import { db } from "@/lib/db"
+import { createObjectId } from "@/lib/db/object-id"
 import {
   account,
   type Printer,
@@ -106,7 +107,7 @@ export const printerRepository = {
   },
 
   async create(input: PrinterCreateBody): Promise<PrinterWithSecrets> {
-    const printerId = randomUUID()
+    const printerId = createObjectId("prt")
     const userId = randomUUID()
     const token = createPrinterToken()
     const pin = generatePin()

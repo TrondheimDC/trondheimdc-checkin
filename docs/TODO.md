@@ -60,7 +60,7 @@ Tasks:
 
 **Decided.** Full design: [auth-printers.md](./auth-printers.md).
 
-better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer also creates door login (`prt_` token + PIN). Stickers use `PUBLIC_URL` (default production). `/oppsett` / `/koble` / APK require door session. No nginx basic auth; Checkin is not the staff IdP.
+better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer also creates door login (`lgn_` token + PIN). Stickers use `PUBLIC_URL` (default production). `/oppsett` / `/koble` / APK require door session. No nginx basic auth; Checkin is not the staff IdP.
 
 - [x] Add better-auth (Drizzle/LibSQL), admin plugin, roles `admin` / `printer`
 - [x] User fields: `validFrom`, `validTo`, optional `printerId`; long `session.expiresIn` + enforce validity window

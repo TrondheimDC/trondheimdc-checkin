@@ -14,7 +14,7 @@ const signInBodySchema = z.object({
 
 /**
  * Door login is username + password:
- * - username is the `prt_` object id (Drizzle stores the body only)
+ * - username is the `lgn_` object id (Drizzle stores the body only)
  * - password is the 6-digit PIN
  *
  * Neither factor alone creates a session.

@@ -15,7 +15,10 @@ export const OBJECT_ID_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 export const OBJECT_ID_BODY_LENGTH = 16
 
 const objectIdPrefixes = {
+  /** Printer (inventory row; the front setup sticker links to it). */
   prt: "prt",
+  /** Door login token (the sticker under the printer). */
+  lgn: "lgn",
 } as const
 
 export type ObjectIdPrefix = keyof typeof objectIdPrefixes

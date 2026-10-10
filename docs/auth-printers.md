@@ -16,7 +16,8 @@ Related: [TODO.md](./TODO.md), [MVP-verification.md](./MVP-verification.md).
 
 - **better-auth** — sessions, hashed credentials, admin plugin, Drizzle + LibSQL.
 - Roles: `admin` | `printer`
-- Door login: long-lived QR token (`prt_` object id) + 6-digit PIN.
+- Printer id: `prt_` object id; the setup sticker links to it.
+- Door login: long-lived QR token (`lgn_` object id) + 6-digit PIN.
 
 ## Roles & route access
 
@@ -34,10 +35,21 @@ One phone ↔ one printer ↔ one door login. The login is a better-auth shadow 
 | Field | Notes |
 |---|---|
 | Printer `name` | e.g. «Inngang A» — also the door user display name / audit actor |
-| Setup QR | Front of the printer; name above the QR; `/oppsett?path=qr&…` with MAC/serial/model |
-| Login QR | Underside of the printer; «Logg inn · {name}» above the QR (`loginStickerText`); `/logg-inn?token=prt_…` |
+| Setup QR | Front of the printer; name above the QR; `/oppsett?printer=prt_…` (older stickers: UUID id, or MAC/serial/model inline) |
+| Login QR | Underside of the printer; «Logg inn · {name}» above the QR (`loginStickerText`); `/logg-inn?token=lgn_…` (older stickers: `prt_…`, same token) |
 | PIN | 6 digits; password for the door user. **Rotér PIN** without changing the QR |
-| Token | `prt_` + uppercase nanoid body. Drizzle `objectId("username", "prt")` stores body only. Long-lived; **Ny innloggings-QR** when reprinting |
+| Token | `lgn_` + uppercase nanoid body. Drizzle `objectId("username", "lgn")` stores body only; `prt_` is still accepted. Long-lived; **Ny innloggings-QR** when reprinting |
+
+## Why two stickers
+
+Decided 2026-10-11. Printer and door login are one thing in the database, but each printer still gets two stickers:
+
+- **Front, setup QR** (`prt_…`): front and center, easy to spot, so anyone can get started. It holds no secret.
+- **Underneath, login QR** (`lgn_…`): the username. Logging in should be easy, so it is a scan and a 6-digit PIN, nothing harder.
+
+A 6-digit PIN is weak on its own. What protects the login is that the username only exists on the sticker under the printer, plus the sign-in rate limit and the validity window. If we see abuse, **Ny innloggings-QR** gives the printer a new username without registering the printer again; **Rotér PIN** changes the PIN without reprinting anything.
+
+Security is about acceptable risk. Putting the username on the front, in plain view, would weaken this. Two stickers cost little: a phone that scanned the front sticker first is sent back there after login (`next`), so staff are not asked to scan it again.
 
 ## Sign-in
 

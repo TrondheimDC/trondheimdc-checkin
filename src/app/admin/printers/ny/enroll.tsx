@@ -68,7 +68,7 @@ const enrollControlClass =
 
 const enrollMonoControlClass = `${enrollControlClass} font-mono uppercase`
 
-const PREVIEW_PRINTER_ID = "00000000-0000-0000-0000-000000000000"
+const PREVIEW_PRINTER_ID = "prt_2222222222222222"
 
 function upperOnChange(registerOnChange: (event: ChangeEvent<HTMLInputElement>) => void) {
   return (event: ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +145,7 @@ export function EnrollPrinter({ origin }: { origin: string }) {
   })
 
   const mac = formatBluetoothMac(address)
-  // Same length as a real printer id (UUID), so the preview QR has the printed module count.
+  // Same length as a real printer id, so the preview QR has the printed module count.
   const previewPath = printerSetupPath(PREVIEW_PRINTER_ID)
   const previewUrl = origin ? `${origin}${apiPath(previewPath)}` : previewPath
   const setupUrl = saved && origin ? `${origin}${apiPath(printerSetupPath(saved.printer.id))}` : ""
