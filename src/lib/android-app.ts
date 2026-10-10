@@ -16,3 +16,15 @@ export const APP_RELEASES_URL = "https://github.com/TrondheimDC/trondheimdc-chec
 
 /** Where Android browsers go instead of the door screens: the app does check-in there. */
 export const APP_DOWNLOAD_PATH = "/last-ned"
+
+/** User-agent marker the app appends (`capacitor.config.ts`); release builds add `/<versionCode>`. */
+export const APP_UA_MARKER = "TDCInnsjekkApp"
+
+/** Installed app's versionCode from its user agent. Null outside the app and for local builds. */
+export function appVersionFromUserAgent(ua: string): number | null {
+  const match = ua.match(new RegExp(`${APP_UA_MARKER}/(\\d+)`))
+  return match ? Number(match[1]) : null
+}
+
+/** «Ikke nå» on the update page: the versionCode the prompt was dismissed for. */
+export const APP_UPDATE_LATER_COOKIE = "tdc-app-update-later"

@@ -1,3 +1,5 @@
+import { APP_UA_MARKER } from "@/lib/android-app"
+
 export type PhonePlatform = "ios" | "android" | "other"
 
 /** Map Next.js `userAgent().os.name` (ua-parser) to our print/setup platforms. */
@@ -46,9 +48,6 @@ export function supportsAndroidIntent(
  * app (Capacitor) talks Bluetooth to the printer itself: no Smooth Print.
  */
 export type PrintMethod = "smooth-print" | "usb" | "app"
-
-/** Marker the Android app appends to the WebView UA (`capacitor.config.ts`). */
-const APP_UA_MARKER = "TDCInnsjekkApp"
 
 /** True inside the Android app. Works on the server (request UA) and in the WebView. */
 export function isAppUserAgent(

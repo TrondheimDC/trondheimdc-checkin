@@ -21,6 +21,13 @@ Door pages on Android Chrome (not the app) redirect to `/last-ned` after login (
 
 Admin pages still work in the browser.
 
+## Updates
+
+- Release builds tell the server their version in the user agent (`TDCInnsjekkApp/<versionCode>`, set at build time from `ANDROID_VERSION_CODE`). Local builds send no version and are never asked to update.
+- The latest version is read from the active APK under Admin → Android-app (`AndroidManifest.xml` inside the APK, `src/lib/apk-manifest.ts`). Nothing to type in when uploading.
+- On a door page, an app older than that goes to `/last-ned`: **Oppdater appen** with **Oppdater** and **Ikke nå** (`src/lib/app-release.ts`, called from `requireDoorSession`). **Ikke nå** hides the prompt until a newer version is uploaded. An up-to-date app that opens `/last-ned` goes straight on.
+- **Oppdater** downloads the APK inside the app with the login cookies (`AppUpdater.java`) and opens Android's installer. The first time, Android asks to allow installs from TDC Innsjekk. The update keeps login and the remembered printer.
+
 ## App Links
 
 `https://innsjekk.trondheimdc.no` links (sticker QRs scanned with the phone camera, links in chat) open in the app when it is installed. `MainActivity` loads the link's path on the app's own server.

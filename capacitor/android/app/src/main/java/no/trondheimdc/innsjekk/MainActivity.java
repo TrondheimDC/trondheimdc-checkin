@@ -15,13 +15,22 @@ public class MainActivity extends BridgeActivity {
 
     private static final String CRASH_FILE = "last-crash.txt";
 
+    private final AppUpdater updater = new AppUpdater(this);
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LabelPrinterPlugin.class);
         super.onCreate(savedInstanceState);
         recordCrashes();
+        updater.attach(bridge.getWebView());
         openLink(getIntent());
         showLastCrash();
+    }
+
+    @Override
+    public void onDestroy() {
+        updater.detach();
+        super.onDestroy();
     }
 
     @Override
