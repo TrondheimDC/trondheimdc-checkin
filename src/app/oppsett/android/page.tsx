@@ -1,9 +1,13 @@
 import type { Metadata } from "next"
+import { APP_DOWNLOAD_PATH } from "@/lib/android-app"
+import { latestAppRelease } from "@/lib/app-release"
 import { AndroidInstallFlow } from "./android-install-flow"
 
 export const metadata: Metadata = { title: "Installer appen" }
 
-export default function AndroidInstallPage() {
+export default async function AndroidInstallPage() {
+  // Installing our app comes from /last-ned; Smooth Print (the rollback) from the setup wizard.
+  const backHref = (await latestAppRelease()) ? APP_DOWNLOAD_PATH : "/oppsett?step=install&primed=1"
   return (
     <>
       <link rel="preload" as="image" href="/oppsett/android-innstillinger.png" />
@@ -13,7 +17,7 @@ export default function AndroidInstallPage() {
       <link rel="preload" as="image" href="/oppsett/android-velg-chrome.png" />
       <link rel="preload" as="image" href="/oppsett/android-tillat-kilde.png" />
       <link rel="preload" as="image" href="/oppsett/android-apne-fil.png" />
-      <AndroidInstallFlow />
+      <AndroidInstallFlow backHref={backHref} />
     </>
   )
 }

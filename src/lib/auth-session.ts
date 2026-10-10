@@ -1,6 +1,6 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { redirectOutdatedApp } from "@/lib/app-release"
+import { redirectAndroidBrowserToApp, redirectOutdatedApp } from "@/lib/app-release"
 import { auth, canAccessAdmin, canAccessDoor, type Session } from "@/lib/auth"
 import { gateSession } from "@/lib/auth-session-gate"
 import { DOOR_PATH_HEADER, doorLoginPath } from "@/lib/login-next"
@@ -16,7 +16,9 @@ export async function requireDoorSession(): Promise<Session> {
   if (!session || !canAccessDoor(session.user.role)) {
     redirect(apiPath(doorLoginPath((await headers()).get(DOOR_PATH_HEADER))))
   }
-  // The Android app checks in only on the latest release (or after «Ikke nå»).
+  // On Android, check-in runs in the app when it is the active APK, and only on the latest
+  // release (or after «Ikke nå»).
+  await redirectAndroidBrowserToApp()
   await redirectOutdatedApp()
   return session
 }

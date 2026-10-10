@@ -52,7 +52,7 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
   })
 
   const apks = cacheReady ? (data ?? serverApks) : serverApks
-  const hasActive = apks.some((apk) => apk.active)
+  const active = apks.find((apk) => apk.active)
 
   const form = useForm({
     resolver: zodResolver(smoothPrintApkUploadSchema),
@@ -125,8 +125,9 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
       <header className="pt-2">
         <h1 className="text-4xl">Android-app</h1>
         <p className="mt-2 max-w-xl text-base opacity-70">
-          Last opp TDC Innsjekk-APK-en (eller zip med én APK). Den aktive versjonen er den
-          Android-telefoner laster ned.{" "}
+          Last opp TDC Innsjekk-APK-en (eller zip med én APK). Er den aktiv, sjekker
+          Android-telefoner inn i appen. Aktiver en Smooth Print-APK, eller deaktiver appen, for å
+          gå tilbake til Smooth Print.{" "}
           <a
             href={APP_RELEASES_URL}
             target="_blank"
@@ -138,9 +139,11 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
           .
         </p>
         <p className="mt-2 text-sm opacity-60">
-          {hasActive
-            ? "Telefonene laster ned den aktive versjonen."
-            : "Ingen aktiv APK — Android-telefoner kan ikke laste ned appen."}
+          {active?.app
+            ? "Android-telefoner bruker TDC Innsjekk-appen."
+            : active
+              ? "Android-telefoner bruker Smooth Print fra den aktive APK-en."
+              : "Android-telefoner bruker Smooth Print fra Brother."}
         </p>
       </header>
 
@@ -213,6 +216,9 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="truncate text-xl">{label}</h2>
+                    <span className="rounded-md bg-black/30 px-2 py-0.5 text-sm opacity-80">
+                      {apk.app ? "TDC Innsjekk" : "Smooth Print"}
+                    </span>
                     {apk.active ? (
                       <span className="rounded-md bg-[color-mix(in_srgb,var(--color-fg-brand)_22%,transparent)] px-2 py-0.5 text-sm text-[var(--color-fg-brand)]">
                         Aktiv

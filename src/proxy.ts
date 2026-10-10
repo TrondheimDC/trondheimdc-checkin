@@ -2,7 +2,6 @@ import { getSessionCookie } from "better-auth/cookies"
 import { NextRequest, NextResponse } from "next/server"
 import { APP_DOWNLOAD_PATH, APP_LOGIN_PATH } from "@/lib/android-app"
 import { DOOR_PATH_HEADER, doorLoginPath } from "@/lib/login-next"
-import { isAppUserAgent, platformFromNavigator } from "@/lib/platform"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
 
@@ -51,17 +50,6 @@ function isDoorPath(pathname: string): boolean {
 }
 
 /**
- * Door pages a logged-in Android browser is sent away from: on Android, check-in runs in
- * the app. The download page itself and the install help stay reachable.
- */
-function isAppOnlyPage(path: string): boolean {
-  if (path.startsWith("/api")) return false
-  if (path.startsWith(APP_DOWNLOAD_PATH)) return false
-  if (path.startsWith("/oppsett/android")) return false
-  return true
-}
-
-/**
  * Optimistic cookie check only — real role/session validation happens in
  * pages and API routes via auth.api.getSession.
  */
@@ -83,16 +71,6 @@ export function proxy(request: NextRequest) {
     }
     if (isDoorPath(pathname)) {
       return NextResponse.redirect(new URL(withBase(doorLoginPath(next)), request.url))
-    }
-  }
-
-  const ua = request.headers.get("user-agent") ?? ""
-  if (next && isDoorPath(pathname) && isAppOnlyPage(p)) {
-    if (platformFromNavigator(ua, 0) === "android" && !isAppUserAgent(ua)) {
-      const target = new URL(withBase(APP_DOWNLOAD_PATH), request.url)
-      // «Åpne appen» opens the app on the page that was asked for (e.g. a printer sticker).
-      if (next !== "/") target.searchParams.set("next", next)
-      return NextResponse.redirect(target)
     }
   }
 

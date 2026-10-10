@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { APP_DOWNLOAD_PATH } from "@/lib/android-app"
 import { apiPath } from "@/lib/utils"
 
 const steps = [
@@ -44,7 +43,7 @@ const steps = [
   },
 ]
 
-export function AndroidInstallFlow() {
+export function AndroidInstallFlow({ backHref }: { backHref: string }) {
   const [step, setStep] = useState(0)
   const current = steps[step]
   const last = step === steps.length - 1
@@ -83,7 +82,7 @@ export function AndroidInstallFlow() {
       <div className="mt-auto flex shrink-0 flex-col gap-2 pt-3">
         {last ? (
           <Button asChild className="h-12 w-full text-base">
-            <Link href={apiPath(APP_DOWNLOAD_PATH)}>Tilbake til nedlasting</Link>
+            <Link href={apiPath(backHref)}>Tilbake</Link>
           </Button>
         ) : (
           <Button className="h-12 w-full text-base" onClick={() => setStep((value) => value + 1)}>
@@ -100,7 +99,7 @@ export function AndroidInstallFlow() {
           </Button>
         ) : (
           <Button asChild variant="ghost" className="h-12 w-full text-base">
-            <Link href={apiPath(APP_DOWNLOAD_PATH)}>Avbryt</Link>
+            <Link href={apiPath(backHref)}>Avbryt</Link>
           </Button>
         )}
       </div>

@@ -290,14 +290,20 @@ export const smoothPrintApkSchema = z.object({
   byteSize: z.number().int().nonnegative(),
   createdAt: z.string(),
 })
-export type SmoothPrintApk = z.infer<typeof smoothPrintApkSchema>
+
+/**
+ * An upload as admin and the door see it. `app` is read from the APK, not stored: true for
+ * TDC Innsjekk, false for Smooth Print. The active one decides how Android phones check in.
+ */
+export const smoothPrintApkItemSchema = smoothPrintApkSchema.extend({ app: z.boolean() })
+export type SmoothPrintApk = z.infer<typeof smoothPrintApkItemSchema>
 
 export const smoothPrintApksResponseSchema = z.object({
-  apks: z.array(smoothPrintApkSchema),
+  apks: z.array(smoothPrintApkItemSchema),
 })
 
 export const smoothPrintApkResponseSchema = z.object({
-  apk: smoothPrintApkSchema,
+  apk: smoothPrintApkItemSchema,
 })
 
 export const smoothPrintApkUploadSchema = z.object({

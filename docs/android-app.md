@@ -13,13 +13,22 @@ A Capacitor shell around the hosted check-in app, with its own Bluetooth printin
 
 ## Android in a browser
 
-Door pages on Android Chrome (not the app) redirect to `/last-ned` after login (`src/proxy.ts`). The download sits behind door login, like the rest of the door. `/last-ned` offers:
+While the app is the active APK under Admin → Android-app, door pages on Android Chrome (not the app) redirect to `/last-ned` after login (`redirectAndroidBrowserToApp` in `requireDoorSession`). The download sits behind door login, like the rest of the door. `/last-ned` offers:
 
 - **Last ned appen**: the active APK from Admin → Android-app.
 - **Åpne appen**: opens the app on the page that was asked for (e.g. a printer sticker), already logged in, or falls back to `/last-ned` when the app is missing.
 - The install help (`/oppsett/android`, allow installs from the browser).
 
 Admin pages still work in the browser.
+
+### Rolling back to Smooth Print
+
+The active APK is the switch; there is no separate setting. Admin → Android-app tags each upload **TDC Innsjekk** or **Smooth Print** (read from the APK).
+
+- **TDC Innsjekk active**: Android browsers go to `/last-ned` and check in in the app.
+- **Smooth Print active**, or **nothing active**: Android browsers keep the Smooth Print wizard in `/oppsett`, as before the app. It installs the active Smooth Print APK, or Brother's download when none is active. `/last-ned` goes straight on.
+
+So to roll back, activate the Smooth Print APK (or deactivate the app). It takes effect on the next page load. Phones that already have the app keep working in it, without update prompts.
 
 ### Login handoff
 

@@ -6,11 +6,10 @@ import { redirect } from "next/navigation"
 import { TdcPrintLogo } from "@/components/tdc-print-logo"
 import { Button } from "@/components/ui/button"
 import { APP_UPDATE_LATER_COOKIE } from "@/lib/android-app"
-import { pendingAppUpdate } from "@/lib/app-release"
+import { latestAppRelease, pendingAppUpdate } from "@/lib/app-release"
 import { requireDoorSession } from "@/lib/auth-session"
 import { safeNextPath } from "@/lib/login-next"
 import { isAppUserAgent } from "@/lib/platform"
-import { smoothPrintApkRepository } from "@/lib/smooth-print-apks"
 import { apiPath } from "@/lib/utils"
 import { OpenAppButton } from "./open-app-button"
 
@@ -31,8 +30,10 @@ async function updateLater(formData: FormData) {
 }
 
 /**
- * Android browsers land here instead of the door screens (proxy): on Android, check-in
- * and printing run in the app. Behind door login, so only staff can fetch the APK.
+ * Android browsers land here instead of the door screens (`redirectAndroidBrowserToApp`)
+ * while our app is the active APK: check-in and printing run in the app. With Smooth Print
+ * active (the rollback), it goes straight on to `next`. Behind door login, so only staff can
+ * fetch the APK.
  *
  * In the app it is the update page: door pages send an outdated app here
  * (`redirectOutdatedApp`). An up-to-date app goes straight on to `next`.
@@ -49,37 +50,30 @@ export default async function DownloadAppPage({
     if (!update) redirect(apiPath(next))
     return <AppUpdatePage version={update.latest} next={next} />
   }
-  const active = await smoothPrintApkRepository.getActive()
+  if (!(await latestAppRelease())) redirect(apiPath(next))
 
   return (
     <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <TdcPrintLogo className="size-28 text-[var(--color-fg-brand)]" />
       </div>
-      <h1 className="mt-1 shrink-0 text-3xl">
-        {active ? "Last ned appen" : "Appen er ikke lagt ut ennå"}
-      </h1>
+      <h1 className="mt-1 shrink-0 text-3xl">Last ned appen</h1>
       <p className="mt-2 shrink-0 text-base leading-snug">
-        {active
-          ? "På Android sjekker du inn i TDC Innsjekk-appen. Installer den, og trykk Åpne appen her — da er du logget inn."
-          : "Be en admin laste opp appen under Android-app."}
+        På Android sjekker du inn i TDC Innsjekk-appen. Installer den, og trykk Åpne appen her — da
+        er du logget inn.
       </p>
 
       <div className="mt-auto flex shrink-0 flex-col gap-2 pt-3">
-        {active ? (
-          <Button asChild className="h-12 w-full text-base">
-            <a href={apiPath("/api/smooth-print/apk")} download>
-              <Download className="size-5" aria-hidden />
-              Last ned appen
-            </a>
-          </Button>
-        ) : null}
+        <Button asChild className="h-12 w-full text-base">
+          <a href={apiPath("/api/smooth-print/apk")} download>
+            <Download className="size-5" aria-hidden />
+            Last ned appen
+          </a>
+        </Button>
         <OpenAppButton next={next} />
-        {active ? (
-          <Button asChild variant="ghost" className="h-12 w-full text-base">
-            <Link href={apiPath("/oppsett/android")}>Slik tillater du installasjon</Link>
-          </Button>
-        ) : null}
+        <Button asChild variant="ghost" className="h-12 w-full text-base">
+          <Link href={apiPath("/oppsett/android")}>Slik tillater du installasjon</Link>
+        </Button>
       </div>
     </main>
   )

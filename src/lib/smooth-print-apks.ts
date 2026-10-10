@@ -1,6 +1,8 @@
 import { and, desc, eq, ne } from "drizzle-orm"
 import { mkdir, unlink, writeFile } from "fs/promises"
 import { join } from "path"
+import { ANDROID_APP_PACKAGE } from "./android-app"
+import { type ApkManifest, readApkManifest } from "./apk-manifest"
 import { db } from "./db"
 import { type SmoothPrintApk, smoothPrintApkSchema, smoothPrintApks } from "./db/schema"
 import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "./print-url"
@@ -26,16 +28,34 @@ function safeStoredName(originalName: string) {
   return `${crypto.randomUUID()}-${withExt}`
 }
 
+/** Parsed manifests by stored file name; an upload never changes once stored. */
+const manifests = new Map<string, Promise<ApkManifest | null>>()
+
+export function storedApkManifest(storedName: string): Promise<ApkManifest | null> {
+  let manifest = manifests.get(storedName)
+  if (!manifest) {
+    manifest = readApkManifest(apkFilePath(storedName))
+    manifests.set(storedName, manifest)
+  }
+  return manifest
+}
+
+async function toItem(row: unknown): Promise<SmoothPrintApk> {
+  const apk = smoothPrintApkSchema.parse(row)
+  const manifest = await storedApkManifest(apk.storedName)
+  return { ...apk, app: manifest?.packageName === ANDROID_APP_PACKAGE }
+}
+
 export const smoothPrintApkRepository = {
   async list(): Promise<SmoothPrintApk[]> {
     const rows = await db.select().from(smoothPrintApks).orderBy(desc(smoothPrintApks.createdAt))
-    return rows.map((row) => smoothPrintApkSchema.parse(row))
+    return Promise.all(rows.map(toItem))
   },
 
   async getById(id: string): Promise<SmoothPrintApk | null> {
     const rows = await db.select().from(smoothPrintApks).where(eq(smoothPrintApks.id, id)).limit(1)
     const row = rows[0]
-    return row ? smoothPrintApkSchema.parse(row) : null
+    return row ? toItem(row) : null
   },
 
   async getActive(): Promise<SmoothPrintApk | null> {
@@ -45,7 +65,7 @@ export const smoothPrintApkRepository = {
       .where(eq(smoothPrintApks.active, true))
       .limit(1)
     const row = rows[0]
-    return row ? smoothPrintApkSchema.parse(row) : null
+    return row ? toItem(row) : null
   },
 
   async create(input: {
@@ -58,7 +78,7 @@ export const smoothPrintApkRepository = {
     const storedName = safeStoredName(input.originalName)
     await writeFile(apkFilePath(storedName), input.bytes)
 
-    const row: SmoothPrintApk = {
+    const row = {
       id: crypto.randomUUID(),
       originalName: input.originalName,
       storedName,
@@ -68,7 +88,7 @@ export const smoothPrintApkRepository = {
       createdAt: new Date().toISOString(),
     }
     await db.insert(smoothPrintApks).values(row)
-    return row
+    return toItem(row)
   },
 
   async setActive(id: string, active: boolean): Promise<SmoothPrintApk | null> {
@@ -101,10 +121,11 @@ export const smoothPrintApkRepository = {
   },
 }
 
+/** Smooth Print for Android browsers: the active upload when it is Smooth Print, else Brother's. */
 export async function resolveAndroidDownloadUrl(
   apiPathFn: (path: string) => string,
 ): Promise<string> {
   const active = await smoothPrintApkRepository.getActive()
-  if (active) return apiPathFn("/api/smooth-print/apk")
+  if (active && !active.app) return apiPathFn("/api/smooth-print/apk")
   return DEFAULT_SMOOTH_PRINT_ANDROID_URL
 }
