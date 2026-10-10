@@ -20,6 +20,8 @@ pnpm android:build     # cap sync + gradlew assembleDebug
 # → capacitor/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+Launcher icons come from `src/app/icon1.svg`: run `pnpm build:android-icons` after changing it.
+
 Point a build at another server (e.g. a preview deploy) with `CAP_SERVER_URL=https://… pnpm android:build`. Use HTTPS: the in-app QR camera needs a secure context.
 
 The production server only shows the app flow once these web changes are deployed there. Before that, the app gets the Smooth Print wizard.
