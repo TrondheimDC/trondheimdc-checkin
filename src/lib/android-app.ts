@@ -9,7 +9,9 @@ export const ANDROID_APP_LINK_HOST = "innsjekk.trondheimdc.no"
  * https://innsjekk.trondheimdc.no links in the app when the installed APK is signed with one
  * of these. Get it with `keytool -list -v -keystore innsjekk-release.jks` (docs/android-app.md).
  */
-export const ANDROID_APP_CERT_SHA256: string[] = []
+export const ANDROID_APP_CERT_SHA256: string[] = [
+  "4E:90:49:44:3F:C0:C7:BB:CE:C2:44:1A:03:7E:17:F0:45:DF:33:FE:C6:FA:71:E4:28:D7:3D:1F:68:7B:B8:0C",
+]
 
 /** Signed release APKs, built by .github/workflows/android.yml. */
 export const APP_RELEASES_URL = "https://github.com/TrondheimDC/trondheimdc-checkin/releases"
