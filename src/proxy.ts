@@ -1,6 +1,6 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { NextRequest, NextResponse } from "next/server"
-import { APP_DOWNLOAD_PATH } from "@/lib/android-app"
+import { APP_DOWNLOAD_PATH, APP_LOGIN_PATH } from "@/lib/android-app"
 import { DOOR_PATH_HEADER, doorLoginPath } from "@/lib/login-next"
 import { isAppUserAgent, platformFromNavigator } from "@/lib/platform"
 
@@ -17,6 +17,8 @@ function isPublicPath(pathname: string): boolean {
   if (p.startsWith("/api/auth")) return true
   if (p.startsWith("/auth")) return true
   if (p.startsWith("/logg-inn")) return true
+  // The app has no session yet when it redeems a login code from the browser.
+  if (p.startsWith(APP_LOGIN_PATH)) return true
   // Android App Links verification fetches this without cookies.
   if (p.startsWith("/.well-known")) return true
   return false

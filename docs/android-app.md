@@ -16,10 +16,20 @@ A Capacitor shell around the hosted check-in app, with its own Bluetooth printin
 Door pages on Android Chrome (not the app) redirect to `/last-ned` after login (`src/proxy.ts`). The download sits behind door login, like the rest of the door. `/last-ned` offers:
 
 - **Last ned appen**: the active APK from Admin → Android-app.
-- **Åpne appen**: an `intent://` link that opens the app on the page that was asked for (e.g. a printer sticker), or falls back to `/last-ned`.
+- **Åpne appen**: opens the app on the page that was asked for (e.g. a printer sticker), already logged in, or falls back to `/last-ned` when the app is missing.
 - The install help (`/oppsett/android`, allow installs from the browser).
 
 Admin pages still work in the browser.
+
+### Login handoff
+
+The app has its own cookies; it cannot read Chrome's. So that staff only log in once, **Åpne appen** carries the browser's login over:
+
+1. On tap, the page asks `/api/app/handoff` for a one-time code (better-auth `oneTimeToken`: single use, 2 minutes, stored hashed, minted only by our server).
+2. The `intent://` link opens the app on `/app-login?token=…&next=…`.
+3. `/app-login` redeems the code, which sets the same session cookie in the app, and goes on to `next`. A spent or expired code goes to the normal login instead.
+
+App and browser then share one session: logging out in one logs out both. Opening the app from the home screen instead of **Åpne appen** means logging in there.
 
 ## Updates
 

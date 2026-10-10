@@ -1,22 +1,18 @@
-import { Download, ExternalLink } from "lucide-react"
+import { Download } from "lucide-react"
 import type { Metadata } from "next"
 import { cookies, headers } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { TdcPrintLogo } from "@/components/tdc-print-logo"
 import { Button } from "@/components/ui/button"
-import {
-  ANDROID_APP_LINK_HOST,
-  ANDROID_APP_PACKAGE,
-  APP_DOWNLOAD_PATH,
-  APP_UPDATE_LATER_COOKIE,
-} from "@/lib/android-app"
+import { APP_UPDATE_LATER_COOKIE } from "@/lib/android-app"
 import { pendingAppUpdate } from "@/lib/app-release"
 import { requireDoorSession } from "@/lib/auth-session"
 import { safeNextPath } from "@/lib/login-next"
 import { isAppUserAgent } from "@/lib/platform"
 import { smoothPrintApkRepository } from "@/lib/smooth-print-apks"
 import { apiPath } from "@/lib/utils"
+import { OpenAppButton } from "./open-app-button"
 
 export const metadata: Metadata = { title: "Last ned appen" }
 
@@ -54,12 +50,6 @@ export default async function DownloadAppPage({
     return <AppUpdatePage version={update.latest} next={next} />
   }
   const active = await smoothPrintApkRepository.getActive()
-  // Chrome hands an intent:// link to the app when it is installed, else opens the fallback.
-  // The App Link host is fixed; the app moves the path onto its own server.
-  const fallback = `https://${ANDROID_APP_LINK_HOST}${apiPath(APP_DOWNLOAD_PATH)}`
-  const openApp =
-    `intent://${ANDROID_APP_LINK_HOST}${apiPath(next)}#Intent;scheme=https;` +
-    `package=${ANDROID_APP_PACKAGE};S.browser_fallback_url=${encodeURIComponent(fallback)};end`
 
   return (
     <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -71,7 +61,7 @@ export default async function DownloadAppPage({
       </h1>
       <p className="mt-2 shrink-0 text-base leading-snug">
         {active
-          ? "På Android sjekker du inn i TDC Innsjekk-appen. Den skriver ut rett til printeren."
+          ? "På Android sjekker du inn i TDC Innsjekk-appen. Installer den, og trykk Åpne appen her — da er du logget inn."
           : "Be en admin laste opp appen under Android-app."}
       </p>
 
@@ -84,12 +74,7 @@ export default async function DownloadAppPage({
             </a>
           </Button>
         ) : null}
-        <Button asChild variant="surface" className="h-12 w-full text-base">
-          <a href={openApp}>
-            <ExternalLink className="size-5" aria-hidden />
-            Åpne appen
-          </a>
-        </Button>
+        <OpenAppButton next={next} />
         {active ? (
           <Button asChild variant="ghost" className="h-12 w-full text-base">
             <Link href={apiPath("/oppsett/android")}>Slik tillater du installasjon</Link>

@@ -1,7 +1,7 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
-import { admin, multiSession, username } from "better-auth/plugins"
+import { admin, multiSession, oneTimeToken, username } from "better-auth/plugins"
 import { eq } from "drizzle-orm"
 import { printerLoginPlugin } from "@/lib/auth/printer-login-plugin"
 import { getAuthSecret } from "@/lib/auth-secret"
@@ -91,6 +91,9 @@ export const auth = betterAuth({
     }),
     multiSession(),
     printerLoginPlugin(),
+    // Hands the browser's door login to the Android app (/last-ned → «Åpne appen» → /app-login).
+    // Minted only by our own API (/api/app/handoff), single use, short-lived, stored hashed.
+    oneTimeToken({ expiresIn: 2, storeToken: "hashed", disableClientRequest: true }),
     nextCookies(),
   ],
 })
