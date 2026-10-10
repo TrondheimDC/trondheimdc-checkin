@@ -1,6 +1,6 @@
 "use client"
 
-import { FileUp, FlaskConical, Package, Printer, Shapes, Users } from "lucide-react"
+import { FileUp, FlaskConical, Package, Printer, ScanLine, Shapes, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserButton } from "@/components/auth/user/user-button"
@@ -121,6 +121,17 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="border-t border-white/10 p-3">
+          {/* Back to the door screens; the Android app has no address bar. */}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild size="lg">
+                <Link href="/" onClick={closeMobile}>
+                  <ScanLine />
+                  Til innsjekk
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
           <UserButton className="w-full justify-start" align="start" side="top" hideSettings />
         </SidebarFooter>
       </Sidebar>
