@@ -1,7 +1,16 @@
 "use client"
 
 import { useMutation } from "@tanstack/react-query"
-import { Download, LogOut, MapPin, Printer, ScanLine, Smartphone, Zap } from "lucide-react"
+import {
+  Download,
+  LogOut,
+  MapPin,
+  Printer,
+  ScanLine,
+  ShieldCheck,
+  Smartphone,
+  Zap,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { ReactNode } from "react"
@@ -50,8 +59,11 @@ function SettingToggle({
   )
 }
 
-/** The Android app's version (null for a local build) and a newer uploaded one, if any. */
-export type AppInfo = { version: string | null; update: string | null }
+/**
+ * The Android app's version (null for a local build), a newer uploaded one, if any, and
+ * whether this login is an admin. The app has no address bar, so admin is reached from here.
+ */
+export type AppInfo = { version: string | null; update: string | null; admin: boolean }
 
 export function SettingsScreen({
   printerName,
@@ -158,6 +170,17 @@ export function SettingsScreen({
                 </Link>
               </Button>
             ) : null}
+            {/* Shown to everyone: door logins are never admin, and /admin asks for the admin login. */}
+            <Button
+              asChild
+              variant="surface"
+              className="flex h-auto w-full shrink-0 items-center justify-start gap-3 px-4 py-3.5 text-left text-base whitespace-normal"
+            >
+              <Link href="/admin">
+                <ShieldCheck className="size-5 shrink-0" aria-hidden />
+                {app.admin ? "Admin" : "Logg inn som admin"}
+              </Link>
+            </Button>
           </>
         ) : null}
 
