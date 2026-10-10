@@ -20,7 +20,7 @@ const config: CapacitorConfig = {
   // see the installed version for the update check (`appVersionFromUserAgent`). CI sets the
   // version; local builds have none and are never asked to update.
   appendUserAgent: process.env.ANDROID_VERSION_CODE
-    ? `TDCInnsjekkApp/${process.env.ANDROID_VERSION_CODE}`
+    ? `TDCInnsjekkApp/${process.env.ANDROID_VERSION_CODE} (${process.env.ANDROID_VERSION_NAME ?? process.env.ANDROID_VERSION_CODE})`
     : "TDCInnsjekkApp",
   android: {
     path: "capacitor/android",

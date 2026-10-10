@@ -1,12 +1,13 @@
 "use client"
 
 import { useMutation } from "@tanstack/react-query"
-import { LogOut, MapPin, Printer, ScanLine, Zap } from "lucide-react"
+import { Download, LogOut, MapPin, Printer, ScanLine, Smartphone, Zap } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { ReactNode } from "react"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
+import { APP_DOWNLOAD_PATH } from "@/lib/android-app"
 import { authClient } from "@/lib/auth-client"
 import {
   SCAN_AUTO_PRINT_DEFAULT,
@@ -49,7 +50,17 @@ function SettingToggle({
   )
 }
 
-export function SettingsScreen({ printerName }: { printerName: string }) {
+/** The Android app's version (null for a local build) and a newer uploaded one, if any. */
+export type AppInfo = { version: string | null; update: string | null }
+
+export function SettingsScreen({
+  printerName,
+  app,
+}: {
+  printerName: string
+  /** Only in the Android app. */
+  app: AppInfo | null
+}) {
   const router = useRouter()
   const scanInline = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
   const autoPrint = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
@@ -121,6 +132,34 @@ export function SettingsScreen({ printerName }: { printerName: string }) {
             Oppsett av printer
           </Link>
         </Button>
+
+        {app ? (
+          <>
+            <p className="mt-3 text-sm tracking-wide text-[var(--color-fg-brand)]">App</p>
+            <div className="flex shrink-0 items-center gap-3 rounded-xl bg-[var(--color-bg-surface)] px-4 py-3.5">
+              <Smartphone className="size-5 shrink-0" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p>TDC Innsjekk {app.version ? `versjon ${app.version}` : "(utviklerbygg)"}</p>
+                {app.version && !app.update ? (
+                  <p className="mt-1 text-sm opacity-70">Nyeste versjon</p>
+                ) : null}
+              </div>
+            </div>
+            {app.update ? (
+              <Button
+                asChild
+                className="flex h-auto w-full shrink-0 items-center justify-start gap-3 px-4 py-3.5 text-left text-base whitespace-normal"
+              >
+                <Link
+                  href={`${APP_DOWNLOAD_PATH}?${new URLSearchParams({ next: "/innstillinger" })}`}
+                >
+                  <Download className="size-5 shrink-0" aria-hidden />
+                  Oppdater til versjon {app.update}
+                </Link>
+              </Button>
+            ) : null}
+          </>
+        ) : null}
 
         <Button
           variant="ghost"

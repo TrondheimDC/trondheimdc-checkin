@@ -31,13 +31,24 @@ export function appIntentUrl(path: string, fallback: string): string {
 /** Where Android browsers go instead of the door screens: the app does check-in there. */
 export const APP_DOWNLOAD_PATH = "/last-ned"
 
-/** User-agent marker the app appends (`capacitor.config.ts`); release builds add `/<versionCode>`. */
+/**
+ * User-agent marker the app appends (`capacitor.config.ts`). Release builds add the
+ * version: `TDCInnsjekkApp/<versionCode> (<versionName>)`.
+ */
 export const APP_UA_MARKER = "TDCInnsjekkApp"
+
+export type AppBuild = { versionCode: number; versionName: string | null }
+
+/** Installed app's version from its user agent. Null outside the app and for local builds. */
+export function appBuildFromUserAgent(ua: string): AppBuild | null {
+  const match = ua.match(new RegExp(`${APP_UA_MARKER}/(\\d+)(?: \\(([^)]+)\\))?`))
+  if (!match) return null
+  return { versionCode: Number(match[1]), versionName: match[2] ?? null }
+}
 
 /** Installed app's versionCode from its user agent. Null outside the app and for local builds. */
 export function appVersionFromUserAgent(ua: string): number | null {
-  const match = ua.match(new RegExp(`${APP_UA_MARKER}/(\\d+)`))
-  return match ? Number(match[1]) : null
+  return appBuildFromUserAgent(ua)?.versionCode ?? null
 }
 
 /** «Ikke nå» on the update page: the versionCode the prompt was dismissed for. */
