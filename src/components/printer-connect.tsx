@@ -1,15 +1,23 @@
 "use client"
 
-import { Usb } from "lucide-react"
+import { Bluetooth, LoaderCircle, Usb } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import type { LabelPrinterState } from "@/lib/label-printer"
+import { type LabelPrinterState, printerState } from "@/lib/label-printer"
 import { desktopOsFromNavigator } from "@/lib/platform"
+import { usePrintMethod } from "@/lib/print-method"
 import { connectLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath } from "@/lib/utils"
 
 export const USB_UNSUPPORTED_COPY =
   "Bruk en nettleser som støtter WebUSB (Chrome eller Edge) for å skrive ut fra PC/Mac."
+
+const APP_UNSUPPORTED_COPY = "Denne versjonen av appen kan ikke skrive ut. Installer den nyeste."
+
+/** Where the app sends staff when there is no printer to reconnect to. */
+export const APP_SETUP_SCAN_PATH = "/oppsett?step=scan&primed=1"
 
 /** True when the print button should be replaced by «Koble til printer». */
 export function printerNeedsConnect(printer: LabelPrinterState): boolean {
@@ -32,10 +40,13 @@ export function PrinterMessage({
   printer: LabelPrinterState
   error: string | null
 }) {
+  const app = usePrintMethod() === "app"
   const message =
     error ??
     (printer.kind === "unsupported"
-      ? USB_UNSUPPORTED_COPY
+      ? app
+        ? APP_UNSUPPORTED_COPY
+        : USB_UNSUPPORTED_COPY
       : printer.kind === "error"
         ? printer.message
         : null)
@@ -56,7 +67,10 @@ export function PrinterMessage({
   )
 }
 
-/** Opens Chrome's USB picker. Must be tapped — the browser refuses it otherwise. */
+/**
+ * PC/Mac: opens Chrome's USB picker (must be tapped — the browser refuses it otherwise).
+ * App: reconnects the remembered Bluetooth printer, or goes to setup to scan one.
+ */
 export function PrinterConnectButton({
   className,
   size = "lg",
@@ -64,14 +78,36 @@ export function PrinterConnectButton({
   className?: string
   size?: "lg" | "default"
 }) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const app = usePrintMethod() === "app"
+
+  async function connect() {
+    setBusy(true)
+    try {
+      const connected = await connectLabelPrinter()
+      // Still idle: no remembered or paired printer to try. A failed attempt shows its error instead.
+      if (!connected && app && printerState().kind === "idle") router.push(APP_SETUP_SCAN_PATH)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Button
       type="button"
       size={size}
       className={className}
-      onClick={() => void connectLabelPrinter()}
+      disabled={busy}
+      onClick={() => void connect()}
     >
-      <Usb className="size-5" aria-hidden />
+      {busy ? (
+        <LoaderCircle className="size-5 animate-spin" aria-hidden />
+      ) : app ? (
+        <Bluetooth className="size-5" aria-hidden />
+      ) : (
+        <Usb className="size-5" aria-hidden />
+      )}
       Koble til printer
     </Button>
   )

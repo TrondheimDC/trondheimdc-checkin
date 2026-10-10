@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react"
 import {
+  isAppUserAgent,
   type PrintMethod,
   platformFromNavigator,
   printMethodFor,
@@ -11,7 +12,7 @@ import {
 export type { PrintMethod }
 
 export function currentPrintMethod(): PrintMethod {
-  return printMethodFor(refinePlatform(platformFromNavigator()))
+  return printMethodFor(refinePlatform(platformFromNavigator()), isAppUserAgent())
 }
 
 const noopSubscribe = () => () => {}

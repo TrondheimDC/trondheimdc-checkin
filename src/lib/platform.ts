@@ -41,16 +41,30 @@ export function supportsAndroidIntent(
   return /chrome|edga|edg\/|samsungbrowser|opr\//i.test(ua)
 }
 
-/** Phones print through Smooth Print; PC/Mac print over USB (WebUSB). */
-export type PrintMethod = "smooth-print" | "usb"
+/**
+ * Phones print through Smooth Print; PC/Mac print over USB (WebUSB). The Android
+ * app (Capacitor) talks Bluetooth to the printer itself: no Smooth Print.
+ */
+export type PrintMethod = "smooth-print" | "usb" | "app"
 
-export function printMethodFor(platform: PhonePlatform): PrintMethod {
+/** Marker the Android app appends to the WebView UA (`capacitor.config.ts`). */
+const APP_UA_MARKER = "TDCInnsjekkApp"
+
+/** True inside the Android app. Works on the server (request UA) and in the WebView. */
+export function isAppUserAgent(
+  ua: string = typeof navigator !== "undefined" ? navigator.userAgent : "",
+): boolean {
+  return ua.includes(APP_UA_MARKER)
+}
+
+export function printMethodFor(platform: PhonePlatform, inApp = false): PrintMethod {
+  if (inApp) return "app"
   return platform === "other" ? "usb" : "smooth-print"
 }
 
-/** The page draws the label and sends raster itself (no Smooth Print). */
+/** USB and the app both draw the label and send raster themselves. */
 export function printsDirect(method: PrintMethod | null): boolean {
-  return method === "usb"
+  return method === "usb" || method === "app"
 }
 
 /** Which USB driver step a desktop needs: Windows (Zadig), Linux (udev), Mac (none). */

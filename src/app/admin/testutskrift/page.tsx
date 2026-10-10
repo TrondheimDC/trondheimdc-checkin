@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { userAgent } from "next/server"
-import { platformFromOsName, printMethodFor } from "@/lib/platform"
+import { isAppUserAgent, platformFromOsName, printMethodFor } from "@/lib/platform"
 import { TestPrintForm } from "./test-print-form"
 
 export const metadata: Metadata = {
@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 }
 
 export default async function TestPrintPage() {
-  const { os } = userAgent({ headers: await headers() })
-  const initialPrintMethod = printMethodFor(platformFromOsName(os.name))
+  const { os, ua } = userAgent({ headers: await headers() })
+  const initialPrintMethod = printMethodFor(platformFromOsName(os.name), isAppUserAgent(ua))
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="pt-2">

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TDC Innsjekk</string>
+    <string name="title_activity_main">TDC Innsjekk</string>
+    <string name="package_name">no.trondheimdc.innsjekk</string>
+    <string name="custom_url_scheme">no.trondheimdc.innsjekk</string>
+</resources>

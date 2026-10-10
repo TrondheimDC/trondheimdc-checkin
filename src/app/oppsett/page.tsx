@@ -1,7 +1,12 @@
 import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { userAgent } from "next/server"
-import { desktopOsFromName, platformFromOsName } from "@/lib/platform"
+import {
+  desktopOsFromName,
+  isAppUserAgent,
+  platformFromOsName,
+  printMethodFor,
+} from "@/lib/platform"
 import { type PrinterSetupParams, printerSetupParamsFromSearch } from "@/lib/printer-setup"
 import { printerRepository } from "@/lib/printers"
 import { resolveAndroidDownloadUrl } from "@/lib/smooth-print-apks"
@@ -57,18 +62,20 @@ export default async function SetupPage({
   const initialPath =
     query.path === "qr" || query.path === "manual" ? query.path : initialPrinter ? "qr" : null
   const androidUrl = await resolveAndroidDownloadUrl(apiPath)
-  const { os } = userAgent({ headers: await headers() })
+  const { os, ua } = userAgent({ headers: await headers() })
   const initialPlatform = platformFromOsName(os.name)
+  const initialPrintMethod = printMethodFor(initialPlatform, isAppUserAgent(ua))
 
   return (
     <>
       <link rel="preload" as="image" href="/oppsett/smooth-print.jpg" />
-      {initialPlatform === "android" ? (
+      {initialPlatform === "android" && initialPrintMethod === "smooth-print" ? (
         <link rel="preload" as="image" href="/oppsett/android-smooth-print-koblet.jpg" />
       ) : null}
       <SetupEntry
         rawStep={query.step ?? null}
         initialOs={desktopOsFromName(os.name)}
+        initialPrintMethod={initialPrintMethod}
         androidUrl={androidUrl}
         initialPlatform={initialPlatform}
         initialPath={initialPath}

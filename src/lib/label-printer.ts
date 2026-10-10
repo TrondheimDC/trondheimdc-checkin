@@ -5,8 +5,8 @@ import { type BadgeInput, badgePrintImage, renderBadge, renderSticker } from "@/
 
 /**
  * Direct printing: the page draws the label and sends Brother raster itself.
- * PC/Mac over WebUSB (`usb-printer.ts`). One connection per tab, kept across
- * client navigations.
+ * PC/Mac over WebUSB (`usb-printer.ts`), the Android app over Bluetooth
+ * (`app-printer.ts`). One connection per tab, kept across client navigations.
  */
 
 /** Brother media id for the 38 × 90 mm die-cut (DK-11208). */
