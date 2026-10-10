@@ -143,7 +143,7 @@ export function UsbSetupFlow({
 
   if (unsupported) {
     return (
-      <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex min-h-0 flex-1 items-center justify-center">
           <UsbCableIllustration className={artClassName} />
         </div>
@@ -169,7 +169,7 @@ export function UsbSetupFlow({
   }
 
   return (
-    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="mb-3 flex shrink-0 gap-2">
         {stepIds.map((id, index) => (
           <span

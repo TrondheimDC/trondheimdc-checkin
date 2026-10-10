@@ -189,7 +189,7 @@ export function ImportAttendees() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4">
+    <main className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="pt-2">
         <h1 className="text-4xl">Deltakere</h1>
         <p className="mt-2 text-base opacity-70">

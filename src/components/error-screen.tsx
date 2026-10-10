@@ -22,7 +22,7 @@ export function ErrorScreen({
 }) {
   const glow = tone === "danger" ? "error-glow-danger" : undefined
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[var(--color-bg-base)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[var(--color-bg-base)] p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div aria-hidden className={cn("auth-glow-a", glow)} />
       <div aria-hidden className="auth-glow-b" />
 

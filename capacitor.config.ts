@@ -20,6 +20,15 @@ const config: CapacitorConfig = {
   android: {
     path: "capacitor/android",
   },
+  plugins: {
+    // Edge to edge: pages pad themselves with env(safe-area-inset-*) (layout has viewport-fit=cover).
+    SystemBars: {
+      insetsHandling: "css",
+      initialViewportFitValueHint: "cover",
+      // Light status/navigation icons on the dark app.
+      style: "DARK",
+    },
+  },
 }
 
 export default config

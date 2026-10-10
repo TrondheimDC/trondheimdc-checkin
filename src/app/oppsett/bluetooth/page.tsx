@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Bluetooth-hjelp" }
 
 export default function BluetoothPairHelpPage() {
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex min-h-svh max-w-md flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <p className="shrink-0 font-mono text-sm text-[var(--color-fg-brand)]">Hjelp</p>
       <h1 className="mt-1 shrink-0 text-3xl">Finner du ikke printeren?</h1>
       <p className="mt-2 shrink-0 text-base leading-snug opacity-80">

@@ -88,7 +88,7 @@ export function SearchScreen({ initialStats }: { initialStats: AttendeeStats }) 
   }
 
   return (
-    <main className="attendee-reveal flex h-dvh flex-col gap-5 overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="attendee-reveal flex h-dvh flex-col gap-5 overflow-hidden p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="flex shrink-0 items-center justify-between pt-2">
         <TdcLogo />
         <p className="text-base tabular-nums opacity-70">

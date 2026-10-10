@@ -49,7 +49,7 @@ export function AndroidInstallFlow() {
   const last = step === steps.length - 1
 
   return (
-    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="mb-3 flex shrink-0 gap-2">
         {steps.map((item, index) => (
           <span
