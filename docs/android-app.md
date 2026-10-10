@@ -11,6 +11,16 @@ A Capacitor shell around the hosted check-in app, with its own Bluetooth printin
 - `/oppsett` in the app: printer Bluetooth on → **Skann QR** → **Koble til printeren** (Android shows its own pairing code the first time) → test print. **Manuelt oppsett** lists QL printers the phone has already paired with.
 - The app remembers the last printer and reconnects on start, and again before a print if the link dropped.
 
+## Android in a browser
+
+Door pages on Android Chrome (not the app) redirect to `/last-ned` after login (`src/proxy.ts`). The download sits behind door login, like the rest of the door. `/last-ned` offers:
+
+- **Last ned appen**: the active APK from Admin → Android-app.
+- **Åpne appen**: an `intent://` link that opens the app on the page that was asked for (e.g. a printer sticker), or falls back to `/last-ned`.
+- The install help (`/oppsett/android`, allow installs from the browser).
+
+Admin pages still work in the browser.
+
 ## App Links
 
 `https://innsjekk.trondheimdc.no` links (sticker QRs scanned with the phone camera, links in chat) open in the app when it is installed. `MainActivity` loads the link's path on the app's own server.

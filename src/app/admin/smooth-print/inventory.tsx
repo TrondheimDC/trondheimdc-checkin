@@ -8,8 +8,8 @@ import { useForm } from "react-hook-form"
 import { FileDropzone } from "@/components/admin/file-dropzone"
 import { RemoveSmoothPrintApkButton } from "@/components/admin/remove-smooth-print-apk"
 import { Button } from "@/components/ui/button"
+import { APP_RELEASES_URL } from "@/lib/android-app"
 import { type SmoothPrintApk, smoothPrintApkUploadSchema } from "@/lib/db/schema"
-import { DEFAULT_SMOOTH_PRINT_ANDROID_URL } from "@/lib/print-url"
 import {
   fetchSmoothPrintApks,
   setSmoothPrintApkActive,
@@ -123,24 +123,24 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="pt-2">
-        <h1 className="text-4xl">Smooth Print</h1>
+        <h1 className="text-4xl">Android-app</h1>
         <p className="mt-2 max-w-xl text-base opacity-70">
-          Last opp Android-APK (eller zip med én APK — pakkes ut på serveren). Én versjon kan være
-          aktiv — da bruker /oppsett den i stedet for Brothers nedlastingsside.{" "}
+          Last opp TDC Innsjekk-APK-en (eller zip med én APK). Den aktive versjonen er den
+          Android-telefoner laster ned.{" "}
           <a
-            href={DEFAULT_SMOOTH_PRINT_ANDROID_URL}
+            href={APP_RELEASES_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-2 hover:opacity-100"
           >
-            Hent APK fra Brother
+            Hent APK fra GitHub
           </a>
           .
         </p>
         <p className="mt-2 text-sm opacity-60">
           {hasActive
-            ? "Aktiv APK er i bruk på /oppsett."
-            : "Ingen aktiv APK — /oppsett bruker Brothers URL."}
+            ? "Telefonene laster ned den aktive versjonen."
+            : "Ingen aktiv APK — Android-telefoner kan ikke laste ned appen."}
         </p>
       </header>
 
@@ -149,7 +149,7 @@ export function SmoothPrintInventory({ apks: serverApks }: { apks: SmoothPrintAp
           Versjon (valgfritt)
           <input
             {...form.register("versionLabel")}
-            placeholder="1.9.0"
+            placeholder="1.0.0"
             disabled={upload.isPending}
             className="h-14 rounded-xl bg-black/30 px-4 text-lg"
           />

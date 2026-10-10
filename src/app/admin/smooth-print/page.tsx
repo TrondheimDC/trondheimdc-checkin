@@ -4,7 +4,7 @@ import { smoothPrintApksQueryKey } from "@/lib/smooth-print-apk-queries"
 import { smoothPrintApkRepository } from "@/lib/smooth-print-apks"
 import { SmoothPrintInventory } from "./inventory"
 
-export const metadata: Metadata = { title: "Smooth Print" }
+export const metadata: Metadata = { title: "Android-app" }
 
 export default async function SmoothPrintApksPage() {
   const apks = await smoothPrintApkRepository.list()

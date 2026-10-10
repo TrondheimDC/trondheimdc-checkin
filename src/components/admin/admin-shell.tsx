@@ -77,7 +77,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
                   >
                     <Link href="/admin/smooth-print" onClick={closeMobile}>
                       <Package />
-                      Smooth Print
+                      Android-app
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
