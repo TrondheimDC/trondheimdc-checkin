@@ -1,7 +1,7 @@
 "use client"
 
 import { REGEXP_ONLY_DIGITS } from "input-otp"
-import { Keyboard, QrCode } from "lucide-react"
+import { Globe, Keyboard, QrCode } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { LoginQrUnderPrinterIllustration } from "@/components/illustrations"
@@ -22,6 +22,8 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
+import { APP_BROWSER_LOGIN_PATH } from "@/lib/android-app"
+import { canOpenBrowser, openInBrowser } from "@/lib/app-browser"
 import { safeNextPath } from "@/lib/login-next"
 import {
   normalizePrinterTokenBodyInput,
@@ -46,7 +48,7 @@ function clearTokenFromUrl() {
   window.history.replaceState(null, "", `${url.pathname}${url.search}`)
 }
 
-export function DoorLoginForm() {
+export function DoorLoginForm({ inApp }: { inApp: boolean }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const urlToken = searchParams.get("token")?.trim() || ""
@@ -73,6 +75,20 @@ export function DoorLoginForm() {
     setManualDraft("")
     setError(null)
     setPin("")
+  }
+
+  /** In the app: the browser may already be logged in (e.g. after /last-ned). Fetch it from there. */
+  async function loginFromBrowser() {
+    if (!canOpenBrowser()) {
+      setError("Oppdater appen for å hente innloggingen fra nettleseren.")
+      return
+    }
+    const path = next
+      ? `${APP_BROWSER_LOGIN_PATH}?${new URLSearchParams({ next })}`
+      : APP_BROWSER_LOGIN_PATH
+    await openInBrowser(`${window.location.origin}${apiPath(path)}`).catch(() =>
+      setError("Fant ingen nettleser på telefonen."),
+    )
   }
 
   function resetToken() {
@@ -194,6 +210,23 @@ export function DoorLoginForm() {
               <Keyboard className="size-5" aria-hidden />
               Skriv inn kode manuelt
             </Button>
+            {inApp ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="lg"
+                  className="mt-2"
+                  onClick={() => void loginFromBrowser()}
+                >
+                  <Globe className="size-5" aria-hidden />
+                  Hent innlogging fra nettleseren
+                </Button>
+                <p className="text-center text-sm text-[var(--color-fg-base)]/70">
+                  {error ?? "Logget inn i nettleseren? Da slipper du å skanne på nytt."}
+                </p>
+              </>
+            ) : null}
           </div>
         ) : (
           <form onSubmit={submitManual} className="flex flex-col gap-4">

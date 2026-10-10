@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LabelPrinterPlugin.class);
+        registerPlugin(BrowserPlugin.class);
         super.onCreate(savedInstanceState);
         recordCrashes();
         updater.attach(bridge.getWebView());

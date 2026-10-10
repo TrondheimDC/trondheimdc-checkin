@@ -1,7 +1,7 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { NextRequest, NextResponse } from "next/server"
-import { APP_DOWNLOAD_PATH, APP_LOGIN_PATH } from "@/lib/android-app"
-import { DOOR_PATH_HEADER, doorLoginPath } from "@/lib/login-next"
+import { APP_DOWNLOAD_PATH, APP_LOGIN_PATH, APP_NEXT_COOKIE } from "@/lib/android-app"
+import { DOOR_PATH_HEADER, doorLoginPath, safeNextPath } from "@/lib/login-next"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") || ""
 
@@ -78,10 +78,25 @@ export function proxy(request: NextRequest) {
     // A cookie that turns out stale is caught by requireDoorSession, which has no URL of its own.
     const headers = new Headers(request.headers)
     headers.set(DOOR_PATH_HEADER, next)
-    return NextResponse.next({ request: { headers } })
+    const response = NextResponse.next({ request: { headers } })
+    rememberAppNext(response, p, request.nextUrl.searchParams.get("next"))
+    return response
   }
 
   return NextResponse.next()
+}
+
+/** /last-ned?next=…: keep `next` for /til-appen (APP_NEXT_COOKIE). */
+function rememberAppNext(response: NextResponse, path: string, rawNext: string | null) {
+  if (!path.startsWith(APP_DOWNLOAD_PATH)) return
+  const next = safeNextPath(rawNext)
+  if (!next || next === "/") return
+  response.cookies.set(APP_NEXT_COOKIE, next, {
+    path: "/",
+    maxAge: 30 * 60,
+    httpOnly: true,
+    sameSite: "lax",
+  })
 }
 
 export const config = {

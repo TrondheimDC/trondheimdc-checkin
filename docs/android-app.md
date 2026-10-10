@@ -13,7 +13,7 @@ A Capacitor shell around the hosted check-in app, with its own Bluetooth printin
 
 ## Android in a browser
 
-While the app is the active APK under Admin → Android-app, door pages on Android Chrome (not the app) redirect to `/last-ned` after login (`redirectAndroidBrowserToApp` in `requireDoorSession`). The download sits behind door login, like the rest of the door. `/last-ned` offers:
+While the app is the active APK under Admin → Android-app, door pages in an Android browser (not the app) redirect to `/last-ned` after login (`redirectAndroidBrowserToApp` in `requireDoorSession`). The download sits behind door login, like the rest of the door. `/last-ned` offers:
 
 - **Last ned appen**: the active APK from Admin → Android-app.
 - **Åpne appen**: opens the app on the page that was asked for (e.g. a printer sticker), already logged in, or falls back to `/last-ned` when the app is missing.
@@ -32,13 +32,15 @@ So to roll back, activate the Smooth Print APK (or deactivate the app). It takes
 
 ### Login handoff
 
-The app has its own cookies; it cannot read Chrome's. So that staff only log in once, **Åpne appen** carries the browser's login over:
+The app has its own cookies; it cannot read the browser's. So that staff only log in once, **Åpne appen** carries the browser's login over:
 
 1. On tap, the page asks `/api/app/handoff` for a one-time code (better-auth `oneTimeToken`: single use, 2 minutes, stored hashed, minted only by our server).
 2. The `intent://` link opens the app on `/app-login?token=…&next=…`.
 3. `/app-login` redeems the code, which sets the same session cookie in the app, and goes on to `next`. A spent or expired code goes to the normal login instead.
 
-App and browser then share one session: logging out in one logs out both. Opening the app from the home screen instead of **Åpne appen** means logging in there.
+App and browser then share one session: logging out in one logs out both.
+
+Opened the app some other way (home screen, or **Åpne** in Android's installer) and it asks for login? **Hent innlogging fra nettleseren** on the app's `/logg-inn` opens `/til-appen` in the phone's browser (`BrowserPlugin.java` picks the browser by package, so App Links do not send it straight back). A logged-in browser hands its login back the same way. The page /last-ned was about to open (e.g. a printer sticker) is kept in a cookie for 30 minutes, so setup still lands on that printer. Needs an app with the plugin (after 0.10).
 
 ## Updates
 

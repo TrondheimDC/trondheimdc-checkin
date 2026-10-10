@@ -57,6 +57,16 @@
     <!-- Self-update: «Oppdater» downloads the new APK and opens Android's installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- «Hent innlogging fra nettleseren»: find the browser that opens web links (BrowserPlugin). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <package android:name="com.android.chrome" />
+    </queries>
+
     <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

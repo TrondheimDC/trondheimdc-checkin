@@ -34,6 +34,18 @@ export function appIntentUrl(path: string, fallback: string): string {
 export const APP_DOWNLOAD_PATH = "/last-ned"
 
 /**
+ * Browser page for «Hent innlogging fra nettleseren» in the app: hands the browser's login
+ * back to the app, like «Åpne appen».
+ */
+export const APP_BROWSER_LOGIN_PATH = "/til-appen"
+
+/**
+ * The page /last-ned was going to open in the app (e.g. a printer sticker). Kept for when staff
+ * open the app from Android's installer instead of «Åpne appen», then fetch the login.
+ */
+export const APP_NEXT_COOKIE = "tdc-app-next"
+
+/**
  * User-agent marker the app appends (`capacitor.config.ts`). Release builds add the
  * version: `TDCInnsjekkApp/<versionCode> (<versionName>)`.
  */
