@@ -26,6 +26,7 @@ import {
   cameraKind,
   cameraLabel,
   openRearCamera,
+  setTorch,
   type TorchTrack,
   trackSupportsTorch,
   videoTrackFrom,
@@ -99,6 +100,8 @@ export function Scanner({ printerName }: { printerName?: string }) {
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
   const [tabVisible, setTabVisible] = useState(true)
+  // Bumped when Android ends the camera track under us; reopens the camera.
+  const [cameraRestarts, setCameraRestarts] = useState(0)
   const [sheetAttendee, setSheetAttendee] = useState<Attendee | null>(null)
 
   useEffect(() => {
@@ -160,11 +163,14 @@ export function Scanner({ printerName }: { printerName?: string }) {
     }
   })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cameraRestarts only reopens the camera
   useEffect(() => {
     if (!ready || !tabVisible || !videoRef.current) return
     const reader = new BrowserQRCodeReader()
     const video = videoRef.current
     let stopped = false
+    // Cancels an open still in flight when this run is cleaned up (see openRearCamera).
+    const cancel = new AbortController()
     busyRef.current = false
     const torchPolls: number[] = []
     setTorchOn(false)
@@ -181,7 +187,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
       setTorchSupported(trackSupportsTorch(track))
     }
 
-    const controlsPromise = openRearCamera(deviceId).then((stream) => {
+    const controlsPromise = openRearCamera(deviceId, cancel.signal).then((stream) => {
       const track = stream.getVideoTracks()[0] as TorchTrack | undefined
       trackRef.current = track ?? null
       if (stopped) {
@@ -209,9 +215,23 @@ export function Scanner({ printerName }: { printerName?: string }) {
         controlsRef.current = controls
         setCameraLive(true)
         setLiveDeviceId(trackRef.current?.getSettings().deviceId)
-        refreshTorch()
         const track = trackRef.current
-        if (track) void applyTorch(track, false).catch(() => undefined)
+        // Start dark, and offer the button only once that has settled: a quick tap on
+        // a fresh camera must not be undone by this reset.
+        if (track) {
+          void applyTorch(track, false)
+            .catch(() => undefined)
+            .finally(refreshTorch)
+        } else {
+          refreshTorch()
+        }
+        track?.addEventListener(
+          "ended",
+          () => {
+            if (!stopped) setCameraRestarts((count) => count + 1)
+          },
+          { once: true },
+        )
         torchPolls.push(window.setTimeout(refreshTorch, 400), window.setTimeout(refreshTorch, 1200))
 
         const devices = await BrowserQRCodeReader.listVideoInputDevices()
@@ -228,25 +248,22 @@ export function Scanner({ printerName }: { printerName?: string }) {
 
     return () => {
       stopped = true
+      cancel.abort()
       for (const id of torchPolls) window.clearTimeout(id)
       controlsRef.current = null
       trackRef.current = null
       void controlsPromise.then((controls) => controls.stop()).catch(() => undefined)
     }
-  }, [ready, deviceId, tabVisible])
+  }, [ready, deviceId, tabVisible, cameraRestarts])
 
   async function toggleTorch() {
     if (!torchSupported) return
     const next = !torchOn
     const track = trackRef.current ?? videoTrackFrom(videoRef.current)
     if (!track) return
-    try {
-      await applyTorch(track, next)
-      setTorchOn(next)
-    } catch {
-      setTorchOn(false)
-      setTorchSupported(trackSupportsTorch(track))
-    }
+    const state = await setTorch(track, next)
+    setTorchOn(state.on)
+    setTorchSupported(state.supported)
   }
 
   if (!ready) {

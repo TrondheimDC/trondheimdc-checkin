@@ -11,6 +11,7 @@ import {
   applyTorch,
   BLANK_VIDEO_POSTER,
   openRearCamera,
+  setTorch,
   type TorchTrack,
   trackSupportsTorch,
   videoTrackFrom,
@@ -49,16 +50,21 @@ export function ScanCamera<T>({
   const [error, setError] = useState<string | null>(null)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
+  // Bumped when Android ends the camera track under us; reopens the camera.
+  const [cameraRestarts, setCameraRestarts] = useState(0)
 
   const handleParse = useEffectEvent(parse)
   const handleFound = useEffectEvent(onFound)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cameraRestarts only reopens the camera
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
     const reader = mode === "multi" ? new BrowserMultiFormatReader() : new BrowserQRCodeReader()
     let stopped = false
+    // Cancels an open still in flight when this run is cleaned up (see openRearCamera).
+    const cancel = new AbortController()
     let found = false
     const torchPolls: number[] = []
     const controlsRef: { current: IScannerControls | null } = { current: null }
@@ -75,7 +81,7 @@ export function ScanCamera<T>({
       setTorchSupported(trackSupportsTorch(track))
     }
 
-    const controlsPromise = openRearCamera(undefined).then((stream) => {
+    const controlsPromise = openRearCamera(undefined, cancel.signal).then((stream) => {
       const track = stream.getVideoTracks()[0] as TorchTrack | undefined
       trackRef.current = track ?? null
       if (stopped) {
@@ -104,9 +110,23 @@ export function ScanCamera<T>({
           return
         }
         controlsRef.current = controls
-        refreshTorch()
         const track = trackRef.current
-        if (track) void applyTorch(track, false).catch(() => undefined)
+        // Start dark, and offer the button only once that has settled: a quick tap on
+        // a fresh camera must not be undone by this reset.
+        if (track) {
+          void applyTorch(track, false)
+            .catch(() => undefined)
+            .finally(refreshTorch)
+        } else {
+          refreshTorch()
+        }
+        track?.addEventListener(
+          "ended",
+          () => {
+            if (!stopped) setCameraRestarts((count) => count + 1)
+          },
+          { once: true },
+        )
         torchPolls.push(window.setTimeout(refreshTorch, 400), window.setTimeout(refreshTorch, 1200))
       })
       .catch((err: unknown) => {
@@ -116,6 +136,7 @@ export function ScanCamera<T>({
 
     return () => {
       stopped = true
+      cancel.abort()
       for (const id of torchPolls) window.clearTimeout(id)
       controlsRef.current?.stop()
       const track = trackRef.current
@@ -123,20 +144,16 @@ export function ScanCamera<T>({
       trackRef.current = null
       void controlsPromise.then((c) => c.stop()).catch(() => undefined)
     }
-  }, [cameraError, invalidMessage, mode])
+  }, [cameraError, invalidMessage, mode, cameraRestarts])
 
   async function toggleTorch() {
     if (!torchSupported) return
     const next = !torchOn
     const track = trackRef.current ?? videoTrackFrom(videoRef.current)
     if (!track) return
-    try {
-      await applyTorch(track, next)
-      setTorchOn(next)
-    } catch {
-      setTorchOn(false)
-      setTorchSupported(trackSupportsTorch(track))
-    }
+    const state = await setTorch(track, next)
+    setTorchOn(state.on)
+    setTorchSupported(state.supported)
   }
 
   return (
