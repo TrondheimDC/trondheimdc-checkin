@@ -9,6 +9,7 @@ import { Flashlight, FlashlightOff } from "lucide-react"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
 import {
   applyTorch,
+  BLANK_VIDEO_POSTER,
   openRearCamera,
   type TorchTrack,
   trackSupportsTorch,
@@ -140,7 +141,14 @@ export function ScanCamera<T>({
 
   return (
     <div className={cn("relative mx-auto overflow-hidden rounded-2xl bg-black", aspectClassName)}>
-      <video ref={videoRef} className="h-full w-full object-cover" muted playsInline autoPlay />
+      <video
+        ref={videoRef}
+        className="h-full w-full object-cover"
+        poster={BLANK_VIDEO_POSTER}
+        muted
+        playsInline
+        autoPlay
+      />
       <div className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-inset ring-[var(--color-fg-brand)]/50" />
       <button
         type="button"

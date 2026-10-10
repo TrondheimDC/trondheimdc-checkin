@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   applyTorch,
+  BLANK_VIDEO_POSTER,
   cameraKind,
   cameraLabel,
   openRearCamera,
@@ -259,6 +260,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
+        poster={BLANK_VIDEO_POSTER}
         muted
         playsInline
         autoPlay
