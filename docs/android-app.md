@@ -63,18 +63,25 @@ Every update must be signed with the same key, or Android refuses to install it 
 The key belongs to this app (`no.trondheimdc.innsjekk`), so its secrets live in this repo, not org-wide: another TrondheimDC app gets its own key, and a leaked key only affects one app. The certificate name is only a label inside the key; nobody sees it outside Play Store.
 
 ```bash
+# Same password for keystore and key (PKCS12 keeps one). Do not use interactive
+# `gh secret set` / keytool prompts — they hang without a TTY.
+PASS=$(openssl rand -base64 24)
+echo "Store this in the password manager, then clear the shell history line:"
+echo "$PASS"
+
 keytool -genkeypair -v -keystore innsjekk-release.jks -alias innsjekk \
-  -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=TDC Innsjekk, O=TrondheimDC"
-# Use the same password for the keystore and the key (PKCS12 keeps one).
+  -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=TDC Innsjekk, O=TrondheimDC" \
+  -storepass "$PASS" -keypass "$PASS"
 
 REPO=TrondheimDC/trondheimdc-checkin
 base64 -w0 innsjekk-release.jks | gh secret set ANDROID_KEYSTORE_BASE64 --repo $REPO
-gh secret set ANDROID_KEYSTORE_PASSWORD --repo $REPO
-gh secret set ANDROID_KEY_PASSWORD --repo $REPO        # same password
+printf '%s' "$PASS" | gh secret set ANDROID_KEYSTORE_PASSWORD --repo $REPO
+printf '%s' "$PASS" | gh secret set ANDROID_KEY_PASSWORD --repo $REPO
 gh secret set ANDROID_KEY_ALIAS --repo $REPO --body innsjekk
 
-keytool -list -v -keystore innsjekk-release.jks -alias innsjekk | grep SHA256
+keytool -list -v -keystore innsjekk-release.jks -alias innsjekk -storepass "$PASS" | grep SHA256
 # → put it in ANDROID_APP_CERT_SHA256 (src/lib/android-app.ts)
+unset PASS
 ```
 
 Run it outside the repo folder (or delete `innsjekk-release.jks` afterwards) so the key file never ends up in git.
