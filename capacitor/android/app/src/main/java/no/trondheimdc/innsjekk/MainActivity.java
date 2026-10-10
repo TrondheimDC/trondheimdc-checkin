@@ -1,6 +1,8 @@
 package no.trondheimdc.innsjekk;
 
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 import java.io.File;
@@ -18,7 +20,31 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(LabelPrinterPlugin.class);
         super.onCreate(savedInstanceState);
         recordCrashes();
+        openLink(getIntent());
         showLastCrash();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        openLink(intent);
+    }
+
+    /**
+     * App Link (sticker QR, link in another app): open that page in the WebView. Capacitor only
+     * records the URL; on its own it would show the start page. The path moves onto this build's
+     * server, so a preview build opens production links on the preview.
+     */
+    private void openLink(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())) return;
+        Uri link = intent.getData();
+        if (link == null || !"https".equals(link.getScheme())) return;
+        Uri target = Uri.parse(bridge.getServerUrl())
+            .buildUpon()
+            .encodedPath(link.getEncodedPath())
+            .encodedQuery(link.getEncodedQuery())
+            .build();
+        bridge.getWebView().loadUrl(target.toString());
     }
 
     /** Spike aid: keep the stack trace of a crash so the next start can show it. */

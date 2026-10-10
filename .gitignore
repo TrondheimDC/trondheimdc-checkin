@@ -9,3 +9,7 @@ data
 *.db-wal
 *.db-shm
 *.tsbuildinfo
+
+# Android signing keys (docs/android-app.md)
+*.jks
+*.keystore

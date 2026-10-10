@@ -15,6 +15,8 @@ function isPublicPath(pathname: string): boolean {
   if (p.startsWith("/api/auth")) return true
   if (p.startsWith("/auth")) return true
   if (p.startsWith("/logg-inn")) return true
+  // Android App Links verification fetches this without cookies.
+  if (p.startsWith("/.well-known")) return true
   return false
 }
 

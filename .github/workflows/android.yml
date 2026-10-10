@@ -1,0 +1,121 @@
+name: Android app
+
+# Builds a release-signed APK of the Capacitor app and attaches it to a GitHub Release.
+# An admin downloads it there and uploads it under Admin → Android-app.
+#
+# Push a tag `android-v1.2.0`, or run it from Actions with a version.
+on:
+  push:
+    tags: ["android-v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version name, e.g. 1.2.0 (creates the tag android-v<version>)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "android"
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            name="${GITHUB_REF_NAME#android-v}"
+          else
+            name="$INPUT_VERSION"
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "tag=android-v$name" >> "$GITHUB_OUTPUT"
+          # Always increasing, and above the local/debug builds (versionCode ≤ 99).
+          echo "code=$((100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 is missing (docs/android-app.md)."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
+          ANDROID_VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          pnpm exec cap sync android
+          cd capacitor/android
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Verify signature
+        id: apk
+        run: |
+          apk="$RUNNER_TEMP/tdc-innsjekk-${{ steps.version.outputs.name }}.apk"
+          cp capacitor/android/app/build/outputs/apk/release/app-release.apk "$apk"
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs "$apk" | tee "$RUNNER_TEMP/certs.txt"
+          echo "path=$apk" >> "$GITHUB_OUTPUT"
+          {
+            echo "## TDC Innsjekk ${{ steps.version.outputs.name }} (versionCode ${{ steps.version.outputs.code }})"
+            echo ""
+            echo "Signing certificate (put the SHA-256 in src/lib/android-app.ts for App Links):"
+            echo '```'
+            grep -i "SHA-256" "$RUNNER_TEMP/certs.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          NAME: ${{ steps.version.outputs.name }}
+        run: |
+          gh release create "$TAG" "${{ steps.apk.outputs.path }}" \
+            --target "$GITHUB_SHA" \
+            --title "Android-app $NAME" \
+            --notes "Last ned APK-en og last den opp under Admin → Android-app."

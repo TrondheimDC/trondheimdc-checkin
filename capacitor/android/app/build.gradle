@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Release signing comes from the environment (GitHub Actions secrets, see docs/android-app.md).
+// Without it, assembleRelease builds an unsigned APK and assembleDebug uses the local debug key.
+def releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")
+// App Links also claim the server the build points at (CAP_SERVER_URL, e.g. a preview).
+def serverHost = new URI(System.getenv("CAP_SERVER_URL") ?: "https://innsjekk.trondheimdc.no").host
+
 android {
     namespace = "no.trondheimdc.innsjekk"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +13,10 @@ android {
         applicationId "no.trondheimdc.innsjekk"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "0.3"
+        // CI passes the run number / tag; local builds stay on the fallback.
+        versionCode((System.getenv("ANDROID_VERSION_CODE") ?: "5") as int)
+        versionName System.getenv("ANDROID_VERSION_NAME") ?: "0.5"
+        manifestPlaceholders = [appLinkHost: serverHost]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +24,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (releaseKeystore) {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseKeystore) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
