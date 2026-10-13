@@ -12,9 +12,10 @@
   --color-black-3: #292929;
   --color-green-1: #9bf7a9;
   --color-green-3: #67e47b;
+  --color-orange: #f1422a;
   --color-bg-base: var(--color-black);
   --color-bg-surface: var(--color-black-2);
-  --color-bg-danger: #f1422a;
+  --color-bg-danger: var(--color-orange);
   --color-fg-base: var(--color-white-1);
   --color-fg-brand: var(--color-green-1);
   --color-fg-always-dark: var(--color-black-3);
@@ -555,14 +556,14 @@ h2 {
 }
 
 .checkin-btn--checked {
-  background: color-mix(in srgb, var(--color-fg-brand) 14%, var(--color-bg-surface));
-  color: var(--color-fg-brand);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-fg-brand) 40%, transparent);
+  background: color-mix(in srgb, var(--color-orange) 14%, var(--color-bg-surface));
+  color: var(--color-orange);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-orange) 40%, transparent);
 }
 
 button.checkin-btn.checkin-btn--checked:hover {
-  background: color-mix(in srgb, var(--color-fg-brand) 22%, var(--color-bg-surface));
-  color: var(--color-fg-brand);
+  background: color-mix(in srgb, var(--color-orange) 22%, var(--color-bg-surface));
+  color: var(--color-orange);
 }
 
 @keyframes app-loading-pulse {

@@ -74,7 +74,14 @@ export function ScanResultSheet({
     >
       <div className="attendee-reveal max-h-full w-full max-w-sm overflow-y-auto rounded-2xl bg-[var(--color-black-3)]/95 p-5 shadow-lg ring-1 ring-white/10 backdrop-blur-md">
         <div className="relative -m-2 rounded-xl p-2">
-          <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">
+          <p
+            className={cn(
+              "text-sm tracking-wide",
+              checkedIn
+                ? "font-semibold text-[var(--color-orange)]"
+                : "text-[var(--color-fg-brand)]",
+            )}
+          >
             {checkedIn ? "Allerede innsjekket" : "Ny innsjekk"}
           </p>
           <h2

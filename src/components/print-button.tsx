@@ -214,6 +214,8 @@ export function PrintButton({
       ) : (
         <Button
           size="lg"
+          // TDC orange, so an attendee who already has a badge stands out.
+          variant={checkedIn ? "destructive" : "default"}
           disabled={busy || (direct && printerBlocksPrint(printer))}
           onClick={() => {
             if (alreadyPrinted) setConfirmOpen(true)
