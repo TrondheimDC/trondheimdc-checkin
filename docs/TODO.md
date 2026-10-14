@@ -196,6 +196,14 @@ Supported platforms (for staff phones): iOS 14.1+, Android 8.0+; Bluetooth Class
 
 ## Nice to have
 
+### Rename `master` → `main`
+
+The other TrondheimDC repos (trondheimdc.no, regnskap, utlegg, forening) use `main`; this one is the odd one out. Do it after the conference, not while day-of deploys depend on it.
+
+- [ ] Rename the default branch on GitHub (Settings → Branches), then locally: `git branch -m master main && git fetch origin && git branch -u origin/main main && git remote set-head origin -a`
+- [ ] `.github/workflows/cd.yml` and `pr.yml`: `branches: ["master"]` → `["main"]` (and the comment at the top of `cd.yml`)
+- [ ] `docs/deploy.md` and `docs/test-plan.md`: replace the references to `master`
+
 ### PWA
 
 - [ ] Decide whether PWA / “Add to Home Screen” is worth it for door staff (install prompt, offline shell, icon, full-screen). Weigh iOS Safari limits vs Android, and whether a normal bookmark is enough for a two-day conference.
