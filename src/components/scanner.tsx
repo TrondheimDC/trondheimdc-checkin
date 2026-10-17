@@ -17,10 +17,17 @@ import { useRouter } from "next/navigation"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
 import { usePrinterStatusBar } from "@/components/printer-connect"
 import { ScanResultSheet } from "@/components/scan-result-sheet"
+import { ScanSpotOverlay, type ScanTap } from "@/components/scan-spot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { type ScanControls, scanFeedback, scanStream } from "@/lib/barcode-scan"
+import {
+  previewPoint,
+  type ScanControls,
+  type ScanSpot,
+  scanFeedback,
+  scanStream,
+} from "@/lib/barcode-scan"
 import {
   applyTorch,
   BLANK_VIDEO_POSTER,
@@ -112,6 +119,8 @@ export function Scanner({ printerName }: { printerName?: string }) {
   const [sheetAttendee, setSheetAttendee] = useState<Attendee | null>(null)
   // Bumped per accepted read; keys the reticle flash so it replays.
   const [hits, setHits] = useState(0)
+  const [spot, setSpot] = useState<ScanSpot | null>(null)
+  const [tap, setTap] = useState<ScanTap | null>(null)
 
   useEffect(() => {
     const sync = () => setTabVisible(document.visibilityState === "visible")
@@ -200,6 +209,9 @@ export function Scanner({ printerName }: { printerName?: string }) {
       }
       return scanStream(stream, video, {
         target: "qr",
+        onSpot: (next) => {
+          if (!stopped) setSpot(next)
+        },
         onText: (raw) => {
           if (stopped || busyRef.current) return
           const text = raw.trim()
@@ -291,6 +303,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
         autoPlay
         disablePictureInPicture
       />
+      <ScanSpotOverlay spot={spot} tap={tap} />
 
       <div className="relative z-10 flex shrink-0 items-start justify-between p-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))]">
         <div className="flex gap-2">
@@ -350,7 +363,19 @@ export function Scanner({ printerName }: { printerName?: string }) {
         </div>
       ) : null}
 
-      <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-7 py-2">
+      {/* Tapping the camera area looks harder there (and focuses, where the camera allows). */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: pointer-only aid; scanning works without it */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only aid; scanning works without it */}
+      <div
+        className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-7 py-2"
+        onClick={(event) => {
+          const video = videoRef.current
+          if (!video) return
+          const point = previewPoint(video, event.clientX, event.clientY)
+          controlsRef.current?.focusAt(point.x, point.y)
+          setTap({ ...point, key: Date.now() })
+        }}
+      >
         <div className="scan-reticle" aria-hidden>
           <span className="scan-reticle-corner tl" />
           <span className="scan-reticle-corner tr" />

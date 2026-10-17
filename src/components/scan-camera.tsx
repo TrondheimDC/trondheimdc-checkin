@@ -2,9 +2,12 @@
 
 import { Flashlight, FlashlightOff } from "lucide-react"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
+import { ScanSpotOverlay, type ScanTap } from "@/components/scan-spot"
 import {
+  previewPoint,
   type ScanControls,
   type ScanRegion,
+  type ScanSpot,
   type ScanTarget,
   scanFeedback,
   scanStream,
@@ -31,6 +34,8 @@ const SERIAL_GUIDE: ScanRegion = { left: 0.08, top: 0.32, width: 0.84, height: 0
 const SERIAL_DECODE: ScanRegion = { left: 0.02, top: 0.2, width: 0.96, height: 0.6 }
 /** Zoom button level: lets a small label be read from 15–20 cm, where lenses still focus. */
 const ZOOM_IN = 2
+/** Let the frame on a read code show before the dialog moves on. */
+const READ_SHOW_MS = 250
 
 /**
  * Shared rear-camera scan surface (torch + BarcodeDetector / zxing).
@@ -59,6 +64,9 @@ export function ScanCamera<T>({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const trackRef = useRef<TorchTrack | null>(null)
+  const scanRef = useRef<ScanControls | null>(null)
+  const [spot, setSpot] = useState<ScanSpot | null>(null)
+  const [tap, setTap] = useState<ScanTap | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
@@ -87,7 +95,9 @@ export function ScanCamera<T>({
     setZoomed(false)
     setZoomSupported(false)
     setError(null)
+    setSpot(null)
     trackRef.current = null
+    let readTimer: number | undefined
 
     const refreshTorch = () => {
       if (stopped) return
@@ -112,6 +122,9 @@ export function ScanCamera<T>({
       return scanStream(stream, video, {
         target: mode,
         region: serial ? SERIAL_DECODE : undefined,
+        onSpot: (next) => {
+          if (!stopped) setSpot(next)
+        },
         onText: (text) => {
           if (stopped || found) return
           const value = handleParse(text)
@@ -124,7 +137,7 @@ export function ScanCamera<T>({
           setError(null)
           scanFeedback()
           controlsRef.current?.stop()
-          handleFound(value)
+          readTimer = window.setTimeout(() => handleFound(value), READ_SHOW_MS)
         },
       })
     })
@@ -136,6 +149,7 @@ export function ScanCamera<T>({
           return
         }
         controlsRef.current = controls
+        scanRef.current = controls
         const track = trackRef.current
         // Start dark, and offer the button only once that has settled: a quick tap on
         // a fresh camera must not be undone by this reset.
@@ -166,6 +180,8 @@ export function ScanCamera<T>({
       stopped = true
       cancel.abort()
       for (const id of torchPolls) window.clearTimeout(id)
+      window.clearTimeout(readTimer)
+      scanRef.current = null
       controlsRef.current?.stop()
       const track = trackRef.current
       if (track) void applyTorch(track, false).catch(() => undefined)
@@ -183,6 +199,14 @@ export function ScanCamera<T>({
     setTorchOn(state.on)
     setTorchSupported(state.supported)
     if (zoomed) void tuneCamera(track, { zoom: ZOOM_IN })
+  }
+
+  function tapPreview(event: React.MouseEvent<HTMLVideoElement>) {
+    const video = videoRef.current
+    if (!video) return
+    const point = previewPoint(video, event.clientX, event.clientY)
+    scanRef.current?.focusAt(point.x, point.y)
+    setTap({ ...point, key: Date.now() })
   }
 
   async function toggleZoom() {
@@ -203,7 +227,9 @@ export function ScanCamera<T>({
         muted
         playsInline
         autoPlay
+        onClick={tapPreview}
       />
+      <ScanSpotOverlay spot={spot} tap={tap} />
       {mode === "serial" ? (
         <div
           className="scan-guide"

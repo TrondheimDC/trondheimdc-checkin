@@ -234,3 +234,16 @@ export function cameraKind(device: MediaDeviceInfo): "front" | "rear" | "other" 
   if (/back|rear|environment|bak/i.test(device.label)) return "rear"
   return "other"
 }
+
+/**
+ * Ask the camera to focus around a point of the frame (fractions of it). Chrome on Android
+ * honours `pointsOfInterest`; Safari and most desktops ignore it.
+ */
+export async function focusCameraAt(track: MediaStreamTrack, x: number, y: number) {
+  const caps = track.getCapabilities?.() as FocusCapabilities | undefined
+  const settings: Record<string, unknown> = { pointsOfInterest: [{ x, y }] }
+  if (caps?.focusMode?.includes("continuous")) settings.focusMode = "continuous"
+  await track
+    .applyConstraints({ advanced: [settings as MediaTrackConstraintSet] })
+    .catch(() => undefined)
+}

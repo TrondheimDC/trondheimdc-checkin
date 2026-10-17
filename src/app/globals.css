@@ -539,6 +539,79 @@ h2 {
   }
 }
 
+/* Frame on a code the scanner found (pulsing, ZXing is reading that spot) or read (flash). */
+.scan-spot {
+  position: absolute;
+  border: 3px solid var(--color-fg-brand);
+  border-radius: 0.75rem;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-fg-brand) 60%, transparent);
+  transition:
+    left 0.12s ease-out,
+    top 0.12s ease-out,
+    width 0.12s ease-out,
+    height 0.12s ease-out,
+    opacity 0.3s ease-out;
+}
+
+.scan-spot[data-state="found"] {
+  animation: scan-spot-in 0.18s ease-out;
+}
+
+.scan-spot[data-state="found"][data-visible="false"] {
+  opacity: 0;
+}
+
+.scan-spot[data-state="read"] {
+  background: color-mix(in srgb, var(--color-fg-brand) 30%, transparent);
+  animation: scan-spot-read 0.9s ease-out forwards;
+}
+
+@keyframes scan-spot-in {
+  from {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes scan-spot-read {
+  0% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  20% {
+    transform: scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Ring where staff tapped: the scanner looks there first for a moment. */
+.scan-tap {
+  position: absolute;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin: -2.25rem 0 0 -2.25rem;
+  border: 2px solid rgb(255 255 255 / 0.9);
+  border-radius: 999px;
+  opacity: 0;
+  animation: scan-tap 0.7s ease-out;
+}
+
+@keyframes scan-tap {
+  from {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
 /* Wide box for the printer's 1D serial barcode; the decoder reads around it. */
 .scan-guide {
   position: absolute;
