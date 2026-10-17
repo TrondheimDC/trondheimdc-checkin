@@ -166,19 +166,6 @@ export function SettingsScreen({
           description="Skriv ut automatisk for nye innsjekker."
         />
 
-        <SettingToggle
-          pressed={flagsReady ? zxing === true || nativeDetector === false : false}
-          onToggle={toggleZxing}
-          disabled={!flagsReady || nativeDetector !== true}
-          icon={<ScanQrCode className="size-5" aria-hidden />}
-          title="Skann med ZXing"
-          description={
-            nativeDetector === false
-              ? "Denne enheten skanner alltid med ZXing."
-              : "Bruk ZXing i stedet for nettleserens innebygde skanner."
-          }
-        />
-
         <Button
           asChild
           variant="surface"
@@ -228,6 +215,21 @@ export function SettingsScreen({
             </Button>
           </>
         ) : null}
+
+        <p className="mt-3 text-sm tracking-wide text-[var(--color-fg-brand)]">Feilsøking</p>
+
+        <SettingToggle
+          pressed={flagsReady ? zxing === true || nativeDetector === false : false}
+          onToggle={toggleZxing}
+          disabled={!flagsReady || nativeDetector !== true}
+          icon={<ScanQrCode className="size-5" aria-hidden />}
+          title="Skann med ZXing"
+          description={
+            nativeDetector === false
+              ? "Denne enheten har ingen innebygd skanner, så ZXing brukes alltid."
+              : "Bare hvis skanningen ikke virker. Tregere og bruker mer strøm enn den innebygde skanneren."
+          }
+        />
 
         <Button
           variant="ghost"
