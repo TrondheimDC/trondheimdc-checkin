@@ -10,7 +10,8 @@ import { UserRoundCheck } from "lucide-react"
 
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
-import { adminLabel } from "@/lib/admin-identity"
+import { adminLabel, userRole } from "@/lib/admin-identity"
+import { cn } from "@/lib/utils"
 
 export type SwitchAccountItemsProps = {
   className?: string
@@ -35,11 +36,11 @@ export function SwitchAccountItems({ className }: SwitchAccountItemsProps) {
 
   return (
     <>
-      <DropdownMenuSeparator />
+      <DropdownMenuSeparator className="bg-white/10" />
       {otherSessions.map((device) => (
         <DropdownMenuItem
           key={device.session.token}
-          className={className}
+          className={cn("cursor-pointer rounded-lg py-2.5", className)}
           disabled={setActiveSession.isPending}
           onClick={() => setActiveSession.mutate({ sessionToken: device.session.token })}
         >
@@ -50,10 +51,10 @@ export function SwitchAccountItems({ className }: SwitchAccountItemsProps) {
           )}
           Bytt til{" "}
           {adminLabel({
-            username:
-              (device.user as { username?: string | null }).username ??
-              (device.user as { displayUsername?: string | null }).displayUsername,
+            username: (device.user as { username?: string | null }).username,
+            displayUsername: (device.user as { displayUsername?: string | null }).displayUsername,
             name: device.user.name,
+            role: userRole(device.user),
           }) || device.user.email}
         </DropdownMenuItem>
       ))}

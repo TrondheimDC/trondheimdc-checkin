@@ -88,6 +88,15 @@ better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer als
 - [x] Replace attendee list via API; show import counts / skipped rows
 - [x] Keep CLI import as a fallback ([checkin-totalrapport.md](./checkin-totalrapport.md))
 
+### Speakers, crew and volunteers (CSV)
+
+Speakers, crew and volunteers are not all in Checkin, and we don't want to put them there. Import them from our own CSV next to the Checkin attendees.
+
+- [ ] Decide the CSV columns (at least name, company/role, and which group: speaker / crew / volunteer) and whether the badge shows the group
+- [ ] Keep it separate from the totalrapport import: today a totalrapport import soft-deletes everyone missing from the file, so a second list must not wipe the Checkin attendees (and the reverse)
+- [ ] They have no Checkin ticket QR: decide whether they are found by name search only, or get our own id (and a QR somewhere)
+- [ ] Admin upload with the same import result counts as the totalrapport; CLI fallback like `pnpm import:attendees`
+
 ### Day-of readiness
 
 - [x] Confirm a **real ticket QR** payload matches the totalrapport `Barcode` column (scan → correct attendee)
@@ -101,7 +110,15 @@ better-auth + better-auth-ui. Roles: `admin` | `printer`. Creating a printer als
 
 ### Live Checkin integration
 
-Not required to call MVP done (CSV + planned re-import is enough for day-of). Still a follow-up task — decide architecture before coding.
+**Postponed to next year's TDC.** This year runs on the totalrapport CSV + re-import. Decide architecture before coding.
+
+Started on the local branch `feature/events-and-integrations` (not pushed): `/admin/arrangementer` (one attendee list per event, one active), `/admin/integrasjoner` (Checkin client id/secret, Synk/Live per integration, connection test via `allEvents`), door reads through `doorAttendees()`, and `check_events.synced_at` as an outbox for pushing check-ins back. Rebase it onto `master` before picking this up.
+
+Checkin's developer docs: [Developer Documentation](https://checkinno.atlassian.net/wiki/external/NTlmNmFhYjk5OWUwNGU4OTk5ZTk4ZjExOTYxMWYzNjU). What matters for us:
+
+- GraphQL at `https://api.checkin.no/graphql` (explorer: `https://api.checkin.no/graphiql/`). API keys are set up under the organization's API integration page in Checkin (admin access).
+- Attendees: `allEventOrderUsers(customerId, length, offset, reportFilters)` → `crm { name firstName lastName }`, `ticket { id name type }`, `propertyValues { propertyKey value }` (company is `systemFieldCompanyName`, job title `systemFieldWorkTitle`). Filter on `EVENT_ID`; incremental sync with `CREATED_AT GREATER_THAN_OR_EQUAL <last sync>`; leave out cancelled with `CANCELLED_AT IS_EMPTY`. The docs do not show a barcode field — find it in the explorer before dropping CSV (the branch notes `findEventTicketInformationByBarcode(barcode)` for live lookup).
+- Webhooks (`app.checkin.no/customer/<id>/integrations/provider-webhooks`): Event, Ticket, Order (`event-order-created`, `EventOrder` payload with `users[]`), and Order user — fires on ticket scan / check-in. An incremental `CREATED_AT` filter misses edits and cancellations, so pair it with the Order webhook or a full re-pull.
 
 **Open decision — how we talk to Checkin:**
 
@@ -168,11 +185,13 @@ Tasks:
 
 ### Check-in dashboard and replay
 
-See and replay the day afterwards: how check-in went, how long it took, and how arrivals were spread over time.
+See and replay the day afterwards: how fast everyone got checked in, and how much attendee info had to be fixed at the door. A check-in counts as a printed label.
 
-- [ ] Chart of checked-in attendees over time (cumulative and per-interval, e.g. per 5 / 15 minutes), built from `check_events` timestamps
+- [ ] Chart of checked-in attendees over time (cumulative and per-interval, e.g. per minute / 5 / 15 minutes), built from `check_events` timestamps
 - [ ] Replay the day: scrub or play a timeline and watch the count build up
 - [ ] Key numbers: first and last check-in, peak arrival rate, time to reach 50 / 90 %, share of attendees who never checked in
+- [ ] Count each attendee once: use their first `in` event, and leave out check-ins that were later undone (`out`)
+- [ ] Door edits from `correct` events (not `attendees.correctedAt`, which only shows who is corrected right now): number of edits, attendees edited, which fields changed (`detail.from` / `detail.to`), and missing names filled in (`from.name` is null) counted separately
 - [ ] Optional breakdown per door / printer (events already carry the acting printer or user)
 - [ ] Decide where it lives (admin page vs. the existing stats on search) and whether it updates live during the day
 

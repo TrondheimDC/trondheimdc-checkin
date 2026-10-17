@@ -70,20 +70,8 @@ function renderUserLink(
 }
 
 /**
- * Render a user dropdown button that shows user info, settings, theme controls, and authentication actions.
- *
- * Includes user profile, settings link, optional multi-session account switching, theme picker,
- * and sign-in/sign-up/sign-out actions depending on authentication state.
- *
- * @param className - Additional CSS classes applied to the button trigger
- * @param align - Alignment of the dropdown menu relative to the trigger
- * @param side - Preferred side of the trigger on which to show the dropdown menu
- * @param sideOffset - Offset between the trigger and the dropdown menu
- * @param size - "icon" renders only the avatar; "default" renders a full button with label and chevron
- * @param variant - Visual variant of the trigger button
- * @param links - Additional menu entries rendered above the built-in items
- * @param hideSettings - Hide the built-in "Settings" link
- * @returns The dropdown menu component with user actions
+ * Account menu in the admin shell: avatar trigger, current user, optional
+ * account switch, sign out. No settings self-service for door/admin staff.
  */
 export function UserButton({
   className,
@@ -110,6 +98,10 @@ export function UserButton({
     return [renderUserLink(link, navigate, `user-button-link-${index.toString()}`)]
   })
 
+  const pluginItems = plugins.flatMap((plugin) =>
+    plugin.userMenuItems?.map((Item, index) => <Item key={`${plugin.id}-${index.toString()}`} />),
+  )
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -117,7 +109,11 @@ export function UserButton({
         className={
           size === "icon"
             ? cn("rounded-full", className)
-            : cn(buttonVariants({ variant, size: "lg" }), "py-2.5 h-auto font-normal", className)
+            : cn(
+                buttonVariants({ variant, size: "lg" }),
+                "h-auto w-full justify-start py-2.5 font-normal",
+                className,
+              )
         }
       >
         {size === "icon" ? (
@@ -136,35 +132,32 @@ export function UserButton({
               </>
             )}
 
-            <ChevronsUpDown className="ml-auto size-4" />
+            <ChevronsUpDown className="ml-auto size-4 opacity-50" />
           </>
         )}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="min-w-40 max-w-[48svw] rounded-xl border-white/10 p-1.5 outline-none md:min-w-56"
+        className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 rounded-xl border-white/10 bg-[var(--color-bg-surface)] p-1.5 shadow-lg outline-none"
         side={side}
-        sideOffset={sideOffset}
+        sideOffset={sideOffset ?? 8}
         align={align}
       >
-        {session && (
+        {session ? (
           <>
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-sm font-normal">
+              <DropdownMenuLabel className="p-2 font-normal">
                 <UserView />
               </DropdownMenuLabel>
             </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
-          </>
-        )}
+            <DropdownMenuSeparator className="bg-white/10" />
 
-        {session ? (
-          <>
             {userLinks}
 
             {!hideSettings && (
               <DropdownMenuItem
+                className="cursor-pointer rounded-lg py-2.5"
                 onClick={() =>
                   navigate({
                     to: `${basePaths.settings}/${viewPaths.settings.account}`,
@@ -177,21 +170,18 @@ export function UserButton({
               </DropdownMenuItem>
             )}
 
-            {plugins.flatMap((plugin) =>
-              plugin.userMenuItems?.map((Item, index) => (
-                <Item key={`${plugin.id}-${index.toString()}`} />
-              )),
-            )}
+            {pluginItems}
 
             <DropdownMenuItem
-              className="cursor-pointer py-2.5"
+              className="cursor-pointer rounded-lg py-2.5"
+              variant="destructive"
               onClick={() =>
                 navigate({
                   to: `${basePaths.auth}/${viewPaths.auth.signOut}`,
                 })
               }
             >
-              <LogOut className="text-muted-foreground" />
+              <LogOut />
 
               {localization.auth.signOut}
             </DropdownMenuItem>
@@ -201,6 +191,7 @@ export function UserButton({
             {userLinks}
 
             <DropdownMenuItem
+              className="cursor-pointer rounded-lg py-2.5"
               onClick={() =>
                 navigate({
                   to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
@@ -213,6 +204,7 @@ export function UserButton({
             </DropdownMenuItem>
 
             <DropdownMenuItem
+              className="cursor-pointer rounded-lg py-2.5"
               onClick={() =>
                 navigate({
                   to: `${basePaths.auth}/${viewPaths.auth.signUp}`,
@@ -224,11 +216,7 @@ export function UserButton({
               {localization.auth.signUp}
             </DropdownMenuItem>
 
-            {plugins.flatMap((plugin) =>
-              plugin.userMenuItems?.map((Item, index) => (
-                <Item key={`${plugin.id}-${index.toString()}`} />
-              )),
-            )}
+            {pluginItems}
           </>
         )}
       </DropdownMenuContent>

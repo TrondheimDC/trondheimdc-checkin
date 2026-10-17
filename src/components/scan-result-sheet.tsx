@@ -65,7 +65,7 @@ export function ScanResultSheet({
 
   return (
     <div
-      className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+      className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]"
       role="status"
       aria-live="polite"
       onClick={(event) => {

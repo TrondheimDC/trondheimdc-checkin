@@ -136,7 +136,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="flex items-center gap-2 border-b border-white/10 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:hidden">
+        <div className="flex items-center gap-2 border-b border-white/10 p-3 pt-[max(0.75rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] md:hidden">
           <SidebarTrigger />
           <TdcLogo />
           <div className="ml-auto">

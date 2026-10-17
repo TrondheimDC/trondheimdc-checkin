@@ -8,6 +8,7 @@ import { CheckInButton } from "@/components/check-in-button"
 import { CorrectAttendeeButton } from "@/components/correct-attendee-button"
 import { MISSING_NAME_LABEL, MissingNameNotice } from "@/components/missing-name-notice"
 import { PrintButton } from "@/components/print-button"
+import { usePrinterStatusBar } from "@/components/printer-connect"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { useSetCheckedIn } from "@/hooks/use-set-checked-in"
@@ -20,6 +21,7 @@ import { apiPath, cn } from "@/lib/utils"
 
 export function AttendeeScreen({ id }: { id: string }) {
   const queryClient = useQueryClient()
+  usePrinterStatusBar()
   const [platform, setPlatform] = useState<PhonePlatform>("other")
   const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
 
@@ -68,7 +70,7 @@ export function AttendeeScreen({ id }: { id: string }) {
 
   if (query.isError) {
     return (
-      <main className="attendee-reveal flex min-h-dvh flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <main className="attendee-reveal flex min-h-dvh flex-col justify-between p-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <p className="text-sm tracking-wide text-[var(--color-bg-danger)]">Noe gikk galt</p>
           <h1 className="text-4xl">Kunne ikke hente deltakeren</h1>
@@ -85,7 +87,7 @@ export function AttendeeScreen({ id }: { id: string }) {
 
   if (!query.data) {
     return (
-      <main className="attendee-reveal flex min-h-dvh flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <main className="attendee-reveal flex min-h-dvh flex-col justify-between p-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <div className="search-idle-mark flex size-16 items-center justify-center rounded-full border border-[var(--color-fg-brand)]/40 text-[var(--color-fg-brand)]">
             <Search className="size-7" />
@@ -112,7 +114,7 @@ export function AttendeeScreen({ id }: { id: string }) {
   const shouldAutoPrint = autoPrintReady && autoPrintFlag === true && !checkedIn
 
   return (
-    <main className="relative flex min-h-dvh flex-col justify-between overflow-hidden p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="relative flex min-h-dvh flex-col justify-between overflow-hidden p-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="attendee-badge-glow" aria-hidden />
 
       <div className="relative pt-4">

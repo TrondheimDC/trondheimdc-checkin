@@ -20,10 +20,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { LabelPrintError, printBadge } from "@/lib/label-printer"
 import { type DesktopOs, desktopOsFromNavigator } from "@/lib/platform"
+import { markSetupSeen } from "@/lib/setup-seen"
 import { useLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath } from "@/lib/utils"
 
-const SETUP_KEY = "tdc-checkin-printer-seen"
 const TEST_NAME = "Test"
 const TEST_LINE2 = "TDC"
 
@@ -119,7 +119,7 @@ export function UsbSetupFlow({
   }
 
   function finish() {
-    window.localStorage.setItem(SETUP_KEY, "1")
+    markSetupSeen()
     router.push("/")
   }
 
@@ -143,7 +143,7 @@ export function UsbSetupFlow({
 
   if (unsupported) {
     return (
-      <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex min-h-0 flex-1 items-center justify-center">
           <UsbCableIllustration className={artClassName} />
         </div>
@@ -169,7 +169,7 @@ export function UsbSetupFlow({
   }
 
   return (
-    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="mb-3 flex shrink-0 gap-2">
         {stepIds.map((id, index) => (
           <span

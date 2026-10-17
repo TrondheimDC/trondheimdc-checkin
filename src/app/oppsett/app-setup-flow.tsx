@@ -21,10 +21,10 @@ import {
 } from "@/lib/app-printer"
 import { LabelPrintError, printBadge } from "@/lib/label-printer"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
+import { markSetupSeen } from "@/lib/setup-seen"
 import { useLabelPrinter } from "@/lib/use-label-printer"
 import { apiPath } from "@/lib/utils"
 
-const SETUP_KEY = "tdc-checkin-printer-seen"
 const TEST_NAME = "Test"
 const TEST_LINE2 = "TDC"
 
@@ -125,6 +125,12 @@ export function AppSetupFlow({
   }
 
   function back() {
+    // Manual is a detour from scan, so step back to the scan screen rather than Bluetooth on.
+    if (stepId === "select") {
+      setPath("qr")
+      setStepId("scan")
+      return
+    }
     const previous = steps[step - 1]
     if (previous) setStepId(previous)
   }
@@ -171,12 +177,12 @@ export function AppSetupFlow({
   }
 
   function finish() {
-    window.localStorage.setItem(SETUP_KEY, "1")
+    markSetupSeen()
     router.push("/")
   }
 
   return (
-    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="mb-3 flex shrink-0 gap-2">
         {steps.map((id, index) => (
           <span

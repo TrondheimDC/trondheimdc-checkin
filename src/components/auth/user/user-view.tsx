@@ -5,7 +5,8 @@ import { useAuth, useSession } from "@better-auth-ui/react"
 import type { User } from "better-auth"
 
 import { Skeleton } from "@/components/ui/skeleton"
-import { adminLabel, isPlaceholderAdminEmail } from "@/lib/admin-identity"
+import { adminLabel, isPlaceholderAdminEmail, userRole } from "@/lib/admin-identity"
+import { isAdminRole, isPrinterRole } from "@/lib/auth-validity"
 import { cn } from "@/lib/utils"
 import { UserAvatar } from "./user-avatar"
 
@@ -21,6 +22,7 @@ export type UserViewProps = {
   user?: Partial<User> & {
     username?: string | null
     displayUsername?: string | null
+    role?: string | string[] | null
   }
 }
 
@@ -55,13 +57,18 @@ export function UserView({ className, isPending, hideSubtitle = false, user }: U
     )
   }
 
+  const role = userRole(resolvedUser)
   const label = adminLabel({
-    username: resolvedUser?.displayUsername || resolvedUser?.username,
+    username: resolvedUser?.username,
+    displayUsername: resolvedUser?.displayUsername,
     name: resolvedUser?.name,
+    role,
   })
   const email = resolvedUser?.email
   const showEmail =
     !hideSubtitle && Boolean(email) && !isPlaceholderAdminEmail(email) && email !== label
+  const roleLabel = isAdminRole(role) ? "Administrator" : isPrinterRole(role) ? "Printer" : null
+  const subtitle = showEmail ? email : !hideSubtitle ? roleLabel : null
 
   return (
     <div className={cn("flex items-center gap-2 min-w-0", className)}>
@@ -70,7 +77,9 @@ export function UserView({ className, isPending, hideSubtitle = false, user }: U
       <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
         <span className="truncate font-medium text-foreground">{label || email}</span>
 
-        {showEmail ? <span className="text-muted-foreground truncate text-xs">{email}</span> : null}
+        {subtitle ? (
+          <span className="text-muted-foreground truncate text-xs">{subtitle}</span>
+        ) : null}
       </div>
     </div>
   )

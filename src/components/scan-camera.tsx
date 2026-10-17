@@ -33,6 +33,7 @@ export function ScanCamera<T>({
   onFound,
   invalidMessage = "Ugyldig kode. Prøv igjen.",
   cameraError = "Ingen tilgang til kamera.",
+  message,
   hint,
   aspectClassName = "aspect-[3/4] w-full max-h-full",
 }: {
@@ -41,6 +42,8 @@ export function ScanCamera<T>({
   onFound: (value: T) => void
   invalidMessage?: string
   cameraError?: string
+  /** An error from outside the camera (e.g. a failed lookup), shown like a scan error. */
+  message?: string | null
   hint?: string
   /** Size the preview. Dialogs should pass a viewport-capped height so iPad does not overflow. */
   aspectClassName?: string
@@ -190,9 +193,9 @@ export function ScanCamera<T>({
           <FlashlightOff className="size-6" />
         )}
       </button>
-      {error ? (
+      {error || message ? (
         <p className="absolute inset-x-3 bottom-3 rounded-xl bg-black/75 px-3 py-2 text-center text-sm">
-          {error}
+          {error ?? message}
         </p>
       ) : hint ? (
         <p className="absolute inset-x-3 bottom-3 rounded-xl bg-black/70 px-3 py-2 text-center text-sm text-white/85">

@@ -3,6 +3,8 @@
 import { LoaderCircle, Printer } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import {
+  AppPhaseButton,
+  ConnectingPrintButton,
   PrinterConnectButton,
   PrinterMessage,
   printerBlocksPrint,
@@ -16,7 +18,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { LabelPrintError, printBadge } from "@/lib/label-printer"
+import { LabelPrintError, type LabelPrinterState, printBadge } from "@/lib/label-printer"
 import {
   type PhonePlatform,
   printsDirect,
@@ -32,7 +34,13 @@ import {
   loadTemplateBase64,
   type PrintCallback,
 } from "@/lib/print-url"
-import { useLabelPrinter } from "@/lib/use-label-printer"
+import {
+  appLinkBusy,
+  appLinkBusyLabel,
+  appLinkNeedsAction,
+  useAppLinkPhase,
+  useLabelPrinter,
+} from "@/lib/use-label-printer"
 import { apiPath } from "@/lib/utils"
 
 /**
@@ -50,6 +58,8 @@ import { apiPath } from "@/lib/utils"
  * Same URL for both callbacks — Brother only requires the pair to be present, not
  * distinct, and the appended value says which one fired.
  */
+const LINK_SHOWN_IN_BAR: LabelPrinterState = { kind: "idle" }
+
 function buildPrintCallback(): PrintCallback {
   const target = new URL(window.location.pathname, window.location.origin)
   target.searchParams.set("result", "")
@@ -88,6 +98,9 @@ export function PrintButton({
   const autoPrintStarted = useRef(false)
   const method = usePrintMethod()
   const printer = useLabelPrinter()
+  const link = useAppLinkPhase()
+  const linkAction = appLinkNeedsAction(link)
+  const linkBusy = appLinkBusy(link)
   /** PC/Mac (USB) and the Android app draw and send the badge themselves. */
   const direct = printsDirect(method)
   const printerReady = printer.kind === "ready"
@@ -187,11 +200,16 @@ export function PrintButton({
   return (
     <div className="flex flex-col gap-3">
       {direct ? (
-        <PrinterMessage printer={printer} error={error} />
+        // The status bar already says why the link is down; keep the last print's error.
+        <PrinterMessage printer={linkAction ? LINK_SHOWN_IN_BAR : printer} error={error} />
       ) : error ? (
         <p className="text-base text-[var(--color-bg-danger)]">{error}</p>
       ) : null}
-      {direct && printerNeedsConnect(printer) ? (
+      {linkBusy ? (
+        <ConnectingPrintButton label={appLinkBusyLabel(link)} />
+      ) : linkAction ? (
+        <AppPhaseButton phase={link} />
+      ) : direct && printerNeedsConnect(printer) ? (
         <PrinterConnectButton />
       ) : (
         <Button

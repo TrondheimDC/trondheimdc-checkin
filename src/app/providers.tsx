@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { AppLoading } from "@/components/app-loading"
 import { AuthProvider } from "@/components/auth/auth-provider"
+import { PrinterStatusBar } from "@/components/printer-connect"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { adminPlugin } from "@/lib/auth/admin-plugin"
@@ -81,7 +82,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
             }),
           ]}
         >
-          {booted ? children : <AppLoading />}
+          {booted ? (
+            <>
+              <PrinterStatusBar />
+              {children}
+            </>
+          ) : (
+            <AppLoading />
+          )}
           <Toaster />
         </AuthProvider>
       </TooltipProvider>

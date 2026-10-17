@@ -38,17 +38,15 @@ export function SetupQrScan({ onFound }: { onFound: (printer: PrinterSetupParams
   }
 
   return (
-    <div className="flex w-full flex-col gap-2">
-      <ScanCamera
-        key={attempt}
-        mode="qr"
-        parse={parsePrinterSetupUrl}
-        onFound={(sticker) => void onSticker(sticker)}
-        invalidMessage="Det er ikke en printer-QR. Skann klistremerket på printeren."
-        cameraError="Ingen tilgang til kamera. Tillat kamera, eller velg manuelt oppsett."
-        hint="Skann klistremerket på printeren"
-      />
-      {error ? <p className="text-base text-[var(--color-bg-danger)]">{error}</p> : null}
-    </div>
+    <ScanCamera
+      key={attempt}
+      mode="qr"
+      parse={parsePrinterSetupUrl}
+      onFound={(sticker) => void onSticker(sticker)}
+      invalidMessage="Det er ikke en printer-QR. Skann klistremerket på printeren."
+      cameraError="Ingen tilgang til kamera. Tillat kamera, eller velg manuelt oppsett."
+      message={error}
+      hint="Skann klistremerket på printeren"
+    />
   )
 }

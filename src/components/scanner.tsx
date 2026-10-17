@@ -16,6 +16,7 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
+import { usePrinterStatusBar } from "@/components/printer-connect"
 import { ScanResultSheet } from "@/components/scan-result-sheet"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -45,7 +46,6 @@ import {
 import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
 
-const SETUP_KEY = "tdc-checkin-printer-seen"
 /** Ignore the same barcode for a moment so one hold does not re-fire. */
 const SAME_CODE_COOLDOWN_MS = 2500
 
@@ -75,19 +75,19 @@ export function Scanner({ printerName }: { printerName?: string }) {
     },
   })
   const queryClient = useQueryClient()
+  usePrinterStatusBar()
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
   const trackRef = useRef<TorchTrack | null>(null)
   const busyRef = useRef(false)
   const lastAcceptedRef = useRef<{ text: string; at: number } | null>(null)
-  const ready = useLocalFlag(SETUP_KEY)
   const scanInlineFlag = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
   const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
   const [error, setError] = useState<string | null>(null)
   const [cameraLive, setCameraLive] = useState(false)
   const [scanHint, setScanHint] = useState<string | null>(null)
-  // Markup does not depend on deviceId until `ready` (client-only), so reading storage here is hydration-safe.
+  // Markup never reads deviceId (only liveDeviceId), so reading storage here is hydration-safe.
   const [deviceId, setDeviceId] = useState<string | undefined>(() =>
     typeof window === "undefined"
       ? undefined
@@ -110,10 +110,6 @@ export function Scanner({ printerName }: { printerName?: string }) {
     document.addEventListener("visibilitychange", sync)
     return () => document.removeEventListener("visibilitychange", sync)
   }, [])
-
-  useEffect(() => {
-    if (ready === false) router.replace("/oppsett")
-  }, [ready, router])
 
   useEffect(() => {
     const platform = refinePlatform(platformFromNavigator())
@@ -165,7 +161,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: cameraRestarts only reopens the camera
   useEffect(() => {
-    if (!ready || !tabVisible || !videoRef.current) return
+    if (!tabVisible || !videoRef.current) return
     const reader = new BrowserQRCodeReader()
     const video = videoRef.current
     let stopped = false
@@ -254,7 +250,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
       trackRef.current = null
       void controlsPromise.then((controls) => controls.stop()).catch(() => undefined)
     }
-  }, [ready, deviceId, tabVisible, cameraRestarts])
+  }, [deviceId, tabVisible, cameraRestarts])
 
   async function toggleTorch() {
     if (!torchSupported) return
@@ -264,10 +260,6 @@ export function Scanner({ printerName }: { printerName?: string }) {
     const state = await setTorch(track, next)
     setTorchOn(state.on)
     setTorchSupported(state.supported)
-  }
-
-  if (!ready) {
-    return <main className="h-dvh bg-black" />
   }
 
   const hudLabel = !error && scanHint ? "Skann" : "Skanner"
@@ -284,7 +276,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
         disablePictureInPicture
       />
 
-      <div className="relative z-10 flex shrink-0 items-start justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <div className="relative z-10 flex shrink-0 items-start justify-between p-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))]">
         <div className="flex gap-2">
           <button
             type="button"
@@ -331,7 +323,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
       </div>
 
       {printerName ? (
-        <div className="pointer-events-none absolute inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-10 flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] z-10 flex justify-center">
           <span
             className="scan-icon-btn flex h-12 items-center gap-2 rounded-full bg-black/55 px-4 text-sm font-medium text-white backdrop-blur-md"
             style={{ animationDelay: "140ms" }}

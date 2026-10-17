@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Logg inn som admin" }
 
 export default function AdminSignInPage() {
   return (
-    <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-[var(--color-bg-base)] p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-[var(--color-bg-base)] p-6 pt-[max(1.5rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div aria-hidden className="auth-glow-a" />
       <div aria-hidden className="auth-glow-b" />
 

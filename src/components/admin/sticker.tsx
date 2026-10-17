@@ -4,6 +4,8 @@ import { LoaderCircle, Printer, QrCode } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import {
+  AppPhaseButton,
+  ConnectingPrintButton,
   PrinterConnectButton,
   PrinterMessage,
   printerBlocksPrint,
@@ -30,7 +32,13 @@ import {
 } from "@/lib/print-url"
 import { stickerQrDataUrl } from "@/lib/printer-sticker-lbx"
 import { setupStickerText } from "@/lib/public-app-url"
-import { useLabelPrinter } from "@/lib/use-label-printer"
+import {
+  appLinkBusy,
+  appLinkBusyLabel,
+  appLinkNeedsAction,
+  useAppLinkPhase,
+  useLabelPrinter,
+} from "@/lib/use-label-printer"
 import { apiPath, cn } from "@/lib/utils"
 
 /** Label in reader orientation: 90 × 38 mm DK-11208, in template points. */
@@ -210,6 +218,9 @@ export function PrintStickerButton({
   const [directError, setDirectError] = useState<string | null>(null)
   const direct = printsDirect(usePrintMethod())
   const printer = useLabelPrinter()
+  const link = useAppLinkPhase()
+  const linkAction = appLinkNeedsAction(link)
+  const linkBusy = appLinkBusy(link)
 
   async function printDirect() {
     setDirectError(null)
@@ -257,24 +268,27 @@ export function PrintStickerButton({
     }
   }
 
-  const button =
-    direct && printerNeedsConnect(printer) ? (
-      <PrinterConnectButton />
-    ) : (
-      <Button
-        type="button"
-        size="lg"
-        disabled={busy || !name || !url || (direct && printerBlocksPrint(printer))}
-        onClick={() => void print()}
-      >
-        {busy ? (
-          <LoaderCircle className="size-5 animate-spin" aria-hidden />
-        ) : (
-          <Printer className="size-5" aria-hidden />
-        )}
-        Skriv ut etikett
-      </Button>
-    )
+  const button = linkBusy ? (
+    <ConnectingPrintButton label={appLinkBusyLabel(link)} />
+  ) : linkAction ? (
+    <AppPhaseButton phase={link} />
+  ) : direct && printerNeedsConnect(printer) ? (
+    <PrinterConnectButton />
+  ) : (
+    <Button
+      type="button"
+      size="lg"
+      disabled={busy || !name || !url || (direct && printerBlocksPrint(printer))}
+      onClick={() => void print()}
+    >
+      {busy ? (
+        <LoaderCircle className="size-5 animate-spin" aria-hidden />
+      ) : (
+        <Printer className="size-5" aria-hidden />
+      )}
+      Skriv ut etikett
+    </Button>
+  )
 
   if (!direct) return button
   return (

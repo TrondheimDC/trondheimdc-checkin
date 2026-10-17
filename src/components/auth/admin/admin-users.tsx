@@ -113,7 +113,10 @@ function StatusPill({
 type StatusFilter = "all" | "active" | "banned"
 type DangerousAction = "ban" | "delete" | "impersonate" | "revokeAll"
 
-type AdminUserWithUsername = AdminUser & { username?: string | null }
+type AdminUserWithUsername = AdminUser & {
+  username?: string | null
+  displayUsername?: string | null
+}
 
 function usernameFields<T extends { name: string }>(fields: T[] | null | undefined): T[] {
   return (fields ?? []).filter((field) => field.name === "username")

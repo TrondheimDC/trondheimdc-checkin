@@ -22,9 +22,9 @@ import {
   openSmoothPrintScheme,
 } from "@/lib/print-url"
 import type { PrinterSetupParams } from "@/lib/printer-setup"
+import { markSetupSeen } from "@/lib/setup-seen"
 import { apiPath } from "@/lib/utils"
 
-const SETUP_KEY = "tdc-checkin-printer-seen"
 const IOS_APP = "https://apps.apple.com/us/app/smooth-print/id1629559918"
 
 const TEST_NAME = "Test"
@@ -481,7 +481,7 @@ export function SetupFlow({
   }, [current.id])
 
   function finish() {
-    window.localStorage.setItem(SETUP_KEY, "1")
+    markSetupSeen()
     router.push("/")
   }
 
@@ -610,7 +610,7 @@ export function SetupFlow({
   const androidDirectDownload = androidUrl.includes("/api/smooth-print/apk")
 
   return (
-    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="mb-3 flex shrink-0 gap-2">
         {Array.from({ length: progress.total }, (_, index) => (
           <span

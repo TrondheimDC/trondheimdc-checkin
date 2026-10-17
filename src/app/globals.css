@@ -93,6 +93,12 @@
   --radius-lg: var(--radius);
 }
 
+@property --printer-status-bar {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 html,
 body {
   background: var(--color-bg-base);
@@ -101,6 +107,10 @@ body {
   min-height: 100%;
   /* Buttons draw their own press state (btn-press). */
   -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  transition: --printer-status-bar 280ms ease;
 }
 
 ::selection {

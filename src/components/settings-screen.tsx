@@ -97,7 +97,7 @@ export function SettingsScreen({
   }
 
   return (
-    <main className="attendee-reveal flex h-dvh flex-col gap-6 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="attendee-reveal flex h-dvh flex-col gap-6 p-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="shrink-0 pt-2">
         <TdcLogo />
         <h1 className="mt-2 text-4xl">Innstillinger</h1>

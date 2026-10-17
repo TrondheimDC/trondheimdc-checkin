@@ -1,0 +1,4 @@
+[tools]
+# Android build (`pnpm android:build`): Gradle 8.14 / AGP 8.13 need JDK 21, not newer.
+java = "temurin-21"
+android-sdk = "23.0"

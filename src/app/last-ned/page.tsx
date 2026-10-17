@@ -53,7 +53,7 @@ export default async function DownloadAppPage({
   if (!(await latestAppRelease())) redirect(apiPath(next))
 
   return (
-    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <TdcPrintLogo className="size-28 text-[var(--color-fg-brand)]" />
       </div>
@@ -87,7 +87,7 @@ function AppUpdatePage({
   next: string
 }) {
   return (
-    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex h-svh max-w-md flex-col overflow-hidden px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <TdcPrintLogo className="size-28 text-[var(--color-fg-brand)]" />
       </div>

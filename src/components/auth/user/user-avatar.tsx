@@ -8,6 +8,7 @@ import type { ReactNode } from "react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
+import { adminLabel, userRole } from "@/lib/admin-identity"
 import { cn } from "@/lib/utils"
 
 export type UserAvatarProps = {
@@ -15,7 +16,11 @@ export type UserAvatarProps = {
   fallback?: ReactNode
   isPending?: boolean
   /** @remarks `User` */
-  user?: User & { username?: string | null; displayUsername?: string | null }
+  user?: User & {
+    username?: string | null
+    displayUsername?: string | null
+    role?: string | string[] | null
+  }
 }
 
 /**
@@ -41,15 +46,19 @@ export function UserAvatar({ className, user, isPending, fallback }: UserAvatarP
 
   const resolvedUser = user ?? session?.user
 
-  const initials = (resolvedUser?.username || resolvedUser?.name || resolvedUser?.email)
-    ?.slice(0, 2)
-    .toUpperCase()
+  const label = adminLabel({
+    username: resolvedUser?.username,
+    displayUsername: resolvedUser?.displayUsername,
+    name: resolvedUser?.name,
+    role: userRole(resolvedUser),
+  })
+  const initials = (label || resolvedUser?.email)?.slice(0, 2).toUpperCase()
 
   return (
     <Avatar className={cn("size-8 rounded-full bg-[var(--color-fg-brand)] text-sm", className)}>
       <AvatarImage
         src={resolvedUser?.image ?? undefined}
-        alt={resolvedUser?.displayUsername || resolvedUser?.name || resolvedUser?.email}
+        alt={label || resolvedUser?.email || undefined}
       />
 
       <AvatarFallback className="bg-[var(--color-fg-brand)] font-semibold text-[var(--color-fg-always-dark)]">

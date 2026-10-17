@@ -6,8 +6,10 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.util.Base64;
 import androidx.activity.result.ActivityResult;
@@ -32,8 +34,8 @@ import java.util.concurrent.Executors;
 /**
  * Raw Bluetooth Classic (SPP / RFCOMM) pipe to a Brother QL. The web app builds the
  * raster job and parses status frames (`@thermal-label/brother-ql-*`); this only moves
- * bytes. Android pairs on the first connect (the system shows the code dialog), so
- * there is no separate OS pairing step.
+ * bytes. A socket connect to a device that is not bonded makes Android show the
+ * pairing dialog, so reconnects must pass pair=false unless staff asked to connect.
  */
 @CapacitorPlugin(
     name = "LabelPrinter",
@@ -49,6 +51,58 @@ public class LabelPrinterPlugin extends Plugin {
     private BluetoothSocket socket;
     private OutputStream output;
     private String connectedAddress;
+    private boolean watchingRadio;
+
+    private final BroadcastReceiver radio = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
+                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                if (state == BluetoothAdapter.STATE_OFF || state == BluetoothAdapter.STATE_TURNING_OFF) {
+                    closeSocket(true);
+                }
+                if (state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_OFF) {
+                    JSObject event = new JSObject();
+                    event.put("enabled", state == BluetoothAdapter.STATE_ON);
+                    notifyListeners("bluetooth", event);
+                }
+                return;
+            }
+            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                int bond = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                JSObject event = new JSObject();
+                event.put("address", device == null ? null : device.getAddress());
+                event.put(
+                    "state",
+                    bond == BluetoothDevice.BOND_BONDING
+                        ? "bonding"
+                        : bond == BluetoothDevice.BOND_BONDED ? "bonded" : "none"
+                );
+                notifyListeners("bond", event);
+            }
+        }
+    };
+
+    @Override
+    public void load() {
+        watchRadio();
+    }
+
+    /** Phone Bluetooth on/off, and the system pairing dialog, so the page can follow along. */
+    private void watchRadio() {
+        if (watchingRadio) return;
+        watchingRadio = true;
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getContext().registerReceiver(radio, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            getContext().registerReceiver(radio, filter);
+        }
+    }
 
     private BluetoothAdapter adapter() {
         BluetoothManager manager = (BluetoothManager) getContext().getSystemService(Context.BLUETOOTH_SERVICE);
@@ -77,6 +131,7 @@ public class LabelPrinterPlugin extends Plugin {
             case "connect" -> connect(call);
             case "pairedPrinters" -> pairedPrinters(call);
             case "enableBluetooth" -> enableBluetooth(call);
+            case "isBonded" -> isBonded(call);
             default -> call.resolve();
         }
     }
@@ -144,10 +199,31 @@ public class LabelPrinterPlugin extends Plugin {
         call.resolve(result);
     }
 
+    /** True when this phone has already paired with the address. Does not start pairing. */
+    @SuppressLint("MissingPermission")
+    @PluginMethod
+    public void isBonded(PluginCall call) {
+        String address = call.getString("address", "").trim().toUpperCase();
+        if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+            call.reject("Not a Bluetooth address: " + address, "invalid_address");
+            return;
+        }
+        BluetoothAdapter adapter = adapter();
+        if (adapter == null) {
+            call.reject("No Bluetooth on this device", "bluetooth_unavailable");
+            return;
+        }
+        if (!ensurePermission(call)) return;
+        JSObject result = new JSObject();
+        result.put("bonded", adapter.getRemoteDevice(address).getBondState() == BluetoothDevice.BOND_BONDED);
+        call.resolve(result);
+    }
+
     @SuppressLint("MissingPermission")
     @PluginMethod
     public void connect(PluginCall call) {
         String address = call.getString("address", "").trim().toUpperCase();
+        boolean pair = Boolean.TRUE.equals(call.getBoolean("pair", true));
         if (!BluetoothAdapter.checkBluetoothAddress(address)) {
             call.reject("Not a Bluetooth address: " + address, "invalid_address");
             return;
@@ -172,6 +248,12 @@ public class LabelPrinterPlugin extends Plugin {
             // No cancelDiscovery(): the app never scans, and on Android 12+ it needs
             // BLUETOOTH_SCAN — without it, it throws and takes the app down.
             BluetoothDevice device = adapter.getRemoteDevice(address);
+            // createRfcommSocket().connect() on an unbonded device opens the system
+            // pairing dialog. Silent reconnect must not do that.
+            if (!pair && device.getBondState() != BluetoothDevice.BOND_BONDED) {
+                call.reject("Not paired", "not_paired");
+                return;
+            }
             try {
                 BluetoothSocket next = openSocket(device);
                 socket = next;
@@ -304,6 +386,14 @@ public class LabelPrinterPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        if (watchingRadio) {
+            try {
+                getContext().unregisterReceiver(radio);
+            } catch (IllegalArgumentException ignored) {
+                // Already unregistered.
+            }
+            watchingRadio = false;
+        }
         closeSocket(false);
         io.shutdownNow();
     }

@@ -9,7 +9,7 @@ A Capacitor shell around the hosted check-in app, with its own Bluetooth printin
 - `LabelPrinterPlugin.java` is a raw Bluetooth Classic (SPP/RFCOMM) pipe to the printer's MAC. It only moves bytes.
 - `src/lib/app-printer.ts` wraps the plugin as a `Transport` for `WebBrotherQLPrinter`, which is the same encoder, status checks and media checks as WebUSB (`src/lib/label-printer.ts`). The badge is drawn by `badge-render.ts`, the same as on PC/Mac.
 - `/oppsett` in the app: printer Bluetooth on → **Skann QR** → **Koble til printeren** (Android shows its own pairing code the first time) → test print. **Manuelt oppsett** lists QL printers the phone has already paired with.
-- The app remembers the last printer and reconnects on start, and again before a print if the link dropped.
+- The app remembers the last printer and reconnects on start when that printer is already paired. Opening the app does not start Android's pairing dialog; staff tap **Koble til** for that. A dropped link reconnects the same way before a print.
 
 ## Android in a browser
 

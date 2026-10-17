@@ -30,7 +30,9 @@ type LabelPrinterPlugin = {
   }>
   enableBluetooth(): Promise<{ enabled: boolean }>
   pairedPrinters(): Promise<{ printers: AppPrinter[] }>
-  connect(options: { address: string }): Promise<AppPrinter>
+  /** `pair` false refuses to open the system pairing dialog. */
+  isBonded(options: { address: string }): Promise<{ bonded: boolean }>
+  connect(options: { address: string; pair?: boolean }): Promise<AppPrinter>
   write(options: { data: string }): Promise<void>
   disconnect(): Promise<void>
   addListener(
@@ -38,6 +40,65 @@ type LabelPrinterPlugin = {
     listener: (event: { data: string }) => void,
   ): Promise<PluginListenerHandle>
   addListener(event: "disconnected", listener: () => void): Promise<PluginListenerHandle>
+  addListener(
+    event: "bluetooth",
+    listener: (event: { enabled: boolean }) => void,
+  ): Promise<PluginListenerHandle>
+  addListener(
+    event: "bond",
+    listener: (event: { state: "bonding" | "bonded" | "none"; address: string | null }) => void,
+  ): Promise<PluginListenerHandle>
+}
+
+export type PhoneBluetooth = "unknown" | "on" | "off"
+
+type AppRadio = { bluetooth: PhoneBluetooth; pairing: boolean }
+
+const RADIO_IDLE: AppRadio = { bluetooth: "unknown", pairing: false }
+let radio: AppRadio = RADIO_IDLE
+const radioListeners = new Set<() => void>()
+let radioWatchStarted = false
+/** Printer the app is opening a socket to; bond events for other devices are ignored. */
+let openingAddress: string | null = null
+
+function setRadio(next: AppRadio) {
+  if (next.bluetooth === radio.bluetooth && next.pairing === radio.pairing) return
+  radio = next
+  for (const listener of radioListeners) listener()
+}
+
+export function appRadioState(): AppRadio {
+  return radio
+}
+
+export function subscribeAppRadio(listener: () => void): () => void {
+  radioListeners.add(listener)
+  return () => radioListeners.delete(listener)
+}
+
+/** Follow phone Bluetooth and the system pairing dialog. Safe to call more than once. */
+function pullPhoneBluetooth() {
+  void LabelPrinter.status()
+    .then((status) => setRadio({ ...appRadioState(), bluetooth: status.enabled ? "on" : "off" }))
+    .catch(() => {})
+}
+
+export function watchAppRadio() {
+  if (radioWatchStarted || !appPrinterSupported()) return
+  radioWatchStarted = true
+  pullPhoneBluetooth()
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") pullPhoneBluetooth()
+  })
+  void LabelPrinter.addListener("bluetooth", (event) => {
+    setRadio({ ...appRadioState(), bluetooth: event.enabled ? "on" : "off" })
+    if (event.enabled) void resumeBondedPrinter()
+    else void closePrinter()
+  })
+  void LabelPrinter.addListener("bond", (event) => {
+    if (!openingAddress || event.address?.toUpperCase() !== openingAddress) return
+    setRadio({ ...appRadioState(), pairing: event.state === "bonding" })
+  })
 }
 
 const LabelPrinter = registerPlugin<LabelPrinterPlugin>("LabelPrinter")
@@ -163,6 +224,8 @@ function describeOpenError(error: unknown): LabelPrintError {
       return new LabelPrintError("Bluetooth er av på telefonen. Slå det på og prøv igjen.")
     case "bluetooth_unavailable":
       return new LabelPrintError("Telefonen har ikke Bluetooth.")
+    case "not_paired":
+      return new LabelPrintError("Printeren er ikke paret. Koble til for å pare.")
     default:
       return new LabelPrintError(
         "Fant ikke printeren. Sjekk at den er på og har Bluetooth slått på.",
@@ -170,7 +233,8 @@ function describeOpenError(error: unknown): LabelPrintError {
   }
 }
 
-function open(address: string): Promise<void> {
+function open(address: string, options: { pair?: boolean } = {}): Promise<void> {
+  const pair = options.pair !== false
   return openPrinter(
     "bluetooth",
     async () => {
@@ -181,24 +245,82 @@ function open(address: string): Promise<void> {
       // The QL-820NWB / NWBc descriptor, looked up by its USB ids.
       const device = findDevice(0x04f9, 0x209d)
       if (!device) throw new Error("ql820_descriptor_missing")
-      const connected = await LabelPrinter.connect({ address })
-      const transport = new BluetoothTransport()
-      await transport.listen()
-      window.localStorage.setItem(REMEMBERED_KEY, JSON.stringify(connected))
-      return { printer: new WebBrotherQLPrinter(device, transport), name: connected.name }
+      openingAddress = address.toUpperCase()
+      try {
+        const connected = await LabelPrinter.connect({ address, pair })
+        const transport = new BluetoothTransport()
+        await transport.listen()
+        window.localStorage.setItem(REMEMBERED_KEY, JSON.stringify(connected))
+        return { printer: new WebBrotherQLPrinter(device, transport), name: connected.name }
+      } finally {
+        openingAddress = null
+        setRadio({ ...appRadioState(), pairing: false })
+      }
     },
     describeOpenError,
-    { reopen: () => open(address) },
+    // A dropped link reconnects only when already paired — never starts pairing on its own.
+    { reopen: () => open(address, { pair: false }) },
   )
 }
 
-/** Reconnect to the printer this phone used last, without asking. */
+/** Already paired with this address. Does not start pairing. */
+async function isAddressBonded(address: string): Promise<boolean> {
+  const wanted = address.toUpperCase()
+  try {
+    const { bonded } = await LabelPrinter.isBonded({ address: wanted })
+    return bonded
+  } catch {
+    // Older app builds have no isBonded. The paired-QL list is the same check.
+    const { printers } = await LabelPrinter.pairedPrinters()
+    return printers.some((item) => item.address.toUpperCase() === wanted)
+  }
+}
+
+/**
+ * Reconnect to the printer this phone used last.
+ * Only when it is already paired. A socket connect to an unpaired printer makes
+ * Android open the pairing dialog by itself.
+ */
 export async function restoreAppPrinter() {
   if (restoreStarted || !appPrinterSupported()) return
   restoreStarted = true
+  watchAppRadio()
   const remembered = rememberedAppPrinter()
-  if (remembered && !hasOpenPrinter()) await open(remembered.address)
-  else if (printerState().kind === "connecting") setPrinterState({ kind: "idle" })
+  if (!remembered || hasOpenPrinter()) {
+    if (printerState().kind === "connecting") setPrinterState({ kind: "idle" })
+    return
+  }
+  try {
+    const status = await LabelPrinter.status()
+    setRadio({ ...appRadioState(), bluetooth: status.enabled ? "on" : "off" })
+    if (!status.enabled) {
+      setPrinterState({ kind: "idle" })
+      return
+    }
+    if (!(await isAddressBonded(remembered.address))) {
+      setPrinterState({ kind: "idle" })
+      return
+    }
+  } catch {
+    setPrinterState({ kind: "idle" })
+    return
+  }
+  await open(remembered.address, { pair: false })
+}
+
+/**
+ * After the phone radio comes back on: reconnect only if this printer is already
+ * paired. Turning Bluetooth on must not open the pairing dialog.
+ */
+export async function resumeBondedPrinter(): Promise<void> {
+  const remembered = rememberedAppPrinter()
+  if (!remembered || hasOpenPrinter() || !appPrinterSupported()) return
+  try {
+    if (!(await isAddressBonded(remembered.address))) return
+  } catch {
+    return
+  }
+  await open(remembered.address, { pair: false })
 }
 
 /** Connect to a printer by Bluetooth MAC (sticker / inventory). Android pairs if needed. */

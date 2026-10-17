@@ -6,6 +6,8 @@ import { useId, useState } from "react"
 import { useForm } from "react-hook-form"
 import { BadgePreview } from "@/components/badge-preview"
 import {
+  AppPhaseButton,
+  ConnectingPrintButton,
   PrinterConnectButton,
   PrinterMessage,
   printerBlocksPrint,
@@ -27,7 +29,13 @@ import {
   DEFAULT_PAPER_SIZE_ID,
   loadTemplateBase64,
 } from "@/lib/print-url"
-import { useLabelPrinter } from "@/lib/use-label-printer"
+import {
+  appLinkBusy,
+  appLinkBusyLabel,
+  appLinkNeedsAction,
+  useAppLinkPhase,
+  useLabelPrinter,
+} from "@/lib/use-label-printer"
 import { apiPath, cn } from "@/lib/utils"
 
 const fieldClass =
@@ -41,6 +49,9 @@ export function TestPrintForm({ initialPrintMethod }: { initialPrintMethod: Prin
   const [error, setError] = useState<string | null>(null)
   const direct = printsDirect(usePrintMethod(initialPrintMethod))
   const printer = useLabelPrinter()
+  const link = useAppLinkPhase()
+  const linkAction = appLinkNeedsAction(link)
+  const linkBusy = appLinkBusy(link)
 
   const {
     register,
@@ -182,7 +193,11 @@ export function TestPrintForm({ initialPrintMethod }: { initialPrintMethod: Prin
         <p className="text-base text-[var(--color-bg-danger)]">{error}</p>
       ) : null}
 
-      {direct && printerNeedsConnect(printer) ? (
+      {linkBusy ? (
+        <ConnectingPrintButton label={appLinkBusyLabel(link)} />
+      ) : linkAction ? (
+        <AppPhaseButton phase={link} />
+      ) : direct && printerNeedsConnect(printer) ? (
         <PrinterConnectButton />
       ) : (
         <Button type="submit" size="lg" disabled={busy || (direct && printerBlocksPrint(printer))}>

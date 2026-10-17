@@ -8,6 +8,7 @@ import { UserRoundCheck } from "lucide-react"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
 import { adminPlugin } from "@/lib/auth/admin-plugin"
+import { cn } from "@/lib/utils"
 
 export type StopImpersonatingProps = {
   className?: string
@@ -29,7 +30,7 @@ export function StopImpersonating({ className }: StopImpersonatingProps) {
 
   return (
     <DropdownMenuItem
-      className={className}
+      className={cn("cursor-pointer rounded-lg py-2.5", className)}
       disabled={stopImpersonating.isPending}
       onClick={() => stopImpersonating.mutate(undefined)}
     >
