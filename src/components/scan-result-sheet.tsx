@@ -26,6 +26,7 @@ export function ScanResultSheet({
   attendee,
   autoPrint,
   selfService = false,
+  onConfirmedChange,
   onDismiss,
   onPrinted,
 }: {
@@ -33,6 +34,8 @@ export function ScanResultSheet({
   autoPrint: boolean
   /** Self check-in stand: confirm a print before closing, and close untouched cards. */
   selfService?: boolean
+  /** The self check-in confirmation shows (true) or has gone (false). */
+  onConfirmedChange?: (confirmed: boolean) => void
   onDismiss: () => void
   onPrinted?: () => void
 }) {
@@ -56,6 +59,11 @@ export function ScanResultSheet({
     setOverrideError(null)
     setConfirmed(false)
   }, [attendee])
+
+  const confirmedChanged = useEffectEvent((value: boolean) => onConfirmedChange?.(value))
+  useEffect(() => {
+    confirmedChanged(confirmed)
+  }, [confirmed])
 
   useEffect(() => {
     if (!confirmed) return

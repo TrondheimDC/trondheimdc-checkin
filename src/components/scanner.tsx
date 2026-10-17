@@ -117,6 +117,11 @@ export function Scanner({ printerName }: { printerName?: string }) {
   // Bumped when Android ends the camera track under us; reopens the camera.
   const [cameraRestarts, setCameraRestarts] = useState(0)
   const [sheetAttendee, setSheetAttendee] = useState<Attendee | null>(null)
+  // Self check-in's "Velkommen!" card: the next person may scan while it shows.
+  const [confirming, setConfirming] = useState(false)
+  // A result card is up: stop reading, so a code in view does not replace it mid-task.
+  const scanPaused = sheetAttendee != null && !confirming
+  const wasPausedRef = useRef(false)
   // Bumped per accepted read; keys the reticle flash so it replays.
   const [hits, setHits] = useState(0)
   const [spot, setSpot] = useState<ScanSpot | null>(null)
@@ -176,6 +181,17 @@ export function Scanner({ printerName }: { printerName?: string }) {
       busyRef.current = false
     }
   })
+
+  // cameraLive: a reopened camera has new controls that start unpaused.
+  useEffect(() => {
+    if (!cameraLive) return
+    controlsRef.current?.setPaused(scanPaused)
+    const resumed = wasPausedRef.current && !scanPaused
+    wasPausedRef.current = scanPaused
+    // The code that opened the card is likely still held up: start its cooldown now.
+    const last = lastAcceptedRef.current
+    if (resumed && last) lastAcceptedRef.current = { text: last.text, at: Date.now() }
+  }, [scanPaused, cameraLive])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: cameraRestarts only reopens the camera
   useEffect(() => {
@@ -491,6 +507,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
         attendee={sheetAttendee}
         autoPrint={autoPrintFlag === true}
         selfService={selfService === true}
+        onConfirmedChange={setConfirming}
         onDismiss={() => setSheetAttendee(null)}
         onPrinted={() => setSheetAttendee(null)}
       />

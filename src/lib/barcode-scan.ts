@@ -1,9 +1,4 @@
-import { BarcodeFormat, BrowserCodeReader, BrowserMultiFormatOneDReader } from "@zxing/browser"
-import { DecodeHintType, type ResultPoint } from "@zxing/library"
-// Not in the package index: QR finding and decoding run as two steps, so a found but
-// unreadable code can still be shown and cropped to.
-import QRCodeDecoder from "@zxing/library/esm/core/qrcode/decoder/Decoder"
-import QRCodeDetector from "@zxing/library/esm/core/qrcode/detector/Detector"
+import type { ZxingResult } from "@/lib/barcode-zxing"
 import { focusCameraAt } from "@/lib/camera-torch"
 import { SCAN_ZXING_DEFAULT, SCAN_ZXING_KEY } from "@/lib/scan-settings"
 
@@ -20,6 +15,8 @@ export type ScanControls = {
   stop: () => void
   /** Look harder around this point of the preview (fractions of its box), e.g. after a tap. */
   focusAt: (x: number, y: number) => void
+  /** Stop decoding while true (the camera keeps running), e.g. while a result card is up. */
+  setPaused: (paused: boolean) => void
 }
 
 /** Pause between attempts. ZXing's own default is 500 ms, which misses a code held still briefly. */
@@ -95,16 +92,12 @@ async function nativeDetector(target: ScanTarget): Promise<NativeDetector | null
   }
 }
 
-function serialReader(): BrowserCodeReader {
-  const hints = new Map<DecodeHintType, unknown>([
-    [
-      DecodeHintType.POSSIBLE_FORMATS,
-      [BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93],
-    ],
-    // Every row of the crop, and turned 90°: without it ZXing reads ~15 rows across the middle.
-    [DecodeHintType.TRY_HARDER, true],
-  ])
-  return new BrowserMultiFormatOneDReader(hints)
+type ZxingDecode = (image: ImageData) => ZxingResult
+
+/** ZXing is a separate chunk: phones with a working BarcodeDetector never download it. */
+async function loadZxing(target: ScanTarget): Promise<ZxingDecode> {
+  const { zxingDecoder } = await import("@/lib/barcode-zxing")
+  return zxingDecoder(target)
 }
 
 type Rect = { x: number; y: number; width: number; height: number }
@@ -155,30 +148,6 @@ function squareAround(video: HTMLVideoElement, x: number, y: number, side: numbe
   }
 }
 
-function boundsOf(points: { x: number; y: number }[]): Rect {
-  const xs = points.map((point) => point.x)
-  const ys = points.map((point) => point.y)
-  const x = Math.min(...xs)
-  const y = Math.min(...ys)
-  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y }
-}
-
-/**
- * ZXing's three QR finder centres (plus the alignment pattern) sit inside the code. Grow
- * their bounds to the code's outer edge: a finder centre is 3.5 modules in from it, and
- * `modules - 7` modules from the next one.
- */
-function qrBox(points: ResultPoint[], modules: number): Rect {
-  const bounds = boundsOf(points.map((point) => ({ x: point.getX(), y: point.getY() })))
-  const pad = (Math.max(bounds.width, bounds.height) * 3.5) / Math.max(1, modules - 7)
-  return {
-    x: bounds.x - pad,
-    y: bounds.y - pad,
-    width: bounds.width + pad * 2,
-    height: bounds.height + pad * 2,
-  }
-}
-
 function contains(rect: Rect, box: DOMRectReadOnly) {
   const x = box.x + box.width / 2
   const y = box.y + box.height / 2
@@ -208,8 +177,10 @@ export function scanVideo(
   let stopped = false
   let timer: number | undefined
   const detectorReady = nativeDetector(target)
-  let serial: BrowserCodeReader | null = null
-  const qrDecoder = new QRCodeDecoder()
+  let paused = false
+  // Set once ZXing's chunk has loaded; a failed load (offline) is retried on the next tick.
+  let zxing: ZxingDecode | null = null
+  let zxingLoading: Promise<void> | null = null
   const canvas = document.createElement("canvas")
   const context = canvas.getContext("2d", { willReadFrequently: true })
   // Frame-pixel crop ZXing reads instead of the whole frame, until `until`.
@@ -253,34 +224,8 @@ export function scanVideo(
     return scale
   }
 
-  const decodeQr = (rect: Rect, scale: number) => {
-    const toFrame = (box: Rect): Rect => ({
-      x: rect.x + box.x / scale,
-      y: rect.y + box.y / scale,
-      width: box.width / scale,
-      height: box.height / scale,
-    })
-    let found: Rect | null = null
-    try {
-      const bitmap = BrowserCodeReader.createBinaryBitmapFromCanvas(canvas)
-      const detected = new QRCodeDetector(bitmap.getBlackMatrix()).detect(new Map())
-      found = toFrame(qrBox(detected.getPoints(), detected.getBits().getWidth()))
-      const text = qrDecoder.decodeBitMatrix(detected.getBits(), new Map()).getText()
-      return { text, box: found }
-    } catch {
-      if (!found) return undefined
-    }
-    // Located but unreadable (blur, glare, too small): show it, and read just that spot next.
-    const side = Math.max(found.width, found.height) * 1.6
-    focus = {
-      rect: squareAround(video, found.x + found.width / 2, found.y + found.height / 2, side),
-      until: performance.now() + FOUND_HOLD_MS,
-    }
-    report({ box: previewRegion(video, found), state: "found" })
-    return undefined
-  }
-
-  const decodeZxing = () => {
+  const decodeZxing = (decode: ZxingDecode) => {
+    if (!context) return undefined
     const now = performance.now()
     if (focus && focus.until < now) {
       focus = null
@@ -289,20 +234,30 @@ export function scanVideo(
     const rect = focus?.rect ?? frameRect(video, region)
     const scale = draw(rect, focus != null)
     if (scale == null) return undefined
-    if (target === "qr") return decodeQr(rect, scale)
-    serial ??= serialReader()
-    try {
-      return { text: serial.decodeFromCanvas(canvas).getText(), box: null }
-    } catch {
-      // NotFound / checksum / format: nothing readable in this frame.
-      return undefined
+    const result = decode(context.getImageData(0, 0, canvas.width, canvas.height))
+    if (!result) return undefined
+    const box = result.box && {
+      x: rect.x + result.box.x / scale,
+      y: rect.y + result.box.y / scale,
+      width: result.box.width / scale,
+      height: result.box.height / scale,
     }
+    if (result.kind === "read") return { text: result.text, box }
+    if (!box) return undefined
+    // Located but unreadable (blur, glare, too small): show it, and read just that spot next.
+    const side = Math.max(box.width, box.height) * 1.6
+    focus = {
+      rect: squareAround(video, box.x + box.width / 2, box.y + box.height / 2, side),
+      until: now + FOUND_HOLD_MS,
+    }
+    report({ box: previewRegion(video, box), state: "found" })
+    return undefined
   }
 
   let native: NativeDetector | null | undefined
   const tick = async () => {
     if (stopped) return
-    if (video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth > 0) {
+    if (!paused && video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth > 0) {
       if (native === undefined) native = await detectorReady
       let read: { text: string; box: Rect | null } | undefined
       if (native) {
@@ -312,8 +267,17 @@ export function scanVideo(
           window.sessionStorage.setItem(NATIVE_BROKEN_KEY, "1")
           return undefined
         })
+      } else if (zxing) {
+        read = decodeZxing(zxing)
       } else {
-        read = decodeZxing()
+        zxingLoading ??= loadZxing(target)
+          .then((decode) => {
+            zxing = decode
+          })
+          .catch(() => {
+            zxingLoading = null
+          })
+        await zxingLoading
       }
       if (stopped) return
       if (read?.text) {
@@ -332,6 +296,12 @@ export function scanVideo(
     stop() {
       stopped = true
       window.clearTimeout(timer)
+    },
+    setPaused(next) {
+      paused = next
+      if (!next) return
+      focus = null
+      report(null)
     },
     focusAt(x, y) {
       // A square crop would cut a wide 1D barcode; the serial scan has its guide box instead.
@@ -357,6 +327,7 @@ export async function scanStream(
   await video.play().catch(() => undefined)
   const scan = scanVideo(video, options)
   return {
+    setPaused: scan.setPaused,
     focusAt(x, y) {
       scan.focusAt(x, y)
       const track = stream.getVideoTracks()[0]

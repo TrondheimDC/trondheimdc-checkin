@@ -33,7 +33,6 @@
     "@tanstack/react-table": "^9.2.4",
     "@thermal-label/brother-ql-core": "0.6.3",
     "@thermal-label/brother-ql-web": "0.6.3",
-    "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "better-auth": "^1.7.6",
     "class-variance-authority": "^0.7.1",
