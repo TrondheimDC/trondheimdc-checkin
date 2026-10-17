@@ -53,9 +53,28 @@ function nativeDetectorClass(): NativeDetectorClass | null {
   return (globalThis as { BarcodeDetector?: NativeDetectorClass }).BarcodeDetector ?? null
 }
 
-/** The browser has a BarcodeDetector at all (Chrome on Android / macOS, Android WebView). */
-export function hasNativeBarcodeDetector() {
-  return nativeDetectorClass() !== null
+/**
+ * Set for this browser session when the BarcodeDetector threw mid-scan (e.g. no Play Services
+ * barcode module). Session only: the module can arrive later.
+ */
+const NATIVE_BROKEN_KEY = "tdc-scan-native-broken"
+
+function nativeBroken() {
+  return window.sessionStorage.getItem(NATIVE_BROKEN_KEY) === "1"
+}
+
+/**
+ * The browser's BarcodeDetector can read QR codes here: it exists (Chrome on Android / macOS,
+ * Android WebView), lists `qr_code`, and has not failed this session. Otherwise it is ZXing.
+ */
+export async function nativeQrSupported() {
+  const Detector = nativeDetectorClass()
+  if (!Detector || nativeBroken()) return false
+  try {
+    return (await Detector.getSupportedFormats()).includes("qr_code")
+  } catch {
+    return false
+  }
 }
 
 function preferZxing() {
@@ -66,7 +85,7 @@ function preferZxing() {
 /** Null when unavailable: no API, ZXing forced in settings, or no backend for these formats. */
 async function nativeDetector(target: ScanTarget): Promise<NativeDetector | null> {
   const Detector = nativeDetectorClass()
-  if (!Detector || preferZxing()) return null
+  if (!Detector || nativeBroken() || preferZxing()) return null
   try {
     const supported = await Detector.getSupportedFormats()
     const formats = NATIVE_FORMATS[target].filter((format) => supported.includes(format))
@@ -290,6 +309,7 @@ export function scanVideo(
         // A detector that throws (e.g. no Play Services backend) hands over to ZXing for good.
         read = await decodeNative(native).catch(() => {
           native = null
+          window.sessionStorage.setItem(NATIVE_BROKEN_KEY, "1")
           return undefined
         })
       } else {

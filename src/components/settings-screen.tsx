@@ -15,12 +15,12 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { type ReactNode, useSyncExternalStore } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { APP_DOWNLOAD_PATH } from "@/lib/android-app"
 import { authClient } from "@/lib/auth-client"
-import { hasNativeBarcodeDetector } from "@/lib/barcode-scan"
+import { nativeQrSupported } from "@/lib/barcode-scan"
 import {
   SCAN_AUTO_PRINT_DEFAULT,
   SCAN_AUTO_PRINT_KEY,
@@ -66,8 +66,6 @@ function SettingToggle({
   )
 }
 
-const noSubscribe = () => () => {}
-
 /**
  * The Android app's version (null for a local build), a newer uploaded one, if any, and
  * whether this login is an admin. The app has no address bar, so admin is reached from here.
@@ -87,8 +85,11 @@ export function SettingsScreen({
   const autoPrint = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
   const zxing = useLocalFlag(SCAN_ZXING_KEY, SCAN_ZXING_DEFAULT)
   const selfService = useLocalFlag(SCAN_SELF_SERVICE_KEY, SCAN_SELF_SERVICE_DEFAULT)
-  // Null before hydration; the toggle stays disabled until then, so the layout does not move.
-  const nativeDetector = useSyncExternalStore(noSubscribe, hasNativeBarcodeDetector, () => null)
+  // Null until checked; the toggle stays disabled until then, so the layout does not move.
+  const [nativeDetector, setNativeDetector] = useState<boolean | null>(null)
+  useEffect(() => {
+    void nativeQrSupported().then(setNativeDetector)
+  }, [])
   const flagsReady =
     scanInline !== null && autoPrint !== null && zxing !== null && selfService !== null
 
@@ -173,7 +174,7 @@ export function SettingsScreen({
           title="Skann med ZXing"
           description={
             nativeDetector === false
-              ? "Denne nettleseren skanner alltid med ZXing."
+              ? "Denne enheten skanner alltid med ZXing."
               : "Bruk ZXing i stedet for nettleserens innebygde skanner."
           }
         />
