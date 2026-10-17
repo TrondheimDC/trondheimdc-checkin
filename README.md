@@ -103,6 +103,18 @@ The browser cannot see whether the printer is connected — staff confirm that i
 
 **PC / Mac / Linux** print over USB from Chrome or Edge instead (no Smooth Print). Mac works out of the box; Windows needs the WinUSB driver (Zadig) once per PC; Linux needs a udev rule. Step-by-step: **[docs/usb-printing.md](docs/usb-printing.md)**.
 
+### Skipping setup while testing
+
+- **Skip the redirect:** `/` sends a device to `/oppsett` until the cookie `tdc-checkin-printer-seen` exists. Set it in the browser console (this does not connect a printer):
+
+  ```js
+  document.cookie = "tdc-checkin-printer-seen=1; path=/; max-age=31536000; samesite=lax"
+  ```
+
+  Delete the cookie to get the first-run redirect back.
+- **Jump to a step:** `/oppsett?step=test-print&primed=1&printer=<inventory id>`. `step` is `install` | `camera` | `bt-on` | `scan` | `connect` | `pair` | `select` | `confirm` | `test-print` (PC/Mac: `usb` | `driver` | `connect` | `test-print`). `path=qr|manual` picks the route, `connectdebug=1` shows the Smooth Print `result=`.
+- The flow follows the user agent (iOS/Android browser → Smooth Print, PC/Mac → USB, Android app → its own flow), and you must be logged in. While the Android app is the active APK, Android browsers go to `/last-ned`; activate a Smooth Print APK or none to get the Smooth Print steps.
+
 ## Further reading
 
 | Doc | Contents |
