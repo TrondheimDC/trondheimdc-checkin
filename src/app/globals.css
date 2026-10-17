@@ -504,6 +504,56 @@ h2 {
   animation: scan-line 2.2s cubic-bezier(0.45, 0, 0.2, 1) infinite;
 }
 
+/* Flash inside the reticle when a code is read. Keyed per hit so it replays. */
+.scan-reticle-hit {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--reticle-radius);
+  background: color-mix(in srgb, var(--color-fg-brand) 28%, transparent);
+  box-shadow: inset 0 0 0 4px var(--color-fg-brand);
+  opacity: 0;
+  animation: scan-hit 0.45s ease-out;
+}
+
+@keyframes scan-hit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Wide box for the printer's 1D serial barcode; the decoder reads around it. */
+.scan-guide {
+  position: absolute;
+  pointer-events: none;
+  border: 3px solid var(--color-fg-brand);
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.45);
+}
+
+.scan-guide-line {
+  position: absolute;
+  top: 50%;
+  inset-inline: 4%;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-fg-brand);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-fg-brand) 70%, transparent);
+  animation: scan-guide-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes scan-guide-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .scan-hud {
   animation: scan-hud-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -662,6 +712,11 @@ button.checkin-btn.checkin-btn--checked:hover {
   .auth-glow-a,
   .auth-glow-b {
     animation: none;
+  }
+
+  .scan-guide-line {
+    animation: none;
+    opacity: 1;
   }
 
   .auth-card,

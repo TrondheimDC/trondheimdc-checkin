@@ -39,7 +39,7 @@ export function SerialScanButton({ onScan }: { onScan: (serial: string) => void 
           <div className="mt-4 flex min-h-0 justify-center">
             {open ? (
               <ScanCamera
-                mode="multi"
+                mode="serial"
                 aspectClassName="aspect-[4/3] h-[min(55dvh,22rem)] w-auto max-w-full"
                 parse={(raw) => {
                   const serial = normalizePrinterSerial(raw)
@@ -51,7 +51,7 @@ export function SerialScanButton({ onScan }: { onScan: (serial: string) => void 
                 }}
                 invalidMessage="Tom strekkode. Prøv igjen."
                 cameraError="Ingen tilgang til kamera. Skriv inn serienummeret manuelt."
-                hint="Pek på strekkoden på printeren"
+                hint="Hold strekkoden i rammen. Bruk 2× hvis den er liten."
               />
             ) : null}
           </div>

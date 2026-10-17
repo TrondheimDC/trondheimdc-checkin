@@ -1,12 +1,14 @@
 "use client"
 
-import {
-  BrowserMultiFormatReader,
-  BrowserQRCodeReader,
-  type IScannerControls,
-} from "@zxing/browser"
 import { Flashlight, FlashlightOff } from "lucide-react"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
+import {
+  type ScanControls,
+  type ScanRegion,
+  type ScanTarget,
+  scanFeedback,
+  scanStream,
+} from "@/lib/barcode-scan"
 import {
   applyTorch,
   BLANK_VIDEO_POSTER,
@@ -14,6 +16,8 @@ import {
   setTorch,
   type TorchTrack,
   trackSupportsTorch,
+  trackSupportsZoom,
+  tuneCamera,
   videoTrackFrom,
 } from "@/lib/camera-torch"
 import { cn } from "@/lib/utils"
@@ -21,10 +25,15 @@ import { cn } from "@/lib/utils"
 const torchButtonClass =
   "flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/75 active:scale-95"
 
-type ScanMode = "qr" | "multi"
+/** Wide guide box for the serial barcode, as fractions of the preview. */
+const SERIAL_GUIDE: ScanRegion = { left: 0.08, top: 0.32, width: 0.84, height: 0.36 }
+/** Decode a little beyond the guide, so a barcode touching its edge still reads. */
+const SERIAL_DECODE: ScanRegion = { left: 0.02, top: 0.2, width: 0.96, height: 0.6 }
+/** Zoom button level: lets a small label be read from 15–20 cm, where lenses still focus. */
+const ZOOM_IN = 2
 
 /**
- * Shared rear-camera scan surface (torch + zxing).
+ * Shared rear-camera scan surface (torch + BarcodeDetector / zxing).
  * `parse` returns a normalized value or null; on null we keep scanning and show invalidMessage.
  */
 export function ScanCamera<T>({
@@ -37,7 +46,7 @@ export function ScanCamera<T>({
   hint,
   aspectClassName = "aspect-[3/4] w-full max-h-full",
 }: {
-  mode?: ScanMode
+  mode?: ScanTarget
   parse: (raw: string) => T | null
   onFound: (value: T) => void
   invalidMessage?: string
@@ -53,6 +62,8 @@ export function ScanCamera<T>({
   const [error, setError] = useState<string | null>(null)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
+  const [zoomed, setZoomed] = useState(false)
+  const [zoomSupported, setZoomSupported] = useState(false)
   // Bumped when Android ends the camera track under us; reopens the camera.
   const [cameraRestarts, setCameraRestarts] = useState(0)
 
@@ -64,15 +75,17 @@ export function ScanCamera<T>({
     const video = videoRef.current
     if (!video) return
 
-    const reader = mode === "multi" ? new BrowserMultiFormatReader() : new BrowserQRCodeReader()
+    const serial = mode === "serial"
     let stopped = false
     // Cancels an open still in flight when this run is cleaned up (see openRearCamera).
     const cancel = new AbortController()
     let found = false
     const torchPolls: number[] = []
-    const controlsRef: { current: IScannerControls | null } = { current: null }
+    const controlsRef: { current: ScanControls | null } = { current: null }
     setTorchOn(false)
     setTorchSupported(false)
+    setZoomed(false)
+    setZoomSupported(false)
     setError(null)
     trackRef.current = null
 
@@ -82,27 +95,37 @@ export function ScanCamera<T>({
       if (!track) return
       trackRef.current = track
       setTorchSupported(trackSupportsTorch(track))
+      setZoomSupported(trackSupportsZoom(track))
     }
 
-    const controlsPromise = openRearCamera(undefined, cancel.signal).then((stream) => {
+    const controlsPromise = openRearCamera(
+      undefined,
+      cancel.signal,
+      serial ? "high" : "default",
+    ).then((stream) => {
       const track = stream.getVideoTracks()[0] as TorchTrack | undefined
       trackRef.current = track ?? null
       if (stopped) {
         for (const item of stream.getTracks()) item.stop()
         throw new Error("stopped")
       }
-      return reader.decodeFromStream(stream, video, (result) => {
-        if (!result || stopped || found) return
-        const value = handleParse(result.getText())
-        if (value == null) {
-          setError(invalidMessage)
-          return
-        }
-        found = true
-        stopped = true
-        setError(null)
-        controlsRef.current?.stop()
-        handleFound(value)
+      return scanStream(stream, video, {
+        target: mode,
+        region: serial ? SERIAL_DECODE : undefined,
+        onText: (text) => {
+          if (stopped || found) return
+          const value = handleParse(text)
+          if (value == null) {
+            setError(invalidMessage)
+            return
+          }
+          found = true
+          stopped = true
+          setError(null)
+          scanFeedback()
+          controlsRef.current?.stop()
+          handleFound(value)
+        },
       })
     })
 
@@ -116,9 +139,11 @@ export function ScanCamera<T>({
         const track = trackRef.current
         // Start dark, and offer the button only once that has settled: a quick tap on
         // a fresh camera must not be undone by this reset.
+        // Focus after the torch reset: some browsers drop constraints a later apply leaves out.
         if (track) {
           void applyTorch(track, false)
             .catch(() => undefined)
+            .then(() => tuneCamera(track))
             .finally(refreshTorch)
         } else {
           refreshTorch()
@@ -157,6 +182,16 @@ export function ScanCamera<T>({
     const state = await setTorch(track, next)
     setTorchOn(state.on)
     setTorchSupported(state.supported)
+    if (zoomed) void tuneCamera(track, { zoom: ZOOM_IN })
+  }
+
+  async function toggleZoom() {
+    if (!zoomSupported) return
+    const track = trackRef.current ?? videoTrackFrom(videoRef.current)
+    if (!track) return
+    const next = !zoomed
+    setZoomed(next)
+    await tuneCamera(track, { zoom: next ? ZOOM_IN : 1 })
   }
 
   return (
@@ -169,7 +204,41 @@ export function ScanCamera<T>({
         playsInline
         autoPlay
       />
-      <div className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-inset ring-[var(--color-fg-brand)]/50" />
+      {mode === "serial" ? (
+        <div
+          className="scan-guide"
+          style={{
+            left: `${SERIAL_GUIDE.left * 100}%`,
+            top: `${SERIAL_GUIDE.top * 100}%`,
+            width: `${SERIAL_GUIDE.width * 100}%`,
+            height: `${SERIAL_GUIDE.height * 100}%`,
+          }}
+          aria-hidden
+        >
+          <span className="scan-guide-line" />
+        </div>
+      ) : (
+        <div className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-inset ring-[var(--color-fg-brand)]/50" />
+      )}
+      <button
+        type="button"
+        className={`absolute top-3 left-3 z-10 text-base font-semibold tabular-nums ${torchButtonClass} ${
+          !zoomSupported
+            ? "scan-torch-disabled pointer-events-none"
+            : zoomed
+              ? "bg-[var(--color-fg-brand)] text-[var(--color-fg-always-dark)] hover:bg-[var(--color-green-3)]"
+              : ""
+        }`}
+        aria-label={!zoomSupported ? "Zoom ikke tilgjengelig" : zoomed ? "Zoom ut" : "Zoom inn"}
+        aria-pressed={zoomed}
+        aria-disabled={!zoomSupported}
+        disabled={!zoomSupported}
+        onClick={() => void toggleZoom()}
+      >
+        <span className={zoomSupported ? undefined : "opacity-30"}>
+          {zoomed && zoomSupported ? `${ZOOM_IN}×` : "1×"}
+        </span>
+      </button>
       <button
         type="button"
         className={`absolute top-3 right-3 z-10 ${torchButtonClass} ${

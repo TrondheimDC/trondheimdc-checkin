@@ -62,6 +62,9 @@ importers:
       '@zxing/browser':
         specifier: ^0.1.5
         version: 0.1.5(@zxing/library@0.21.3)
+      '@zxing/library':
+        specifier: ^0.21.3
+        version: 0.21.3
       better-auth:
         specifier: ^1.7.6
         version: 1.7.6(drizzle-kit@0.30.6)(drizzle-orm@0.36.4(@libsql/client@0.17.4)(@types/react@19.3.0)(kysely@0.29.6)(react@19.3.0))(next@16.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

@@ -89,18 +89,26 @@ async function openFirst(attempts: MediaTrackConstraints[]): Promise<MediaStream
   throw lastError instanceof Error ? lastError : new Error("camera")
 }
 
-function constraintsFor(deviceId: string | undefined): MediaTrackConstraints[] {
+/** `high` is for small 1D barcodes: at 720p the serial label's bars are a pixel or two wide. */
+export type CameraQuality = "default" | "high"
+
+const FRAME_SIZE: Record<CameraQuality, MediaTrackConstraints> = {
+  default: { width: { ideal: 1280 }, height: { ideal: 720 } },
+  high: { width: { ideal: 1920 }, height: { ideal: 1080 } },
+}
+
+function constraintsFor(
+  deviceId: string | undefined,
+  quality: CameraQuality,
+): MediaTrackConstraints[] {
+  const size = FRAME_SIZE[quality]
   const rear: MediaTrackConstraints[] = [
-    { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    { facingMode: { ideal: "environment" }, ...size },
     { facingMode: "environment" },
   ]
   // A stored deviceId can go stale (camera unplugged, browser rotated ids) — fall back to rear.
   return deviceId
-    ? [
-        { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        { deviceId: { exact: deviceId } },
-        ...rear,
-      ]
+    ? [{ deviceId: { exact: deviceId }, ...size }, { deviceId: { exact: deviceId } }, ...rear]
     : rear
 }
 
@@ -124,8 +132,9 @@ let cameraQueue: Promise<unknown> = Promise.resolve()
 export function openRearCamera(
   deviceId: string | undefined,
   signal?: AbortSignal,
+  quality: CameraQuality = "default",
 ): Promise<MediaStream> {
-  const opening = cameraQueue.then(() => openRearCameraNow(deviceId, signal))
+  const opening = cameraQueue.then(() => openRearCameraNow(deviceId, signal, quality))
   cameraQueue = opening.catch(() => undefined)
   return opening
 }
@@ -133,6 +142,7 @@ export function openRearCamera(
 async function openRearCameraNow(
   deviceId: string | undefined,
   signal: AbortSignal | undefined,
+  quality: CameraQuality,
 ): Promise<MediaStream> {
   if (signal?.aborted) throw abortError()
   // Pick before opening; re-picking after the stream is live means a second getUserMedia (flash).
@@ -145,7 +155,7 @@ async function openRearCameraNow(
       undefined
   }
   if (signal?.aborted) throw abortError()
-  const stream = await openFirst(constraintsFor(deviceId))
+  const stream = await openFirst(constraintsFor(deviceId, quality))
   if (signal?.aborted) {
     stopStream(stream)
     throw abortError()
@@ -169,12 +179,41 @@ async function openRearCameraNow(
   const live = stream.getVideoTracks()[0]?.getSettings().deviceId
   if (!live || live === main) return stream
   stopStream(stream)
-  const switched = await openFirst(constraintsFor(main))
+  const switched = await openFirst(constraintsFor(main, quality))
   if (signal?.aborted) {
     stopStream(switched)
     throw abortError()
   }
   return switched
+}
+
+type FocusCapabilities = MediaTrackCapabilities & {
+  focusMode?: string[]
+  zoom?: { min: number; max: number }
+}
+
+/** The camera can zoom in (Chrome on Android; most others report no zoom range). */
+export function trackSupportsZoom(track: MediaStreamTrack): boolean {
+  const zoom = (track.getCapabilities?.() as FocusCapabilities | undefined)?.zoom
+  return zoom != null && zoom.max > zoom.min
+}
+
+/**
+ * Continuous autofocus, and optionally a zoom (clamped to the camera's range). Best effort:
+ * browsers without these constraints ignore it.
+ */
+export async function tuneCamera(track: MediaStreamTrack, { zoom }: { zoom?: number } = {}) {
+  const caps = track.getCapabilities?.() as FocusCapabilities | undefined
+  if (!caps) return
+  const settings: Record<string, unknown> = {}
+  if (caps.focusMode?.includes("continuous")) settings.focusMode = "continuous"
+  if (zoom && caps.zoom && caps.zoom.max > caps.zoom.min) {
+    settings.zoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, zoom))
+  }
+  if (Object.keys(settings).length === 0) return
+  await track
+    .applyConstraints({ advanced: [settings as MediaTrackConstraintSet] })
+    .catch(() => undefined)
 }
 
 /**

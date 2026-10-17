@@ -7,22 +7,26 @@ import {
   MapPin,
   Printer,
   ScanLine,
+  ScanQrCode,
   ShieldCheck,
   Smartphone,
   Zap,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import type { ReactNode } from "react"
+import { type ReactNode, useSyncExternalStore } from "react"
 import { TdcLogo } from "@/components/tdc-logo"
 import { Button } from "@/components/ui/button"
 import { APP_DOWNLOAD_PATH } from "@/lib/android-app"
 import { authClient } from "@/lib/auth-client"
+import { hasNativeBarcodeDetector } from "@/lib/barcode-scan"
 import {
   SCAN_AUTO_PRINT_DEFAULT,
   SCAN_AUTO_PRINT_KEY,
   SCAN_INLINE_DEFAULT,
   SCAN_INLINE_KEY,
+  SCAN_ZXING_DEFAULT,
+  SCAN_ZXING_KEY,
 } from "@/lib/scan-settings"
 import { setLocalFlag, useLocalFlag } from "@/lib/use-local-flag"
 
@@ -59,6 +63,8 @@ function SettingToggle({
   )
 }
 
+const noSubscribe = () => () => {}
+
 /**
  * The Android app's version (null for a local build), a newer uploaded one, if any, and
  * whether this login is an admin. The app has no address bar, so admin is reached from here.
@@ -76,7 +82,10 @@ export function SettingsScreen({
   const router = useRouter()
   const scanInline = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
   const autoPrint = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
-  const flagsReady = scanInline !== null && autoPrint !== null
+  const zxing = useLocalFlag(SCAN_ZXING_KEY, SCAN_ZXING_DEFAULT)
+  // Null before hydration; the toggle stays disabled until then, so the layout does not move.
+  const nativeDetector = useSyncExternalStore(noSubscribe, hasNativeBarcodeDetector, () => null)
+  const flagsReady = scanInline !== null && autoPrint !== null && zxing !== null
 
   const signOut = useMutation({
     mutationFn: async () => {
@@ -94,6 +103,10 @@ export function SettingsScreen({
 
   function toggleAutoPrint() {
     setLocalFlag(SCAN_AUTO_PRINT_KEY, autoPrint !== true)
+  }
+
+  function toggleZxing() {
+    setLocalFlag(SCAN_ZXING_KEY, zxing !== true)
   }
 
   return (
@@ -132,6 +145,19 @@ export function SettingsScreen({
           icon={<Zap className="size-5" aria-hidden />}
           title="Skriv ut med en gang"
           description="Skriv ut automatisk for nye innsjekker."
+        />
+
+        <SettingToggle
+          pressed={flagsReady ? zxing === true || nativeDetector === false : false}
+          onToggle={toggleZxing}
+          disabled={!flagsReady || nativeDetector !== true}
+          icon={<ScanQrCode className="size-5" aria-hidden />}
+          title="Skann med ZXing"
+          description={
+            nativeDetector === false
+              ? "Denne nettleseren skanner alltid med ZXing."
+              : "Bruk ZXing i stedet for nettleserens innebygde skanner."
+          }
         />
 
         <Button

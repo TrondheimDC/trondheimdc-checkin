@@ -1,7 +1,6 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
 import {
   Camera,
   Check,
@@ -21,6 +20,7 @@ import { ScanResultSheet } from "@/components/scan-result-sheet"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import { type ScanControls, scanFeedback, scanStream } from "@/lib/barcode-scan"
 import {
   applyTorch,
   BLANK_VIDEO_POSTER,
@@ -30,6 +30,7 @@ import {
   setTorch,
   type TorchTrack,
   trackSupportsTorch,
+  tuneCamera,
   videoTrackFrom,
 } from "@/lib/camera-torch"
 import { type Attendee, attendeeResponseSchema, attendeeStatsSchema } from "@/lib/db/schema"
@@ -78,7 +79,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
   usePrinterStatusBar()
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
-  const controlsRef = useRef<IScannerControls | null>(null)
+  const controlsRef = useRef<ScanControls | null>(null)
   const trackRef = useRef<TorchTrack | null>(null)
   const busyRef = useRef(false)
   const lastAcceptedRef = useRef<{ text: string; at: number } | null>(null)
@@ -103,6 +104,8 @@ export function Scanner({ printerName }: { printerName?: string }) {
   // Bumped when Android ends the camera track under us; reopens the camera.
   const [cameraRestarts, setCameraRestarts] = useState(0)
   const [sheetAttendee, setSheetAttendee] = useState<Attendee | null>(null)
+  // Bumped per accepted read; keys the reticle flash so it replays.
+  const [hits, setHits] = useState(0)
 
   useEffect(() => {
     const sync = () => setTabVisible(document.visibilityState === "visible")
@@ -162,7 +165,6 @@ export function Scanner({ printerName }: { printerName?: string }) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: cameraRestarts only reopens the camera
   useEffect(() => {
     if (!tabVisible || !videoRef.current) return
-    const reader = new BrowserQRCodeReader()
     const video = videoRef.current
     let stopped = false
     // Cancels an open still in flight when this run is cleaned up (see openRearCamera).
@@ -190,15 +192,20 @@ export function Scanner({ printerName }: { printerName?: string }) {
         for (const item of stream.getTracks()) item.stop()
         throw new Error("stopped")
       }
-      return reader.decodeFromStream(stream, video, (result) => {
-        if (!result || stopped || busyRef.current) return
-        const text = result.getText().trim()
-        if (!text) return
-        const last = lastAcceptedRef.current
-        if (last && last.text === text && Date.now() - last.at < SAME_CODE_COOLDOWN_MS) return
-        // Only gate while a lookup is in flight — camera stays up for continuous scan.
-        busyRef.current = true
-        void handleDecoded(text)
+      return scanStream(stream, video, {
+        target: "qr",
+        onText: (raw) => {
+          if (stopped || busyRef.current) return
+          const text = raw.trim()
+          if (!text) return
+          const last = lastAcceptedRef.current
+          if (last && last.text === text && Date.now() - last.at < SAME_CODE_COOLDOWN_MS) return
+          // Only gate while a lookup is in flight — camera stays up for continuous scan.
+          busyRef.current = true
+          scanFeedback()
+          setHits((count) => count + 1)
+          void handleDecoded(text)
+        },
       })
     })
 
@@ -217,6 +224,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
         if (track) {
           void applyTorch(track, false)
             .catch(() => undefined)
+            .then(() => tuneCamera(track))
             .finally(refreshTorch)
         } else {
           refreshTorch()
@@ -230,7 +238,9 @@ export function Scanner({ printerName }: { printerName?: string }) {
         )
         torchPolls.push(window.setTimeout(refreshTorch, 400), window.setTimeout(refreshTorch, 1200))
 
-        const devices = await BrowserQRCodeReader.listVideoInputDevices()
+        const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
+          (device) => device.kind === "videoinput",
+        )
         if (stopped) return
         setCameras(devices)
         if (deviceId && !devices.some((device) => device.deviceId === deviceId)) {
@@ -341,6 +351,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
           <span className="scan-reticle-corner bl" />
           <span className="scan-reticle-corner br" />
           {cameraLive && !error ? <span className="scan-reticle-line" /> : null}
+          {hits > 0 ? <span key={hits} className="scan-reticle-hit" /> : null}
         </div>
         {error ? (
           <p className="absolute inset-0 flex items-center justify-center p-12 text-center text-lg leading-snug text-white/80">

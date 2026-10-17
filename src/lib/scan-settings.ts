@@ -8,3 +8,7 @@ export const SCAN_AUTO_PRINT_DEFAULT = false
 
 /** `deviceId` of the camera staff picked in the scanner; unset means auto-pick the rear camera. */
 export const SCAN_CAMERA_KEY = "tdc-scan-camera"
+
+/** Decode with ZXing even where the browser has a built-in BarcodeDetector. */
+export const SCAN_ZXING_KEY = "tdc-scan-zxing"
+export const SCAN_ZXING_DEFAULT = false
