@@ -43,6 +43,8 @@ import {
   SCAN_CAMERA_KEY,
   SCAN_INLINE_DEFAULT,
   SCAN_INLINE_KEY,
+  SCAN_SELF_SERVICE_DEFAULT,
+  SCAN_SELF_SERVICE_KEY,
 } from "@/lib/scan-settings"
 import { useLocalFlag } from "@/lib/use-local-flag"
 import { apiPath } from "@/lib/utils"
@@ -83,8 +85,12 @@ export function Scanner({ printerName }: { printerName?: string }) {
   const trackRef = useRef<TorchTrack | null>(null)
   const busyRef = useRef(false)
   const lastAcceptedRef = useRef<{ text: string; at: number } | null>(null)
-  const scanInlineFlag = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
-  const autoPrintFlag = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
+  const selfService = useLocalFlag(SCAN_SELF_SERVICE_KEY, SCAN_SELF_SERVICE_DEFAULT)
+  const inlineSetting = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
+  const autoPrintSetting = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
+  // A self check-in stand always shows the card over the camera and prints at once.
+  const scanInlineFlag = selfService === true ? true : inlineSetting
+  const autoPrintFlag = selfService === true ? true : autoPrintSetting
   const [error, setError] = useState<string | null>(null)
   const [cameraLive, setCameraLive] = useState(false)
   const [scanHint, setScanHint] = useState<string | null>(null)
@@ -459,6 +465,7 @@ export function Scanner({ printerName }: { printerName?: string }) {
       <ScanResultSheet
         attendee={sheetAttendee}
         autoPrint={autoPrintFlag === true}
+        selfService={selfService === true}
         onDismiss={() => setSheetAttendee(null)}
         onPrinted={() => setSheetAttendee(null)}
       />

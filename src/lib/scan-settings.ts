@@ -12,3 +12,10 @@ export const SCAN_CAMERA_KEY = "tdc-scan-camera"
 /** Decode with ZXing even where the browser has a built-in BarcodeDetector. */
 export const SCAN_ZXING_KEY = "tdc-scan-zxing"
 export const SCAN_ZXING_DEFAULT = false
+
+/**
+ * Self check-in stand: forces the inline card and auto-print, confirms a print on the card,
+ * and closes cards by themselves. An organizer is still there, so nothing is locked down.
+ */
+export const SCAN_SELF_SERVICE_KEY = "tdc-scan-self-service"
+export const SCAN_SELF_SERVICE_DEFAULT = false

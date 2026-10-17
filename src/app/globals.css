@@ -504,6 +504,21 @@ h2 {
   animation: scan-line 2.2s cubic-bezier(0.45, 0, 0.2, 1) infinite;
 }
 
+/* Self check-in confirmation: the bar runs out as the card closes. */
+.self-service-countdown {
+  transform-origin: left;
+  animation: self-service-countdown linear both;
+}
+
+@keyframes self-service-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 /* Flash inside the reticle when a code is read. Keyed per hit so it replays. */
 .scan-reticle-hit {
   position: absolute;

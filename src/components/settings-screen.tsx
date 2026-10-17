@@ -10,6 +10,7 @@ import {
   ScanQrCode,
   ShieldCheck,
   Smartphone,
+  UserRoundCheck,
   Zap,
 } from "lucide-react"
 import Link from "next/link"
@@ -25,6 +26,8 @@ import {
   SCAN_AUTO_PRINT_KEY,
   SCAN_INLINE_DEFAULT,
   SCAN_INLINE_KEY,
+  SCAN_SELF_SERVICE_DEFAULT,
+  SCAN_SELF_SERVICE_KEY,
   SCAN_ZXING_DEFAULT,
   SCAN_ZXING_KEY,
 } from "@/lib/scan-settings"
@@ -83,9 +86,11 @@ export function SettingsScreen({
   const scanInline = useLocalFlag(SCAN_INLINE_KEY, SCAN_INLINE_DEFAULT)
   const autoPrint = useLocalFlag(SCAN_AUTO_PRINT_KEY, SCAN_AUTO_PRINT_DEFAULT)
   const zxing = useLocalFlag(SCAN_ZXING_KEY, SCAN_ZXING_DEFAULT)
+  const selfService = useLocalFlag(SCAN_SELF_SERVICE_KEY, SCAN_SELF_SERVICE_DEFAULT)
   // Null before hydration; the toggle stays disabled until then, so the layout does not move.
   const nativeDetector = useSyncExternalStore(noSubscribe, hasNativeBarcodeDetector, () => null)
-  const flagsReady = scanInline !== null && autoPrint !== null && zxing !== null
+  const flagsReady =
+    scanInline !== null && autoPrint !== null && zxing !== null && selfService !== null
 
   const signOut = useMutation({
     mutationFn: async () => {
@@ -109,6 +114,10 @@ export function SettingsScreen({
     setLocalFlag(SCAN_ZXING_KEY, zxing !== true)
   }
 
+  function toggleSelfService() {
+    setLocalFlag(SCAN_SELF_SERVICE_KEY, selfService !== true)
+  }
+
   return (
     <main className="attendee-reveal flex h-dvh flex-col gap-6 p-4 pt-[max(1rem,calc(env(safe-area-inset-top)+var(--printer-status-bar,0px)))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="shrink-0 pt-2">
@@ -130,18 +139,27 @@ export function SettingsScreen({
         <p className="text-sm tracking-wide text-[var(--color-fg-brand)]">Innsjekk</p>
 
         <SettingToggle
-          pressed={flagsReady ? scanInline === true : false}
-          onToggle={toggleScanInline}
+          pressed={flagsReady ? selfService === true : false}
+          onToggle={toggleSelfService}
           disabled={!flagsReady}
+          icon={<UserRoundCheck className="size-5" aria-hidden />}
+          title="Selvbetjening"
+          description="Deltakerne skanner selv. Viser en bekreftelse etter utskrift og lukker kortet av seg selv."
+        />
+
+        <SettingToggle
+          pressed={flagsReady ? scanInline === true || selfService === true : false}
+          onToggle={toggleScanInline}
+          disabled={!flagsReady || selfService === true}
           icon={<ScanLine className="size-5" aria-hidden />}
           title="Vis resultat på skann"
           description="Vis deltakeren over kameraet, ikke på en egen side."
         />
 
         <SettingToggle
-          pressed={flagsReady ? autoPrint === true : false}
+          pressed={flagsReady ? autoPrint === true || selfService === true : false}
           onToggle={toggleAutoPrint}
-          disabled={!flagsReady}
+          disabled={!flagsReady || selfService === true}
           icon={<Zap className="size-5" aria-hidden />}
           title="Skriv ut med en gang"
           description="Skriv ut automatisk for nye innsjekker."
